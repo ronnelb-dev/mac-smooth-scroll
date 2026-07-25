@@ -186,6 +186,12 @@ modifier behavior, and the scroll-input transformation rules used by the
 runtime engine. GitHub Actions runs the suite before packaging every pull
 request and `main` update.
 
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) and the
+[v0.3.0 milestone](https://github.com/ronnelb-dev/mac-smooth-scroll/milestone/1)
+for the prioritized reliability work and future backlog.
+
 ## Development notes
 
 The app uses an independent Swift implementation built with public macOS APIs:
