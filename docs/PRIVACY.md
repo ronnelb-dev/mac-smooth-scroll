@@ -1,0 +1,55 @@
+# Mac Smooth Scroll Privacy Statement
+
+Mac Smooth Scroll is designed to perform its work locally on the Mac.
+
+## Data processing
+
+The app observes discrete scroll-wheel events through a macOS Core Graphics
+event tap. It uses the wheel deltas and active modifier flags to calculate and
+post replacement pixel-scrolling events.
+
+This processing happens in memory. Mac Smooth Scroll does not save or transmit
+raw wheel events, keyboard input, browsing activity, application content, or
+mouse usage history.
+
+## Local preferences
+
+The following choices are stored locally with macOS `UserDefaults`:
+
+- Whether smooth scrolling is enabled
+- Smoothness and speed
+- Trackpad simulation, reverse direction, and adaptive precision
+- Modifier assignments
+- Menu-bar visibility
+- Launch at Login preference
+
+These preferences use the app domain `com.ronnel.mac-smooth-scroll`. They can be
+removed with:
+
+```sh
+defaults delete com.ronnel.mac-smooth-scroll
+```
+
+## Permissions
+
+Accessibility permission allows the app to intercept and replace mouse-wheel
+events. Mac Smooth Scroll checks this permission with the public macOS
+Accessibility APIs.
+
+The app does not use Accessibility permission to read application content or
+record keyboard input.
+
+## Other applications
+
+Mac Smooth Scroll checks whether processes with the Mac Mouse Fix application
+or helper bundle identifiers are running. It uses only that running/not-running
+state to pause its scroll engine and prevent two mouse drivers from processing
+the same wheel input.
+
+## Network activity
+
+The current source contains no networking, analytics, telemetry, advertising,
+account, cloud-sync, crash-upload, or automatic-update implementation.
+
+If a future version adds network functionality, this statement and the
+user-facing documentation should be updated before that version is released.
