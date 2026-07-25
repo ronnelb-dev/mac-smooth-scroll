@@ -45,31 +45,25 @@ sips -z 1024 1024 "$brand_icon" --out "$iconset_dir/icon_512x512@2x.png" >/dev/n
 iconutil -c icns "$iconset_dir" -o "$contents_dir/Resources/AppIcon.icns"
 
 signing_identity="${MAC_SMOOTH_SCROLL_SIGNING_IDENTITY:-}"
-if [[ -z "$signing_identity" ]]; then
-    signing_identity="$(
-        security find-identity -v -p codesigning |
-            awk '/Apple Development:/ && identity == "" { identity = $2 } END { print identity }'
-    )"
-fi
 
 if [[ -n "$signing_identity" ]]; then
     codesign \
         --force \
         --options runtime \
-        --timestamp=none \
+        --timestamp \
         --sign "$signing_identity" \
         "$launcher_bundle_dir"
     codesign \
         --force \
         --options runtime \
-        --timestamp=none \
+        --timestamp \
         --sign "$signing_identity" \
         "$bundle_dir"
     echo "Signed with: $signing_identity"
 else
-    codesign --force --sign - "$launcher_bundle_dir"
-    codesign --force --sign - "$bundle_dir"
-    echo "Signed ad-hoc (no Apple Development identity was found)."
+    codesign --force --options runtime --sign - "$launcher_bundle_dir"
+    codesign --force --options runtime --sign - "$bundle_dir"
+    echo "Signed ad-hoc (set MAC_SMOOTH_SCROLL_SIGNING_IDENTITY to opt in to certificate signing)."
 fi
 
 echo "$bundle_dir"
