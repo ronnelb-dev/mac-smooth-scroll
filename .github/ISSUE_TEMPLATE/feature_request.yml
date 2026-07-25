@@ -1,0 +1,72 @@
+name: Feature request
+description: Suggest an improvement for Mac Smooth Scroll
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. Please describe the problem first so the proposal can be evaluated against the app's focused scope.
+
+  - type: checkboxes
+    id: existing-request
+    attributes:
+      label: Existing request
+      options:
+        - label: I searched the existing issues and did not find a matching request.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature area
+      options:
+        - Scrolling behavior
+        - Mouse compatibility
+        - Keyboard modifiers
+        - Menu-bar mode
+        - Launch at login
+        - Settings interface
+        - Accessibility and onboarding
+        - Build or contributor tooling
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What limitation or workflow problem are you trying to solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Explain the behavior you would like to see.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any workarounds or other approaches you tried.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add mockups, examples, or links that clarify the request.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Project scope
+      options:
+        - label: This request is for Apple Silicon macOS and does not require publishing an unnotarized binary.
+          required: true
