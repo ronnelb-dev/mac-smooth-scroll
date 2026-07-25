@@ -28,10 +28,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var permissionTimer: Timer?
     private var isHiddenToMenuBar = false
     private var isTerminating = false
-    private let launchedInBackground = ProcessInfo.processInfo.arguments.contains("--background")
+    private let launchMode = AppLaunchMode(arguments: ProcessInfo.processInfo.arguments)
 
     func applicationWillFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(launchedInBackground ? .accessory : .regular)
+        NSApp.setActivationPolicy(launchMode == .background ? .accessory : .regular)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -58,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.attachWindowDelegates()
-            if self.launchedInBackground {
+            if self.launchMode == .background {
                 self.hideToMenuBar()
             } else {
                 self.showSettings()

@@ -30,6 +30,7 @@ intend to use it for this project.
 Run:
 
 ```sh
+swift test --arch arm64
 swift build -c release --arch arm64
 zsh -n Scripts/build-app.sh
 plutil -lint Resources/Info.plist Resources/Launcher-Info.plist

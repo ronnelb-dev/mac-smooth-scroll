@@ -38,6 +38,9 @@ jobs:
           plutil -lint Resources/Info.plist Resources/Launcher-Info.plist
           git diff --check
 
+      - name: Run unit tests
+        run: swift test --arch arm64
+
       - name: Build and package
         run: ./Scripts/build-app.sh
 
