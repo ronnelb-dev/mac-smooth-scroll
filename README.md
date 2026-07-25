@@ -69,4 +69,5 @@ inspiration. No Mac Mouse Fix source files are included in this repository.
 
 ## License
 
-No software license has been selected yet.
+Mac Smooth Scroll is licensed under the
+[GNU General Public License v3.0](LICENSE).
