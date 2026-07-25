@@ -1,0 +1,115 @@
+name: Bug report
+description: Report a reproducible problem with Mac Smooth Scroll
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Mac Smooth Scroll.
+
+        Please do not report security vulnerabilities here. Use the repository's private security reporting link instead.
+
+  - type: checkboxes
+    id: existing-issue
+    attributes:
+      label: Existing issue
+      options:
+        - label: I searched the existing issues and did not find a matching report.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Smooth scrolling
+        - Reverse direction or precision
+        - Keyboard modifiers
+        - Accessibility permission
+        - Menu-bar mode
+        - Launch at login
+        - Settings interface
+        - Building from source
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Enter the app version or Git commit you built.
+      placeholder: "0.2.0 or c045bd7"
+    validations:
+      required: true
+
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "macOS 15.6"
+    validations:
+      required: true
+
+  - type: input
+    id: hardware
+    attributes:
+      label: Mac and mouse
+      description: Include the Apple Silicon model and external mouse model.
+      placeholder: "MacBook Air M3; Logitech MX Master 3S"
+    validations:
+      required: true
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Relevant configuration
+      description: Include the selected smoothness, speed, modifiers, Accessibility status, and whether another mouse utility is running.
+      placeholder: |
+        Smoothness:
+        Speed:
+        Accessibility approved:
+        Other mouse utilities:
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add screenshots, screen recordings, crash excerpts, or other useful details. Remove personal information first.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed passwords, private keys, certificates, email addresses, and other sensitive information.
+          required: true
