@@ -51,12 +51,19 @@ from the menu-bar item—or open the app again—to restore Settings. When Launc
 at Login is enabled, the embedded launcher starts the app directly in this
 background mode.
 
-The build script uses the first available Apple Development signing identity so
-that macOS privacy permissions remain stable across local rebuilds. Set
-`MAC_SMOOTH_SCROLL_SIGNING_IDENTITY` to choose a different identity. If no
-development identity is available, the script falls back to ad-hoc signing.
+The build script signs ad-hoc by default and never selects a certificate from
+your Keychain automatically. To opt in to certificate signing, explicitly set
+`MAC_SMOOTH_SCROLL_SIGNING_IDENTITY` to the identity you want to use:
+
+```sh
+MAC_SMOOTH_SCROLL_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+    ./Scripts/build-app.sh
+```
+
+Certificate-signed builds use the hardened runtime and a secure timestamp.
 Distribution to other Macs still requires an Apple Developer ID Application
-certificate and notarization.
+certificate and notarization. Ad-hoc local rebuilds may require Accessibility
+permission to be approved again.
 
 ## Development notes
 
