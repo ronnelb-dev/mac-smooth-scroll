@@ -13,7 +13,7 @@ final class SmoothScrollEngine {
     private var velocityY = 0.0
     private var remainderX = 0.0
     private var remainderY = 0.0
-    private var lastPhysicalEventTime: TimeInterval?
+    private var inputTransformer = ScrollInputTransformer()
     private var gestureActive = false
 
     init(settings: ScrollSettings) {
@@ -81,7 +81,7 @@ final class SmoothScrollEngine {
         velocityY = 0
         remainderX = 0
         remainderY = 0
-        lastPhysicalEventTime = nil
+        inputTransformer.reset()
         finishGestureIfNeeded()
 
         if let eventTap {
@@ -126,40 +126,19 @@ final class SmoothScrollEngine {
         let pointY = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1))
         let pointX = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2))
 
-        var x = pointX == 0 ? lineX * 18 : pointX
-        var y = pointY == 0 ? lineY * 18 : pointY
-        let flags = event.flags
-
-        if settings.horizontalModifier.isActive(in: flags), abs(y) >= abs(x) {
-            x = y
-            y = 0
-        }
-
-        var multiplier = settings.speed.multiplier
-        if settings.reverseDirection {
-            multiplier *= -1
-        }
-        if settings.swiftModifier.isActive(in: flags) {
-            multiplier *= 2.4
-        }
-        if settings.preciseModifier.isActive(in: flags) {
-            multiplier *= 0.28
-        } else if settings.adaptivePrecision {
-            let now = ProcessInfo.processInfo.systemUptime
-            if let lastPhysicalEventTime {
-                let interval = now - lastPhysicalEventTime
-                if interval > 0.18 {
-                    multiplier *= 0.28
-                } else if interval > 0.10 {
-                    multiplier *= 0.52
-                }
-            }
-            lastPhysicalEventTime = now
-        }
-
-        let decay = settings.smoothness.decay
-        velocityX += x * multiplier * (1 - decay)
-        velocityY += y * multiplier * (1 - decay)
+        let impulse = inputTransformer.transform(
+            ScrollInputSample(
+                lineX: lineX,
+                lineY: lineY,
+                pointX: pointX,
+                pointY: pointY,
+                flags: event.flags,
+                timestamp: ProcessInfo.processInfo.systemUptime
+            ),
+            using: settings.scrollTransformConfiguration
+        )
+        velocityX += impulse.x
+        velocityY += impulse.y
 
         ensureAnimationTimer()
     }

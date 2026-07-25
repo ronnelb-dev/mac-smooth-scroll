@@ -99,7 +99,8 @@ final class ScrollSettings: ObservableObject {
         static let launchAtLogin = "app.launchAtLogin"
     }
 
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
+    private let managesLaunchAtLogin: Bool
     var onChange: (() -> Void)?
     var onOpenSettings: (() -> Void)?
     var onHideApp: (() -> Void)?
@@ -140,7 +141,9 @@ final class ScrollSettings: ObservableObject {
     @Published var launchAtLogin: Bool {
         didSet {
             persist(Key.launchAtLogin, launchAtLogin)
-            updateLaunchAtLogin()
+            if managesLaunchAtLogin {
+                updateLaunchAtLogin()
+            }
         }
     }
     @Published var permissionGranted = false
@@ -148,7 +151,12 @@ final class ScrollSettings: ObservableObject {
     @Published var engineMessage = "Waiting to start"
     @Published var launchAtLoginMessage: String?
 
-    init() {
+    init(
+        defaults: UserDefaults = .standard,
+        managesLaunchAtLogin: Bool = true
+    ) {
+        self.defaults = defaults
+        self.managesLaunchAtLogin = managesLaunchAtLogin
         isEnabled = defaults.object(forKey: Key.enabled) as? Bool ?? true
         smoothness = Smoothness(rawValue: defaults.string(forKey: Key.smoothness) ?? "") ?? .high
         speed = ScrollSpeed(rawValue: defaults.string(forKey: Key.speed) ?? "") ?? .medium
@@ -183,6 +191,7 @@ final class ScrollSettings: ObservableObject {
     }
 
     func migrateLaunchAtLoginRegistration() {
+        guard managesLaunchAtLogin else { return }
         let legacyService = SMAppService.mainApp
         if legacyService.status == .enabled || legacyService.status == .requiresApproval {
             try? legacyService.unregister()

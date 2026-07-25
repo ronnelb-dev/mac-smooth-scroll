@@ -19,6 +19,11 @@ let package = Package(
         .executableTarget(
             name: "MacSmoothScrollLauncher",
             path: "Sources/MacSmoothScrollLauncher"
+        ),
+        .testTarget(
+            name: "MacSmoothScrollTests",
+            dependencies: ["MacSmoothScroll"],
+            path: "Tests/MacSmoothScrollTests"
         )
     ]
 )

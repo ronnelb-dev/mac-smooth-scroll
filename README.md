@@ -4,6 +4,8 @@
 
 # Mac Smooth Scroll
 
+[![Apple Silicon CI](https://github.com/ronnelb-dev/mac-smooth-scroll/actions/workflows/ci.yml/badge.svg)](https://github.com/ronnelb-dev/mac-smooth-scroll/actions/workflows/ci.yml)
+
 Mac Smooth Scroll is a native Apple Silicon macOS utility that turns discrete
 external mouse-wheel input into smooth pixel scrolling while leaving native
 trackpad and Magic Mouse events untouched.
@@ -170,6 +172,19 @@ Certificate-signed builds use the hardened runtime and a secure timestamp.
 Distribution to other Macs still requires an Apple Developer ID Application
 certificate and notarization. Ad-hoc local rebuilds may require Accessibility
 permission to be approved again.
+
+## Tests
+
+Run the XCTest suite on Apple Silicon with:
+
+```sh
+swift test --arch arm64
+```
+
+The tests cover launch-mode parsing, settings defaults and persistence,
+modifier behavior, and the scroll-input transformation rules used by the
+runtime engine. GitHub Actions runs the suite before packaging every pull
+request and `main` update.
 
 ## Development notes
 
