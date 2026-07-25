@@ -1,0 +1,91 @@
+name: Apple Silicon CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apple-silicon-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apple-silicon-build:
+    name: Apple Silicon arm64 build
+    runs-on: macos-15
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Confirm Apple Silicon runner
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "arm64"
+
+      - name: Validate source files
+        run: |
+          set -euo pipefail
+          zsh -n Scripts/build-app.sh
+          plutil -lint Resources/Info.plist Resources/Launcher-Info.plist
+          git diff --check
+
+      - name: Build and package
+        run: ./Scripts/build-app.sh
+
+      - name: Verify executable architectures
+        run: |
+          set -euo pipefail
+
+          app="dist/Mac Smooth Scroll.app"
+          launcher="$app/Contents/Library/LoginItems/Mac Smooth Scroll Launcher.app"
+
+          test "$(lipo -archs "$app/Contents/MacOS/MacSmoothScroll")" = "arm64"
+          test "$(lipo -archs "$launcher/Contents/MacOS/MacSmoothScrollLauncher")" = "arm64"
+
+      - name: Verify bundle metadata
+        run: |
+          set -euo pipefail
+
+          app="dist/Mac Smooth Scroll.app"
+          launcher="$app/Contents/Library/LoginItems/Mac Smooth Scroll Launcher.app"
+
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" = \
+            "com.ronnel.mac-smooth-scroll"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$launcher/Contents/Info.plist")" = \
+            "com.ronnel.mac-smooth-scroll.launcher"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSUIElement' "$launcher/Contents/Info.plist")" = "true"
+
+          main_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")"
+          launcher_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$launcher/Contents/Info.plist")"
+          test -n "$main_version"
+          test "$main_version" = "$launcher_version"
+
+      - name: Verify ad-hoc code signatures
+        run: |
+          set -euo pipefail
+
+          app="dist/Mac Smooth Scroll.app"
+          launcher="$app/Contents/Library/LoginItems/Mac Smooth Scroll Launcher.app"
+
+          codesign --verify --strict --verbose=2 "$launcher"
+          codesign --verify --deep --strict --verbose=2 "$app"
+
+          main_signature="$(codesign -dvv "$app" 2>&1)"
+          launcher_signature="$(codesign -dvv "$launcher" 2>&1)"
+
+          grep -q '^Signature=adhoc$' <<<"$main_signature"
+          grep -q '^TeamIdentifier=not set$' <<<"$main_signature"
+          grep -q '^Signature=adhoc$' <<<"$launcher_signature"
+          grep -q '^TeamIdentifier=not set$' <<<"$launcher_signature"
+
+      - name: Confirm build leaves source clean
+        run: test -z "$(git status --short)"
