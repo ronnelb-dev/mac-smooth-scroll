@@ -7,6 +7,9 @@ configuration="${1:-release}"
 app_name="Mac Smooth Scroll"
 bundle_dir="$project_dir/dist/$app_name.app"
 contents_dir="$bundle_dir/Contents"
+launcher_name="Mac Smooth Scroll Launcher"
+launcher_bundle_dir="$contents_dir/Library/LoginItems/$launcher_name.app"
+launcher_contents_dir="$launcher_bundle_dir/Contents"
 iconset_dir="$project_dir/.build/AppIcon.iconset"
 brand_icon="$project_dir/Resources/Brand/MacSmoothScrollIcon.png"
 
@@ -17,10 +20,16 @@ swift build -c "$configuration" --arch arm64
 if [[ -e "$bundle_dir" ]]; then
     rm -rf "$bundle_dir"
 fi
-mkdir -p "$contents_dir/MacOS" "$contents_dir/Resources" "$iconset_dir"
+mkdir -p \
+    "$contents_dir/MacOS" \
+    "$contents_dir/Resources" \
+    "$launcher_contents_dir/MacOS" \
+    "$iconset_dir"
 
 cp ".build/arm64-apple-macosx/$configuration/MacSmoothScroll" "$contents_dir/MacOS/MacSmoothScroll"
+cp ".build/arm64-apple-macosx/$configuration/MacSmoothScrollLauncher" "$launcher_contents_dir/MacOS/MacSmoothScrollLauncher"
 cp "Resources/Info.plist" "$contents_dir/Info.plist"
+cp "Resources/Launcher-Info.plist" "$launcher_contents_dir/Info.plist"
 cp "$brand_icon" "$contents_dir/Resources/BrandIcon.png"
 
 sips -z 16 16 "$brand_icon" --out "$iconset_dir/icon_16x16.png" >/dev/null
@@ -46,14 +55,20 @@ fi
 if [[ -n "$signing_identity" ]]; then
     codesign \
         --force \
-        --deep \
+        --options runtime \
+        --timestamp=none \
+        --sign "$signing_identity" \
+        "$launcher_bundle_dir"
+    codesign \
+        --force \
         --options runtime \
         --timestamp=none \
         --sign "$signing_identity" \
         "$bundle_dir"
     echo "Signed with: $signing_identity"
 else
-    codesign --force --deep --sign - "$bundle_dir"
+    codesign --force --sign - "$launcher_bundle_dir"
+    codesign --force --sign - "$bundle_dir"
     echo "Signed ad-hoc (no Apple Development identity was found)."
 fi
 

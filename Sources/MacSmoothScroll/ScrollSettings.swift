@@ -82,6 +82,8 @@ enum ModifierKey: String, CaseIterable, Identifiable {
 }
 
 final class ScrollSettings: ObservableObject {
+    static let launcherBundleIdentifier = "com.ronnel.mac-smooth-scroll.launcher"
+
     private enum Key {
         static let enabled = "scroll.enabled"
         static let smoothness = "scroll.smoothness"
@@ -100,6 +102,7 @@ final class ScrollSettings: ObservableObject {
     private let defaults = UserDefaults.standard
     var onChange: (() -> Void)?
     var onOpenSettings: (() -> Void)?
+    var onHideApp: (() -> Void)?
 
     @Published var isEnabled: Bool {
         didSet { persist(Key.enabled, isEnabled) }
@@ -171,6 +174,22 @@ final class ScrollSettings: ObservableObject {
         NSWorkspace.shared.open(url)
     }
 
+    func openLoginItemsSettings() {
+        SMAppService.openSystemSettingsLoginItems()
+    }
+
+    func hideToMenuBar() {
+        onHideApp?()
+    }
+
+    func migrateLaunchAtLoginRegistration() {
+        let legacyService = SMAppService.mainApp
+        if legacyService.status == .enabled || legacyService.status == .requiresApproval {
+            try? legacyService.unregister()
+        }
+        updateLaunchAtLogin()
+    }
+
     func resetDefaults() {
         isEnabled = true
         smoothness = .high
@@ -191,13 +210,29 @@ final class ScrollSettings: ObservableObject {
 
     private func updateLaunchAtLogin() {
         guard #available(macOS 13.0, *) else { return }
+        let launcherService = SMAppService.loginItem(identifier: Self.launcherBundleIdentifier)
+        let legacyService = SMAppService.mainApp
+
         do {
             if launchAtLogin {
-                try SMAppService.mainApp.register()
+                if legacyService.status == .enabled || legacyService.status == .requiresApproval {
+                    try? legacyService.unregister()
+                }
+                if launcherService.status == .notRegistered || launcherService.status == .notFound {
+                    try launcherService.register()
+                }
+                launchAtLoginMessage = launcherService.status == .requiresApproval
+                    ? "Approve Mac Smooth Scroll under System Settings → General → Login Items."
+                    : nil
             } else {
-                try SMAppService.mainApp.unregister()
+                if launcherService.status == .enabled || launcherService.status == .requiresApproval {
+                    try? launcherService.unregister()
+                }
+                if legacyService.status == .enabled || legacyService.status == .requiresApproval {
+                    try? legacyService.unregister()
+                }
+                launchAtLoginMessage = nil
             }
-            launchAtLoginMessage = nil
         } catch {
             launchAtLoginMessage = "Launch at login could not be changed: \(error.localizedDescription)"
         }

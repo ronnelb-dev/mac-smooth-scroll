@@ -19,7 +19,8 @@ trackpad and Magic Mouse events untouched.
 - Adaptive precision for slow wheel movement
 - Configurable horizontal, zoom, swift, and precision modifier keys
 - Menu-bar control
-- Launch at login
+- Hide-to-menu-bar mode that removes the settings window and Dock icon
+- Background-only launch at login with a dedicated helper
 - Native Accessibility permission onboarding
 - Automatic pause while Mac Mouse Fix is running to prevent conflicting input
 
@@ -41,6 +42,14 @@ The resulting application is written to:
 ```text
 dist/Mac Smooth Scroll.app
 ```
+
+## Menu-bar mode
+
+Choose **Hide to Menu Bar**, close the settings window, or press `⌘H` to keep
+smooth scrolling active without a Dock icon. Use **Open Mac Smooth Scroll…**
+from the menu-bar item—or open the app again—to restore Settings. When Launch
+at Login is enabled, the embedded launcher starts the app directly in this
+background mode.
 
 The build script uses the first available Apple Development signing identity so
 that macOS privacy permissions remain stable across local rebuilds. Set

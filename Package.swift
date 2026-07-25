@@ -8,12 +8,17 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "MacSmoothScroll", targets: ["MacSmoothScroll"])
+        .executable(name: "MacSmoothScroll", targets: ["MacSmoothScroll"]),
+        .executable(name: "MacSmoothScrollLauncher", targets: ["MacSmoothScrollLauncher"])
     ],
     targets: [
         .executableTarget(
             name: "MacSmoothScroll",
             path: "Sources/MacSmoothScroll"
+        ),
+        .executableTarget(
+            name: "MacSmoothScrollLauncher",
+            path: "Sources/MacSmoothScrollLauncher"
         )
     ]
 )

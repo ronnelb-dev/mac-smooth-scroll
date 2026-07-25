@@ -224,9 +224,30 @@ struct SettingsView: View {
             Toggle("Launch at login", isOn: $settings.launchAtLogin)
 
             if let message = settings.launchAtLoginMessage {
-                Text(message)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                    Button("Open Login Items Settings") {
+                        settings.openLoginItemsSettings()
+                    }
                     .font(.caption)
-                    .foregroundStyle(.red)
+                }
+            }
+
+            LabeledContent {
+                Button {
+                    settings.hideToMenuBar()
+                } label: {
+                    Label("Hide to Menu Bar", systemImage: "menubar.rectangle")
+                }
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Run in background")
+                    Text("Hide the window and Dock icon while smooth scrolling stays active.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             HStack {
@@ -234,7 +255,7 @@ struct SettingsView: View {
                     showingResetConfirmation = true
                 }
                 Spacer()
-                Text("Version 0.1.0 • Apple Silicon")
+                Text("Version 0.2.0 • Apple Silicon")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
