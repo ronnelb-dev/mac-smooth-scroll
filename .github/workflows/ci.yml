@@ -105,7 +105,10 @@ jobs:
           trap cleanup EXIT
 
           hdiutil verify "$dmg"
-          shasum -a 256 -c "$dmg.sha256"
+          (
+            cd dist
+            shasum -a 256 -c "$(basename "$dmg").sha256"
+          )
           hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mount_point"
 
           test -d "$mount_point/Mac Smooth Scroll.app"
