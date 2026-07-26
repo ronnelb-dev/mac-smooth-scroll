@@ -35,13 +35,29 @@ trackpad and Magic Mouse events untouched.
 
 - Apple Silicon Mac
 - macOS 13 or later
-- Xcode command-line tools
 - Accessibility permission
 
 ## Installation
 
-Mac Smooth Scroll is currently distributed as source code. There is no
-notarized public download yet.
+When a DMG is available from a trusted build or release:
+
+1. Open `Mac-Smooth-Scroll-<version>-arm64.dmg`.
+2. Drag **Mac Smooth Scroll** onto the **Applications** shortcut.
+3. Open Mac Smooth Scroll from `/Applications`.
+4. Follow the Accessibility steps below.
+
+Every successful Apple Silicon CI run uploads its versioned DMG for 14 days.
+Open the workflow run on GitHub and download the `arm64-dmg` artifact.
+
+The current DMG is not Developer ID signed or notarized, so it is a development
+artifact rather than a public production download.
+
+See the complete [installation and Accessibility guide](docs/INSTALLATION.md)
+before installing the preview build.
+
+### Build a local DMG installer
+
+Building from source requires the Xcode command-line tools.
 
 1. Install the Xcode command-line tools:
 
@@ -49,23 +65,22 @@ notarized public download yet.
    xcode-select --install
    ```
 
-2. Clone and build the project:
+2. Clone and build the installer:
 
    ```sh
    git clone https://github.com/ronnelb-dev/mac-smooth-scroll.git
    cd mac-smooth-scroll
-   ./Scripts/build-app.sh
+   ./Scripts/build-dmg.sh
    ```
 
-3. Move `dist/Mac Smooth Scroll.app` to `/Applications` before enabling
-   Accessibility or Launch at Login.
-4. Open the app from `/Applications`.
+3. Open the versioned DMG in `dist/`, then drag the app onto **Applications**.
 
 Confirm that the build machine is Apple Silicon with `uname -m`. The output
 should be `arm64`.
 
-The local build is ad-hoc signed. It is intended for use on the Mac that built
-it and is not a substitute for Developer ID signing and Apple notarization.
+The local app inside the DMG is ad-hoc signed unless
+`MAC_SMOOTH_SCROLL_SIGNING_IDENTITY` is provided. It is intended for development
+use and is not a substitute for Developer ID signing and Apple notarization.
 
 ## First launch and Accessibility
 
