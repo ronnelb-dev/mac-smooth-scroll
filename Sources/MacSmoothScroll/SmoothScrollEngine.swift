@@ -8,13 +8,13 @@ final class SmoothScrollEngine {
     private let settings: ScrollSettings
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
-    private var animationTimer: Timer?
-    private var velocityX = 0.0
-    private var velocityY = 0.0
-    private var remainderX = 0.0
-    private var remainderY = 0.0
+    private lazy var displayLink = ScrollDisplayLinkDriver { [weak self] elapsedTime in
+        self?.animateFrame(elapsedTime: elapsedTime)
+    }
+    private var motion = ScrollMotionController()
     private var inputTransformer = ScrollInputTransformer()
     private var gestureActive = false
+    private var gestureFlags: CGEventFlags = []
 
     init(settings: ScrollSettings) {
         self.settings = settings
@@ -75,12 +75,8 @@ final class SmoothScrollEngine {
     }
 
     func stop() {
-        animationTimer?.invalidate()
-        animationTimer = nil
-        velocityX = 0
-        velocityY = 0
-        remainderX = 0
-        remainderY = 0
+        displayLink.stop()
+        motion.reset()
         inputTransformer.reset()
         finishGestureIfNeeded()
 
@@ -126,7 +122,7 @@ final class SmoothScrollEngine {
         let pointY = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1))
         let pointX = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2))
 
-        let impulse = inputTransformer.transform(
+        let result = inputTransformer.transform(
             ScrollInputSample(
                 lineX: lineX,
                 lineY: lineY,
@@ -137,48 +133,29 @@ final class SmoothScrollEngine {
             ),
             using: settings.scrollTransformConfiguration
         )
-        velocityX += impulse.x
-        velocityY += impulse.y
 
-        ensureAnimationTimer()
+        if result.beginsNewBurst {
+            finishGestureIfNeeded()
+            gestureFlags = result.outputFlags
+        }
+        if motion.add(result.impulse, feel: settings.feel) {
+            finishGestureIfNeeded()
+            gestureFlags = result.outputFlags
+        }
+        displayLink.start()
     }
 
-    private func ensureAnimationTimer() {
-        guard animationTimer == nil else { return }
-        let timer = Timer(timeInterval: 1.0 / 120.0, repeats: true) { [weak self] _ in
-            self?.animateTick()
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        animationTimer = timer
-    }
-
-    private func animateTick() {
-        let decay = settings.smoothness.decay
-        remainderX += velocityX
-        remainderY += velocityY
-
-        let outputX = Int32(remainderX.rounded(.towardZero))
-        let outputY = Int32(remainderY.rounded(.towardZero))
-        remainderX -= Double(outputX)
-        remainderY -= Double(outputY)
-
-        if outputX != 0 || outputY != 0 {
-            postScroll(x: outputX, y: outputY)
+    private func animateFrame(elapsedTime: TimeInterval) {
+        let output = motion.step(
+            elapsedTime: elapsedTime,
+            decay: settings.smoothness.decay
+        )
+        if output.x != 0 || output.y != 0 {
+            postScroll(x: output.x, y: output.y)
         }
 
-        velocityX *= decay
-        velocityY *= decay
-
-        if abs(velocityX) < 0.025,
-           abs(velocityY) < 0.025,
-           abs(remainderX) < 0.5,
-           abs(remainderY) < 0.5 {
-            animationTimer?.invalidate()
-            animationTimer = nil
-            velocityX = 0
-            velocityY = 0
-            remainderX = 0
-            remainderY = 0
+        if output.finished {
+            displayLink.stop()
             finishGestureIfNeeded()
         }
     }
@@ -194,9 +171,9 @@ final class SmoothScrollEngine {
         ) else { return }
 
         event.setIntegerValueField(.eventSourceUserData, value: Self.syntheticMarker)
-        // Current modifier flags are carried onto the synthetic event so apps with
-        // modifier-scroll zoom support receive their native shortcut.
-        event.flags = CGEventSource.flagsState(.combinedSessionState)
+        // Modifier semantics are frozen for the physical wheel burst so releasing
+        // a key cannot change an already-animating gesture tail.
+        event.flags = gestureFlags
 
         if settings.trackpadSimulation {
             event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
@@ -221,7 +198,9 @@ final class SmoothScrollEngine {
         event.setIntegerValueField(.eventSourceUserData, value: Self.syntheticMarker)
         event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
         event.setIntegerValueField(.scrollWheelEventScrollPhase, value: Int64(CGScrollPhase.ended.rawValue))
+        event.flags = gestureFlags
         event.post(tap: .cgSessionEventTap)
         gestureActive = false
+        gestureFlags = []
     }
 }
