@@ -34,15 +34,15 @@ jobs:
       - name: Validate source files
         run: |
           set -euo pipefail
-          zsh -n Scripts/build-app.sh
+          zsh -n Scripts/build-app.sh Scripts/build-dmg.sh
           plutil -lint Resources/Info.plist Resources/Launcher-Info.plist
           git diff --check
 
       - name: Run unit tests
         run: swift test --arch arm64
 
-      - name: Build and package
-        run: ./Scripts/build-app.sh
+      - name: Build app and DMG installer
+        run: ./Scripts/build-dmg.sh
 
       - name: Verify executable architectures
         run: |
@@ -89,6 +89,42 @@ jobs:
           grep -q '^TeamIdentifier=not set$' <<<"$main_signature"
           grep -q '^Signature=adhoc$' <<<"$launcher_signature"
           grep -q '^TeamIdentifier=not set$' <<<"$launcher_signature"
+
+      - name: Verify DMG installer contents
+        run: |
+          set -euo pipefail
+
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+          dmg="dist/Mac-Smooth-Scroll-$version-arm64.dmg"
+          mount_point="$(mktemp -d)"
+
+          cleanup() {
+            hdiutil detach "$mount_point" -quiet 2>/dev/null || true
+            rmdir "$mount_point" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          hdiutil verify "$dmg"
+          (
+            cd dist
+            shasum -a 256 -c "$(basename "$dmg").sha256"
+          )
+          hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mount_point"
+
+          test -d "$mount_point/Mac Smooth Scroll.app"
+          test -L "$mount_point/Applications"
+          test "$(readlink "$mount_point/Applications")" = "/Applications"
+          codesign --verify --deep --strict --verbose=2 "$mount_point/Mac Smooth Scroll.app"
+
+      - name: Upload DMG installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: mac-smooth-scroll-${{ github.sha }}-arm64-dmg
+          path: |
+            dist/Mac-Smooth-Scroll-*-arm64.dmg
+            dist/Mac-Smooth-Scroll-*-arm64.dmg.sha256
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Confirm build leaves source clean
         run: test -z "$(git status --short)"

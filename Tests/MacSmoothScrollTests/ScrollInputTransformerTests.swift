@@ -5,11 +5,12 @@ import XCTest
 final class ScrollInputTransformerTests: XCTestCase {
     func testLineDeltaFallsBackToEighteenPointSteps() {
         var transformer = ScrollInputTransformer()
-        let impulse = transformer.transform(
+        let result = transformer.transform(
             sample(lineY: 2),
             using: configuration()
         )
 
+        let impulse = result.impulse
         XCTAssertEqual(impulse.x, 0, accuracy: 0.0001)
         XCTAssertEqual(impulse.y, 2.52, accuracy: 0.0001)
     }
@@ -19,9 +20,9 @@ final class ScrollInputTransformerTests: XCTestCase {
         let impulse = transformer.transform(
             sample(lineY: 10, pointY: 5),
             using: configuration()
-        )
+        ).impulse
 
-        XCTAssertEqual(impulse.y, 0.35, accuracy: 0.0001)
+        XCTAssertEqual(impulse.y, 1.26, accuracy: 0.0001)
     }
 
     func testHorizontalModifierMovesVerticalInputToHorizontalAxis() {
@@ -29,9 +30,9 @@ final class ScrollInputTransformerTests: XCTestCase {
         let impulse = transformer.transform(
             sample(pointY: 10, flags: .maskShift),
             using: configuration()
-        )
+        ).impulse
 
-        XCTAssertEqual(impulse.x, 0.7, accuracy: 0.0001)
+        XCTAssertEqual(impulse.x, 1.26, accuracy: 0.0001)
         XCTAssertEqual(impulse.y, 0, accuracy: 0.0001)
     }
 
@@ -44,12 +45,12 @@ final class ScrollInputTransformerTests: XCTestCase {
                 speed: .fast,
                 reverseDirection: true
             )
-        )
+        ).impulse
 
-        XCTAssertEqual(impulse.y, -2.9, accuracy: 0.0001)
+        XCTAssertEqual(impulse.y, -5.22, accuracy: 0.0001)
     }
 
-    func testSwiftAndPreciseModifiersCompose() {
+    func testPreciseModifierTakesPriorityOverSwiftModifier() {
         var transformer = ScrollInputTransformer()
         let impulse = transformer.transform(
             sample(
@@ -57,41 +58,41 @@ final class ScrollInputTransformerTests: XCTestCase {
                 flags: [.maskControl, .maskAlternate]
             ),
             using: configuration()
-        )
+        ).impulse
 
-        XCTAssertEqual(impulse.y, 0.4704, accuracy: 0.0001)
+        XCTAssertEqual(impulse.y, 0.3528, accuracy: 0.0001)
     }
 
     func testAdaptivePrecisionUsesTimeBetweenPhysicalEvents() {
         var transformer = ScrollInputTransformer()
-        let config = configuration(smoothness: .low)
+        let config = configuration(smoothness: .low, adaptivePrecision: true)
 
         let first = transformer.transform(
             sample(pointY: 10, timestamp: 1.0),
             using: config
-        )
+        ).impulse
         let isolated = transformer.transform(
             sample(pointY: 10, timestamp: 1.2),
             using: config
-        )
+        ).impulse
         let slower = transformer.transform(
             sample(pointY: 10, timestamp: 1.32),
             using: config
-        )
+        ).impulse
         let rapid = transformer.transform(
             sample(pointY: 10, timestamp: 1.37),
             using: config
-        )
+        ).impulse
 
-        XCTAssertEqual(first.y, 2.0, accuracy: 0.0001)
-        XCTAssertEqual(isolated.y, 0.56, accuracy: 0.0001)
-        XCTAssertEqual(slower.y, 1.04, accuracy: 0.0001)
-        XCTAssertEqual(rapid.y, 2.0, accuracy: 0.0001)
+        XCTAssertEqual(first.y, 1.08, accuracy: 0.0001)
+        XCTAssertEqual(isolated.y, 1.08, accuracy: 0.0001)
+        XCTAssertEqual(slower.y, 2.34, accuracy: 0.0001)
+        XCTAssertEqual(rapid.y, 3.82176, accuracy: 0.0001)
     }
 
     func testResetClearsAdaptivePrecisionHistory() {
         var transformer = ScrollInputTransformer()
-        let config = configuration(smoothness: .low)
+        let config = configuration(smoothness: .low, adaptivePrecision: true)
 
         _ = transformer.transform(
             sample(pointY: 10, timestamp: 1.0),
@@ -101,9 +102,136 @@ final class ScrollInputTransformerTests: XCTestCase {
         let impulse = transformer.transform(
             sample(pointY: 10, timestamp: 2.0),
             using: config
+        ).impulse
+
+        XCTAssertEqual(impulse.y, 1.08, accuracy: 0.0001)
+    }
+
+    func testFirstNotchAfterIdleBeginsPreciseNewBurst() {
+        var transformer = ScrollInputTransformer()
+        let config = configuration(smoothness: .low, adaptivePrecision: true)
+
+        let first = transformer.transform(
+            sample(pointY: 10, flags: .maskCommand, timestamp: 1),
+            using: config
+        )
+        let afterIdle = transformer.transform(
+            sample(pointY: 10, timestamp: 2),
+            using: config
         )
 
-        XCTAssertEqual(impulse.y, 2.0, accuracy: 0.0001)
+        XCTAssertTrue(first.beginsNewBurst)
+        XCTAssertEqual(first.impulse.y, 1.08, accuracy: 0.0001)
+        XCTAssertTrue(afterIdle.beginsNewBurst)
+        XCTAssertEqual(afterIdle.impulse.y, 1.08, accuracy: 0.0001)
+    }
+
+    func testModifierFlagsAreFrozenForBurst() {
+        var transformer = ScrollInputTransformer()
+        let config = configuration()
+
+        let first = transformer.transform(
+            sample(pointY: 10, flags: .maskCommand, timestamp: 1),
+            using: config
+        )
+        let continued = transformer.transform(
+            sample(pointY: 10, timestamp: 1.05),
+            using: config
+        )
+
+        XCTAssertEqual(first.outputFlags, .maskCommand)
+        XCTAssertEqual(continued.outputFlags, .maskCommand)
+        XCTAssertFalse(continued.beginsNewBurst)
+    }
+
+    func testOnlyConfiguredZoomModifierIsForwarded() {
+        var transformer = ScrollInputTransformer()
+        let config = configuration(zoomModifier: .command)
+
+        let unassigned = transformer.transform(
+            sample(pointY: 10, flags: .maskAlternate, timestamp: 1),
+            using: config
+        )
+        let zoom = transformer.transform(
+            sample(pointY: 10, flags: .maskCommand, timestamp: 2),
+            using: config
+        )
+
+        XCTAssertEqual(unassigned.outputFlags, [])
+        XCTAssertEqual(zoom.outputFlags, .maskCommand)
+    }
+
+    func testTransformActionTakesPriorityOverZoomConflict() {
+        var transformer = ScrollInputTransformer()
+        let config = configuration(
+            horizontalModifier: .command,
+            zoomModifier: .command
+        )
+
+        let result = transformer.transform(
+            sample(pointY: 10, flags: .maskCommand),
+            using: config
+        )
+
+        XCTAssertNotEqual(result.impulse.x, 0)
+        XCTAssertEqual(result.impulse.y, 0)
+        XCTAssertEqual(result.outputFlags, [])
+    }
+
+    func testDominantAxisLockSuppressesCrossAxisNoiseForBurst() {
+        var transformer = ScrollInputTransformer()
+        let config = configuration()
+
+        let first = transformer.transform(
+            sample(pointX: 2, pointY: 10, timestamp: 1),
+            using: config
+        )
+        let continued = transformer.transform(
+            sample(pointX: 8, pointY: 3, timestamp: 1.05),
+            using: config
+        )
+
+        XCTAssertEqual(first.impulse.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(continued.impulse.x, 0, accuracy: 0.0001)
+        XCTAssertNotEqual(continued.impulse.y, 0)
+    }
+
+    func testStepRaisesSmallDeltasAndPreservesSigns() {
+        var transformer = ScrollInputTransformer()
+        let config = configuration(
+            minimumStepDistance: 20,
+            horizontalModifier: .none
+        )
+
+        let result = transformer.transform(
+            sample(pointX: -6, pointY: 7),
+            using: config
+        )
+
+        XCTAssertEqual(result.impulse.x, -1.4, accuracy: 0.0001)
+        XCTAssertEqual(result.impulse.y, 1.4, accuracy: 0.0001)
+    }
+
+    func testStepLeavesLargeAndZeroDeltasUnchanged() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointX: 0, pointY: 40),
+            using: configuration(minimumStepDistance: 18)
+        )
+
+        XCTAssertEqual(result.impulse.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(result.impulse.y, 2.8, accuracy: 0.0001)
+    }
+
+    func testDominantAxisLockRunsBeforeMinimumStep() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointX: 2, pointY: 10),
+            using: configuration(minimumStepDistance: 18)
+        )
+
+        XCTAssertEqual(result.impulse.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(result.impulse.y, 1.26, accuracy: 0.0001)
     }
 
     func testModifierMetadataAndFlags() {
@@ -134,18 +262,24 @@ final class ScrollInputTransformerTests: XCTestCase {
     private func configuration(
         smoothness: Smoothness = .high,
         speed: ScrollSpeed = .medium,
+        minimumStepDistance: Double = ScrollStep.defaultValue,
+        feel: ScrollFeel = .balanced,
         reverseDirection: Bool = false,
-        adaptivePrecision: Bool = true,
+        adaptivePrecision: Bool = false,
         horizontalModifier: ModifierKey = .shift,
+        zoomModifier: ModifierKey = .command,
         swiftModifier: ModifierKey = .control,
         preciseModifier: ModifierKey = .option
     ) -> ScrollTransformConfiguration {
         ScrollTransformConfiguration(
             smoothness: smoothness,
             speed: speed,
+            minimumStepDistance: minimumStepDistance,
+            feel: feel,
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,
             horizontalModifier: horizontalModifier,
+            zoomModifier: zoomModifier,
             swiftModifier: swiftModifier,
             preciseModifier: preciseModifier
         )
