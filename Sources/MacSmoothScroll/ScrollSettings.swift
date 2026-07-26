@@ -37,6 +37,38 @@ enum ScrollSpeed: String, CaseIterable, Identifiable {
     }
 }
 
+enum ScrollFeel: String, CaseIterable, Identifiable {
+    case responsive = "Responsive"
+    case balanced = "Balanced"
+    case glide = "Glide"
+
+    var id: String { rawValue }
+
+    var maximumVelocity: Double {
+        switch self {
+        case .responsive: 18
+        case .balanced: 24
+        case .glide: 30
+        }
+    }
+
+    var rapidInputBoost: Double {
+        switch self {
+        case .responsive: 0.12
+        case .balanced: 0.22
+        case .glide: 0.30
+        }
+    }
+
+    var directionChangeRetention: Double {
+        switch self {
+        case .responsive: 0
+        case .balanced: 0.08
+        case .glide: 0.16
+        }
+    }
+}
+
 enum ModifierKey: String, CaseIterable, Identifiable {
     case shift
     case command
@@ -88,6 +120,7 @@ final class ScrollSettings: ObservableObject {
         static let enabled = "scroll.enabled"
         static let smoothness = "scroll.smoothness"
         static let speed = "scroll.speed"
+        static let feel = "scroll.feel"
         static let trackpadSimulation = "scroll.trackpadSimulation"
         static let reverseDirection = "scroll.reverseDirection"
         static let adaptivePrecision = "scroll.adaptivePrecision"
@@ -113,6 +146,9 @@ final class ScrollSettings: ObservableObject {
     }
     @Published var speed: ScrollSpeed {
         didSet { persist(Key.speed, speed.rawValue) }
+    }
+    @Published var feel: ScrollFeel {
+        didSet { persist(Key.feel, feel.rawValue) }
     }
     @Published var trackpadSimulation: Bool {
         didSet { persist(Key.trackpadSimulation, trackpadSimulation) }
@@ -160,6 +196,7 @@ final class ScrollSettings: ObservableObject {
         isEnabled = defaults.object(forKey: Key.enabled) as? Bool ?? true
         smoothness = Smoothness(rawValue: defaults.string(forKey: Key.smoothness) ?? "") ?? .high
         speed = ScrollSpeed(rawValue: defaults.string(forKey: Key.speed) ?? "") ?? .medium
+        feel = ScrollFeel(rawValue: defaults.string(forKey: Key.feel) ?? "") ?? .balanced
         trackpadSimulation = defaults.object(forKey: Key.trackpadSimulation) as? Bool ?? true
         reverseDirection = defaults.object(forKey: Key.reverseDirection) as? Bool ?? false
         adaptivePrecision = defaults.object(forKey: Key.adaptivePrecision) as? Bool ?? true
@@ -203,6 +240,7 @@ final class ScrollSettings: ObservableObject {
         isEnabled = true
         smoothness = .high
         speed = .medium
+        feel = .balanced
         trackpadSimulation = true
         reverseDirection = false
         adaptivePrecision = true

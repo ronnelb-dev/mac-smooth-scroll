@@ -160,6 +160,24 @@ struct SettingsView: View {
                 .frame(width: 250)
             }
 
+            LabeledContent {
+                Picker("Scroll feel", selection: $settings.feel) {
+                    ForEach(ScrollFeel.allCases) { feel in
+                        Text(feel.rawValue).tag(feel)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 250)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Scroll feel")
+                    Text("Controls responsiveness, acceleration, and direction changes.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Toggle(isOn: $settings.trackpadSimulation) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Trackpad simulation")
@@ -214,7 +232,7 @@ struct SettingsView: View {
         } header: {
             Text("Keyboard Modifiers")
         } footer: {
-            Text("If two actions use the same modifier, horizontal and precision actions take priority.")
+            Text("Transform actions take priority over zoom. Precision takes priority over swift scrolling.")
         }
     }
 

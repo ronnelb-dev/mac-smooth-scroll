@@ -25,6 +25,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.isEnabled)
         XCTAssertEqual(settings.smoothness, .high)
         XCTAssertEqual(settings.speed, .medium)
+        XCTAssertEqual(settings.feel, .balanced)
         XCTAssertTrue(settings.trackpadSimulation)
         XCTAssertFalse(settings.reverseDirection)
         XCTAssertTrue(settings.adaptivePrecision)
@@ -41,6 +42,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.isEnabled = false
         settings.smoothness = .low
         settings.speed = .fast
+        settings.feel = .responsive
         settings.trackpadSimulation = false
         settings.reverseDirection = true
         settings.adaptivePrecision = false
@@ -55,6 +57,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertFalse(reloaded.isEnabled)
         XCTAssertEqual(reloaded.smoothness, .low)
         XCTAssertEqual(reloaded.speed, .fast)
+        XCTAssertEqual(reloaded.feel, .responsive)
         XCTAssertFalse(reloaded.trackpadSimulation)
         XCTAssertTrue(reloaded.reverseDirection)
         XCTAssertFalse(reloaded.adaptivePrecision)
@@ -71,6 +74,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.isEnabled = false
         settings.smoothness = .low
         settings.speed = .fast
+        settings.feel = .glide
         settings.trackpadSimulation = false
         settings.reverseDirection = true
         settings.adaptivePrecision = false
@@ -86,6 +90,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.isEnabled)
         XCTAssertEqual(settings.smoothness, .high)
         XCTAssertEqual(settings.speed, .medium)
+        XCTAssertEqual(settings.feel, .balanced)
         XCTAssertTrue(settings.trackpadSimulation)
         XCTAssertFalse(settings.reverseDirection)
         XCTAssertTrue(settings.adaptivePrecision)

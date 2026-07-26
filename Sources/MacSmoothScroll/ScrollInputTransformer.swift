@@ -13,9 +13,11 @@ struct ScrollInputSample {
 struct ScrollTransformConfiguration {
     let smoothness: Smoothness
     let speed: ScrollSpeed
+    let feel: ScrollFeel
     let reverseDirection: Bool
     let adaptivePrecision: Bool
     let horizontalModifier: ModifierKey
+    let zoomModifier: ModifierKey
     let swiftModifier: ModifierKey
     let preciseModifier: ModifierKey
 }
@@ -25,49 +27,150 @@ struct ScrollImpulse: Equatable {
     let y: Double
 }
 
+struct ScrollTransformResult: Equatable {
+    let impulse: ScrollImpulse
+    let outputFlags: CGEventFlags
+    let beginsNewBurst: Bool
+}
+
 struct ScrollInputTransformer {
+    private enum LockedAxis {
+        case horizontal
+        case vertical
+    }
+
+    private static let burstIdleInterval = 0.22
+    private static let forwardedModifierFlags: CGEventFlags = [
+        .maskShift,
+        .maskControl,
+        .maskAlternate,
+        .maskCommand,
+        .maskSecondaryFn
+    ]
     private var lastPhysicalEventTime: TimeInterval?
+    private var lockedAxis: LockedAxis?
+    private var burstFlags: CGEventFlags = []
+    private var rapidInputLevel = 0.0
 
     mutating func reset() {
         lastPhysicalEventTime = nil
+        lockedAxis = nil
+        burstFlags = []
+        rapidInputLevel = 0
     }
 
     mutating func transform(
         _ sample: ScrollInputSample,
         using configuration: ScrollTransformConfiguration
-    ) -> ScrollImpulse {
+    ) -> ScrollTransformResult {
+        let interval = lastPhysicalEventTime.map { sample.timestamp - $0 }
+        let beginsNewBurst = interval.map { $0 > Self.burstIdleInterval } ?? true
+
+        if beginsNewBurst {
+            lockedAxis = nil
+            rapidInputLevel = 0
+            burstFlags = sample.flags.intersection(Self.forwardedModifierFlags)
+        }
+        lastPhysicalEventTime = sample.timestamp
+
         var x = sample.pointX == 0 ? sample.lineX * 18 : sample.pointX
         var y = sample.pointY == 0 ? sample.lineY * 18 : sample.pointY
 
-        if configuration.horizontalModifier.isActive(in: sample.flags),
-           abs(y) >= abs(x) {
+        let horizontalAction = configuration.horizontalModifier.isActive(in: burstFlags) &&
+            abs(y) >= abs(x)
+        let preciseAction = configuration.preciseModifier.isActive(in: burstFlags)
+        let swiftAction = configuration.swiftModifier.isActive(in: burstFlags)
+
+        if horizontalAction {
             x = y
             y = 0
+            lockedAxis = .horizontal
+        } else {
+            applyDominantAxisLock(x: &x, y: &y)
         }
 
         var multiplier = configuration.speed.multiplier
         if configuration.reverseDirection {
             multiplier *= -1
         }
-        if configuration.swiftModifier.isActive(in: sample.flags) {
-            multiplier *= 2.4
-        }
-        if configuration.preciseModifier.isActive(in: sample.flags) {
+        if preciseAction {
             multiplier *= 0.28
+        } else if swiftAction {
+            multiplier *= 2.4
         } else if configuration.adaptivePrecision {
-            if let lastPhysicalEventTime {
-                let interval = sample.timestamp - lastPhysicalEventTime
-                if interval > 0.18 {
-                    multiplier *= 0.28
-                } else if interval > 0.10 {
-                    multiplier *= 0.52
-                }
-            }
-            lastPhysicalEventTime = sample.timestamp
+            multiplier *= adaptivePrecisionMultiplier(interval: interval)
+        }
+
+        if !preciseAction {
+            multiplier *= rapidInputMultiplier(
+                interval: interval,
+                maximumBoost: configuration.feel.rapidInputBoost
+            )
         }
 
         let impulseScale = multiplier * (1 - configuration.smoothness.decay)
-        return ScrollImpulse(x: x * impulseScale, y: y * impulseScale)
+        var outputFlags: CGEventFlags = []
+        let transformedActionActive = horizontalAction || preciseAction || swiftAction
+        if !transformedActionActive,
+           configuration.zoomModifier.isActive(in: burstFlags) {
+            outputFlags.insert(configuration.zoomModifier.flag)
+        }
+
+        return ScrollTransformResult(
+            impulse: ScrollImpulse(x: x * impulseScale, y: y * impulseScale),
+            outputFlags: outputFlags,
+            beginsNewBurst: beginsNewBurst
+        )
+    }
+
+    private mutating func applyDominantAxisLock(
+        x: inout Double,
+        y: inout Double
+    ) {
+        if lockedAxis == nil {
+            let larger = max(abs(x), abs(y))
+            let smaller = min(abs(x), abs(y))
+            if larger >= 2, smaller == 0 || larger / smaller >= 1.2 {
+                lockedAxis = abs(x) > abs(y) ? .horizontal : .vertical
+            }
+        }
+
+        switch lockedAxis {
+        case .horizontal:
+            y = 0
+        case .vertical:
+            x = 0
+        case nil:
+            break
+        }
+    }
+
+    private func adaptivePrecisionMultiplier(
+        interval: TimeInterval?
+    ) -> Double {
+        guard let interval else { return 0.30 }
+        if interval >= 0.18 { return 0.30 }
+        if interval <= 0.06 { return 1 }
+
+        let progress = (0.18 - interval) / 0.12
+        return 0.30 + (0.70 * progress)
+    }
+
+    private mutating func rapidInputMultiplier(
+        interval: TimeInterval?,
+        maximumBoost: Double
+    ) -> Double {
+        guard let interval else { return 1 }
+
+        if interval < 0.055 {
+            rapidInputLevel += 0.28
+        } else if interval < 0.09 {
+            rapidInputLevel += 0.16
+        } else {
+            rapidInputLevel -= 0.25
+        }
+        rapidInputLevel = min(max(rapidInputLevel, 0), 1)
+        return 1 + (rapidInputLevel * maximumBoost)
     }
 }
 
@@ -76,9 +179,11 @@ extension ScrollSettings {
         ScrollTransformConfiguration(
             smoothness: smoothness,
             speed: speed,
+            feel: feel,
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,
             horizontalModifier: horizontalModifier,
+            zoomModifier: zoomModifier,
             swiftModifier: swiftModifier,
             preciseModifier: preciseModifier
         )

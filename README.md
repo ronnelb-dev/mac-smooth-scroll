@@ -16,9 +16,13 @@ trackpad and Magic Mouse events untouched.
 
 - Low, medium, and high smoothness presets
 - Slow, medium, and fast speed presets
+- Responsive, balanced, and glide feel presets
+- Display-synchronized motion on 60 Hz and high-refresh-rate screens
 - Optional trackpad-style gesture phases
 - External-mouse-only reverse direction
-- Adaptive precision for slow wheel movement
+- Adaptive first-notch precision with cadence-based acceleration
+- Immediate braking on direction changes and bounded maximum velocity
+- Dominant-axis locking that filters diagonal wheel noise
 - Configurable horizontal, zoom, swift, and precision modifier keys
 - Menu-bar control
 - Hide-to-menu-bar mode that removes the settings window and Dock icon
@@ -83,15 +87,19 @@ required, follow the [permission troubleshooting steps](docs/TROUBLESHOOTING.md#
 
 - Use **Smoothness** to control how gradually wheel movement decays.
 - Use **Speed** to scale normal wheel movement.
+- Use **Scroll feel** to choose how strongly rapid input accelerates and how
+  quickly the app responds to a direction change.
 - Enable **Trackpad simulation** to add gesture phases used by natural
   scrolling and horizontal navigation.
 - Enable **Reverse direction** to reverse only external mouse scrolling.
-- Enable **Adaptive precision** to reduce movement from slow, isolated wheel
-  steps.
+- Enable **Adaptive precision** to make the first wheel step after idle precise,
+  then ramp smoothly as the wheel is moved faster.
 - Assign modifiers for horizontal, zoom, swift, and precise scrolling.
 
-Trackpad and Magic Mouse events are passed through unchanged. Zoom behavior
-depends on whether the active app supports modifier-scroll zooming.
+Trackpad and Magic Mouse events are passed through unchanged. The selected zoom
+modifier is forwarded for the complete wheel burst only when no higher-priority
+transform action is active. Zoom behavior still depends on whether the active
+app supports modifier-scroll zooming.
 
 ## Menu-bar mode
 
@@ -182,9 +190,9 @@ swift test --arch arm64
 ```
 
 The tests cover launch-mode parsing, settings defaults and persistence,
-modifier behavior, and the scroll-input transformation rules used by the
-runtime engine. GitHub Actions runs the suite before packaging every pull
-request and `main` update.
+modifier behavior, burst and axis rules, direction-change braking, velocity
+limits, and refresh-rate-independent motion. GitHub Actions runs the suite
+before packaging every pull request and `main` update.
 
 ## Development notes
 
