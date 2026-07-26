@@ -212,6 +212,12 @@ modifier behavior, burst and axis rules, direction-change braking, velocity
 limits, and refresh-rate-independent motion. GitHub Actions runs the suite
 before packaging every pull request and `main` update.
 
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) and the
+[v0.3.0 milestone](https://github.com/ronnelb-dev/mac-smooth-scroll/milestone/1)
+for the prioritized reliability work and future backlog.
+
 ## Development notes
 
 The app uses an independent Swift implementation built with public macOS APIs:
