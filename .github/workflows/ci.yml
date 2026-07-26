@@ -117,7 +117,7 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$mount_point/Mac Smooth Scroll.app"
 
       - name: Upload DMG installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mac-smooth-scroll-${{ github.sha }}-arm64-dmg
           path: |
