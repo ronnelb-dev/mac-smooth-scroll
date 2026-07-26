@@ -8,8 +8,8 @@ details and status.
 
 [View the v0.3.0 milestone on GitHub](https://github.com/ronnelb-dev/mac-smooth-scroll/milestone/1)
 
-The goal of v0.3.0 is to make the source-built app easier to verify, diagnose,
-and test across supported Apple Silicon Macs.
+The goal of v0.3.0 is to make source and preview builds easier to verify,
+diagnose, and test across supported Apple Silicon Macs.
 
 - [#7 — Create a repeatable manual macOS regression checklist](https://github.com/ronnelb-dev/mac-smooth-scroll/issues/7)
 - [#8 — Improve event-tap diagnostics and recovery feedback](https://github.com/ronnelb-dev/mac-smooth-scroll/issues/8)
@@ -31,8 +31,8 @@ These ideas are intentionally outside the v0.3.0 reliability scope:
 
 Issue #14 is blocked until the project has a personal Apple Developer Program
 membership and Developer ID Application certificate. Work-team credentials
-must not be used for this personal project. Until then, Mac Smooth Scroll
-remains source-only.
+must not be used for this personal project. Until then, downloadable builds
+remain clearly labeled, unnotarized previews rather than production releases.
 
 ## Completed foundation
 
@@ -42,9 +42,10 @@ remains source-only.
 - GPL-3.0 license
 - Protected `main` branch and required Apple Silicon CI
 - Ad-hoc local signing with explicit opt-in for certificate signing
+- Preview DMG packaging with mounted-content and SHA-256 verification
 - Contributor, security, privacy, troubleshooting, and issue templates
-- XCTest coverage for launch parsing, settings persistence, modifiers, and
-  scroll-input transformation
+- XCTest coverage for launch parsing, settings persistence, scroll-input
+  transformation, and motion physics
 
 ## Current non-goals
 
