@@ -13,6 +13,7 @@ struct ScrollInputSample {
 struct ScrollTransformConfiguration {
     let smoothness: Smoothness
     let speed: ScrollSpeed
+    let minimumStepDistance: Double
     let feel: ScrollFeel
     let reverseDirection: Bool
     let adaptivePrecision: Bool
@@ -89,6 +90,9 @@ struct ScrollInputTransformer {
             applyDominantAxisLock(x: &x, y: &y)
         }
 
+        x = applyingMinimumStep(to: x, minimum: configuration.minimumStepDistance)
+        y = applyingMinimumStep(to: y, minimum: configuration.minimumStepDistance)
+
         var multiplier = configuration.speed.multiplier
         if configuration.reverseDirection {
             multiplier *= -1
@@ -145,6 +149,16 @@ struct ScrollInputTransformer {
         }
     }
 
+    private func applyingMinimumStep(
+        to value: Double,
+        minimum: Double
+    ) -> Double {
+        guard value != 0 else { return 0 }
+        return value.sign == .minus
+            ? -max(abs(value), minimum)
+            : max(abs(value), minimum)
+    }
+
     private func adaptivePrecisionMultiplier(
         interval: TimeInterval?
     ) -> Double {
@@ -179,6 +193,7 @@ extension ScrollSettings {
         ScrollTransformConfiguration(
             smoothness: smoothness,
             speed: speed,
+            minimumStepDistance: minimumStepDistance,
             feel: feel,
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,

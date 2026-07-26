@@ -161,6 +161,43 @@ struct SettingsView: View {
             }
 
             LabeledContent {
+                HStack(spacing: 8) {
+                    StepSlider(
+                        value: $settings.minimumStepDistance,
+                        range: ScrollStep.range,
+                        step: ScrollStep.increment
+                    )
+                    .frame(width: 180)
+
+                    TextField(
+                        "Step",
+                        value: $settings.minimumStepDistance,
+                        format: .number.precision(.fractionLength(2))
+                    )
+                    .labelsHidden()
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 62)
+                    .accessibilityLabel("Minimum scroll distance value")
+
+                    Stepper(
+                        "Minimum scroll distance",
+                        value: $settings.minimumStepDistance,
+                        in: ScrollStep.range,
+                        step: ScrollStep.increment
+                    )
+                    .labelsHidden()
+                    .fixedSize()
+                }
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Step")
+                    Text("Sets the minimum scroll distance.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            LabeledContent {
                 Picker("Scroll feel", selection: $settings.feel) {
                     ForEach(ScrollFeel.allCases) { feel in
                         Text(feel.rawValue).tag(feel)
@@ -273,7 +310,7 @@ struct SettingsView: View {
                     showingResetConfirmation = true
                 }
                 Spacer()
-                Text("Version 0.2.0 • Apple Silicon")
+                Text("Version 0.3.0 • Apple Silicon")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -306,5 +343,69 @@ struct SettingsView: View {
     private var statusColor: Color {
         if !settings.isEnabled { return .secondary }
         return settings.permissionGranted ? .green : .orange
+    }
+}
+
+private struct StepSlider: View {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let step: Double
+
+    private let thumbDiameter: CGFloat = 18
+
+    var body: some View {
+        GeometryReader { geometry in
+            let trackWidth = max(geometry.size.width - thumbDiameter, 1)
+            let progress = CGFloat(
+                (value - range.lowerBound) /
+                    (range.upperBound - range.lowerBound)
+            )
+            let thumbX = (thumbDiameter / 2) + (trackWidth * progress)
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.secondary.opacity(0.35))
+                    .frame(width: trackWidth, height: 4)
+                    .offset(x: thumbDiameter / 2)
+
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: max(trackWidth * progress, 2), height: 4)
+                    .offset(x: thumbDiameter / 2)
+
+                Circle()
+                    .fill(.white)
+                    .frame(width: thumbDiameter, height: thumbDiameter)
+                    .shadow(color: .black.opacity(0.25), radius: 1, y: 1)
+                    .position(x: thumbX, y: geometry.size.height / 2)
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { gesture in
+                        let rawProgress =
+                            (gesture.location.x - (thumbDiameter / 2)) /
+                            trackWidth
+                        let clampedProgress = min(max(rawProgress, 0), 1)
+                        value = range.lowerBound +
+                            (Double(clampedProgress) * (range.upperBound - range.lowerBound))
+                    }
+            )
+        }
+        .frame(height: 20)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Minimum scroll distance")
+        .accessibilityValue(String(format: "%.2f", value))
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment:
+                value = min(value + step, range.upperBound)
+            case .decrement:
+                value = max(value - step, range.lowerBound)
+            @unknown default:
+                break
+            }
+        }
     }
 }
