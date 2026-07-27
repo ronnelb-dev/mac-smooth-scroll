@@ -36,6 +36,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(settings.preciseModifier, .option)
         XCTAssertTrue(settings.showInMenuBar)
         XCTAssertFalse(settings.launchAtLogin)
+        XCTAssertEqual(settings.launchAtLoginHealthStatus, .disabled)
     }
 
     func testSettingsPersistAcrossInstances() {
