@@ -68,6 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 self.hideToMenuBar()
             } else {
                 self.showSettings()
+                self.settings.presentInitialSetupIfNeeded()
             }
         }
     }

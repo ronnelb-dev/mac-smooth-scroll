@@ -20,6 +20,10 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .sheet(isPresented: $settings.isSetupPresented) {
+            FirstRunSetupView()
+                .environmentObject(settings)
+        }
         .alert("Reset scrolling settings?", isPresented: $showingResetConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Reset", role: .destructive) {
@@ -426,6 +430,19 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Run in background")
                     Text("Hide the window and Dock icon while smooth scrolling stays active.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            LabeledContent {
+                Button("Run Setup Again…") {
+                    settings.presentSetup()
+                }
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Setup assistant")
+                    Text("Review installation, Accessibility, scrolling, and launch-at-login setup.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

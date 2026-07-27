@@ -37,6 +37,8 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.showInMenuBar)
         XCTAssertFalse(settings.launchAtLogin)
         XCTAssertEqual(settings.launchAtLoginHealthStatus, .disabled)
+        XCTAssertFalse(settings.onboardingCompleted)
+        XCTAssertFalse(settings.isSetupPresented)
     }
 
     func testSettingsPersistAcrossInstances() {
@@ -145,6 +147,65 @@ final class ScrollSettingsTests: XCTestCase {
             settings.minimumStepDistance,
             ScrollStep.defaultValue,
             accuracy: 0.0001
+        )
+    }
+
+    func testInitialSetupPresentsUntilCompleted() {
+        let settings = makeSettings()
+
+        settings.presentInitialSetupIfNeeded()
+        XCTAssertTrue(settings.isSetupPresented)
+
+        settings.dismissSetup()
+        XCTAssertFalse(settings.isSetupPresented)
+        XCTAssertFalse(settings.onboardingCompleted)
+
+        settings.presentInitialSetupIfNeeded()
+        XCTAssertTrue(settings.isSetupPresented)
+    }
+
+    func testCompletingSetupPersistsAndPreventsAutomaticPresentation() {
+        let settings = makeSettings()
+        settings.presentInitialSetupIfNeeded()
+
+        settings.completeSetup()
+
+        XCTAssertTrue(settings.onboardingCompleted)
+        XCTAssertFalse(settings.isSetupPresented)
+
+        let reloaded = makeSettings()
+        XCTAssertTrue(reloaded.onboardingCompleted)
+        reloaded.presentInitialSetupIfNeeded()
+        XCTAssertFalse(reloaded.isSetupPresented)
+    }
+
+    func testCompletedSetupCanBePresentedAgainWithoutChangingPreferences() {
+        let settings = makeSettings()
+        settings.speed = .fast
+        settings.completeSetup()
+
+        settings.presentSetup()
+
+        XCTAssertTrue(settings.isSetupPresented)
+        XCTAssertTrue(settings.onboardingCompleted)
+        XCTAssertEqual(settings.speed, .fast)
+    }
+
+    func testApplicationsLocationDetection() {
+        XCTAssertTrue(
+            FirstRunSetup.isInstalledInApplications(
+                URL(fileURLWithPath: "/Applications/Mac Smooth Scroll.app")
+            )
+        )
+        XCTAssertFalse(
+            FirstRunSetup.isInstalledInApplications(
+                URL(fileURLWithPath: "/Users/example/Downloads/Mac Smooth Scroll.app")
+            )
+        )
+        XCTAssertFalse(
+            FirstRunSetup.isInstalledInApplications(
+                URL(fileURLWithPath: "/Volumes/Mac Smooth Scroll/Mac Smooth Scroll.app")
+            )
         )
     }
 

@@ -154,6 +154,7 @@ final class ScrollSettings: ObservableObject {
         static let showInMenuBar = "app.showInMenuBar"
         static let launchAtLogin = "app.launchAtLogin"
         static let launchAtLoginRegisteredBuild = "app.launchAtLoginRegisteredBuild"
+        static let onboardingCompleted = "app.onboardingCompleted"
     }
 
     private let defaults: UserDefaults
@@ -224,6 +225,8 @@ final class ScrollSettings: ObservableObject {
     @Published var launchAtLoginHealthStatus = LaunchAtLoginHealthStatus.unavailable
     @Published var launchAtLoginDetail = "Checking login item status…"
     @Published var competingDriverRecoveryMessage: String?
+    @Published private(set) var onboardingCompleted: Bool
+    @Published var isSetupPresented = false
 
     var engineMessage: String {
         engineStatus.message
@@ -259,7 +262,31 @@ final class ScrollSettings: ObservableObject {
         preciseModifier = ModifierKey(rawValue: defaults.string(forKey: Key.preciseModifier) ?? "") ?? .option
         showInMenuBar = defaults.object(forKey: Key.showInMenuBar) as? Bool ?? true
         launchAtLogin = defaults.object(forKey: Key.launchAtLogin) as? Bool ?? false
+        onboardingCompleted = defaults.bool(forKey: Key.onboardingCompleted)
         launchAtLoginHealthStatus = launchAtLogin ? .unavailable : .disabled
+    }
+
+    var isInstalledInApplications: Bool {
+        FirstRunSetup.isInstalledInApplications(Bundle.main.bundleURL)
+    }
+
+    func presentInitialSetupIfNeeded() {
+        guard !onboardingCompleted else { return }
+        isSetupPresented = true
+    }
+
+    func presentSetup() {
+        isSetupPresented = true
+    }
+
+    func dismissSetup() {
+        isSetupPresented = false
+    }
+
+    func completeSetup() {
+        onboardingCompleted = true
+        defaults.set(true, forKey: Key.onboardingCompleted)
+        isSetupPresented = false
     }
 
     func requestPermissions() {
