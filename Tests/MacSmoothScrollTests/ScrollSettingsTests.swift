@@ -148,6 +148,34 @@ final class ScrollSettingsTests: XCTestCase {
         )
     }
 
+    func testStepFormattingAndKeyboardSizedAdjustments() {
+        XCTAssertEqual(ScrollStep.formatted(18), "18.00")
+        XCTAssertEqual(ScrollStep.formatted(12.345), "12.35")
+        XCTAssertEqual(ScrollStep.adjusted(18, bySteps: 1), 18.01, accuracy: 0.0001)
+        XCTAssertEqual(ScrollStep.adjusted(18, bySteps: -1), 17.99, accuracy: 0.0001)
+        XCTAssertEqual(
+            ScrollStep.adjusted(ScrollStep.maximum, bySteps: 1),
+            ScrollStep.maximum,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            ScrollStep.adjusted(ScrollStep.minimum, bySteps: -1),
+            ScrollStep.minimum,
+            accuracy: 0.0001
+        )
+    }
+
+    func testMinimumStepCanResetWithoutChangingOtherSettings() {
+        let settings = makeSettings()
+        settings.minimumStepDistance = 72
+        settings.speed = .fast
+
+        settings.resetMinimumStepDistance()
+
+        XCTAssertEqual(settings.minimumStepDistance, ScrollStep.defaultValue)
+        XCTAssertEqual(settings.speed, .fast)
+    }
+
     private func makeSettings() -> ScrollSettings {
         ScrollSettings(
             defaults: defaults,
