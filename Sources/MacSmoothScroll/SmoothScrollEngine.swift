@@ -23,17 +23,17 @@ final class SmoothScrollEngine {
     func refresh() {
         guard settings.isEnabled else {
             stop()
-            settings.engineMessage = "Smooth scrolling is off"
+            settings.engineStatus = .disabled
             return
         }
         guard !settings.competingDriverRunning else {
             stop()
-            settings.engineMessage = "Paused while Mac Mouse Fix is running"
+            settings.engineStatus = .driverConflict
             return
         }
         guard settings.permissionGranted else {
             stop()
-            settings.engineMessage = "Permission required"
+            settings.engineStatus = .permissionBlocked
             return
         }
         start()
@@ -41,7 +41,7 @@ final class SmoothScrollEngine {
 
     func start() {
         guard eventTap == nil else {
-            settings.engineMessage = "Smooth scrolling is active"
+            settings.engineStatus = .active
             return
         }
 
@@ -62,7 +62,7 @@ final class SmoothScrollEngine {
             callback: callback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            settings.engineMessage = "Could not start. Check Accessibility and Input Monitoring."
+            settings.engineStatus = .startFailed
             return
         }
 
@@ -71,7 +71,7 @@ final class SmoothScrollEngine {
         CGEvent.tapEnable(tap: tap, enable: true)
         eventTap = tap
         runLoopSource = source
-        settings.engineMessage = "Smooth scrolling is active"
+        settings.engineStatus = .active
     }
 
     func stop() {

@@ -11,6 +11,9 @@
 6. Confirm that the copy you intend to run is in `/Applications`.
 7. Reopen that copy and select **Request Permission** again.
 
+The Accessibility row under **System Health** remains visible after permission
+is granted and changes to **Ready**.
+
 Ad-hoc signatures change when the app is rebuilt. macOS may treat a rebuilt or
 moved app as a different application, even when its name and bundle identifier
 are unchanged. Remove the stale Accessibility entry and approve the current
@@ -25,14 +28,18 @@ build.
 - Quit other mouse-driver utilities temporarily.
 - If the event tap still cannot start, restart the Mac and try again.
 
+Use **Retry** on the Scroll engine row after correcting the permission or
+driver problem.
+
 Input Monitoring is not normally required by Mac Smooth Scroll's permission
 check. Accessibility is the primary permission for its modifying event tap.
 
 ## Mac Mouse Fix is running
 
 Mac Smooth Scroll pauses automatically while the Mac Mouse Fix app or helper is
-running. Quit Mac Mouse Fix completely, including its menu-bar or background
-helper, and wait a few seconds. Mac Smooth Scroll should resume automatically.
+running. Select **Quit Mac Mouse Fix** on the Mouse drivers health row to
+request a normal quit, or quit Mac Mouse Fix from its own menu. Mac Smooth
+Scroll should resume automatically. The app never force-quits another driver.
 
 Other mouse utilities are not detected automatically. If scrolling is doubled,
 distorted, or unusually fast, quit Logitech Options, SteerMouse, LinearMouse,
@@ -68,9 +75,9 @@ the Dock icon disappears.
    **System Settings → General → Login Items**.
 4. Allow Mac Smooth Scroll and try the login launch again.
 
-Check the status shown directly beneath **Launch at login**. If it says the
-helper is not registered, turn the setting off and on again. If it says approval
-is required, use **Open Login Items Settings** and allow the app there.
+Check the **Launch at login** row under **System Health**. If registration is
+missing, select **Repair**. If approval is required, select **Open Settings**
+and allow the app there.
 
 The embedded helper starts the main app in background mode. It should show a
 menu-bar item without opening Settings or adding a Dock icon.
@@ -83,6 +90,9 @@ Mac Smooth Scroll transforms discrete external mouse-wheel events. Continuous
 events from a trackpad or Magic Mouse are passed through unchanged.
 
 ## Collecting useful information for a bug report
+
+Select **Copy Diagnostics** under **System Health** and include the result.
+It contains only app, macOS, architecture, and health-state information.
 
 Include:
 

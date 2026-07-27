@@ -153,6 +153,8 @@ final class ScrollSettings: ObservableObject {
     var onChange: (() -> Void)?
     var onOpenSettings: (() -> Void)?
     var onHideApp: (() -> Void)?
+    var onRefreshRuntime: (() -> Void)?
+    var onQuitCompetingDriver: (() -> Void)?
 
     @Published var isEnabled: Bool {
         didSet { persist(Key.enabled, isEnabled) }
@@ -210,9 +212,23 @@ final class ScrollSettings: ObservableObject {
     }
     @Published var permissionGranted = false
     @Published var competingDriverRunning = false
-    @Published var engineMessage = "Waiting to start"
-    @Published var launchAtLoginMessage: String?
-    @Published var launchAtLoginStatusText = "Checking login item status…"
+    @Published var engineStatus = ScrollEngineStatus.waiting
+    @Published var launchAtLoginHealthStatus = LaunchAtLoginHealthStatus.unavailable
+    @Published var launchAtLoginDetail = "Checking login item status…"
+    @Published var competingDriverRecoveryMessage: String?
+
+    var engineMessage: String {
+        engineStatus.message
+    }
+
+    var systemHealth: SystemHealthSnapshot {
+        SystemHealthSnapshot.make(
+            permissionGranted: permissionGranted,
+            engine: engineStatus,
+            competingDriverRunning: competingDriverRunning,
+            launchAtLogin: launchAtLoginHealthStatus
+        )
+    }
 
     init(
         defaults: UserDefaults = .standard,
@@ -235,12 +251,12 @@ final class ScrollSettings: ObservableObject {
         preciseModifier = ModifierKey(rawValue: defaults.string(forKey: Key.preciseModifier) ?? "") ?? .option
         showInMenuBar = defaults.object(forKey: Key.showInMenuBar) as? Bool ?? true
         launchAtLogin = defaults.object(forKey: Key.launchAtLogin) as? Bool ?? false
+        launchAtLoginHealthStatus = launchAtLogin ? .unavailable : .disabled
     }
 
     func requestPermissions() {
         let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
         AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary)
-        engineMessage = "Approve Mac Smooth Scroll under Accessibility, then return here."
     }
 
     func openPrivacySettings() {
@@ -252,8 +268,21 @@ final class ScrollSettings: ObservableObject {
         SMAppService.openSystemSettingsLoginItems()
     }
 
+    func openApplicationsFolder() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications", isDirectory: true))
+    }
+
     func hideToMenuBar() {
         onHideApp?()
+    }
+
+    func retryEngine() {
+        onRefreshRuntime?()
+    }
+
+    func quitCompetingDriver() {
+        competingDriverRecoveryMessage = nil
+        onQuitCompetingDriver?()
     }
 
     func migrateLaunchAtLoginRegistration() {
@@ -278,33 +307,55 @@ final class ScrollSettings: ObservableObject {
     func refreshLaunchAtLoginStatus() {
         guard managesLaunchAtLogin else { return }
         guard #available(macOS 13.0, *) else {
-            launchAtLoginStatusText = "Requires macOS 13 or later."
+            launchAtLoginHealthStatus = .unavailable
+            launchAtLoginDetail = "Requires macOS 13 or later."
             return
         }
 
         let launcherService = SMAppService.loginItem(identifier: Self.launcherBundleIdentifier)
         switch launcherService.status {
         case .enabled:
-            launchAtLoginStatusText = "Enabled — starts hidden in the menu bar after login."
-            launchAtLoginMessage = nil
+            launchAtLoginHealthStatus = .enabled
+            launchAtLoginDetail = "Starts hidden in the menu bar after login."
         case .requiresApproval:
-            launchAtLoginStatusText = "Registered, but waiting for approval."
-            launchAtLoginMessage =
-                "Allow Mac Smooth Scroll under System Settings → General → Login Items."
+            launchAtLoginHealthStatus = .approvalRequired
+            launchAtLoginDetail = "Allow Mac Smooth Scroll in System Settings → General → Login Items."
         case .notRegistered:
-            launchAtLoginStatusText = launchAtLogin
-                ? "Not registered. Turn Launch at login off and on again."
-                : "Disabled."
-            launchAtLoginMessage = launchAtLogin
+            launchAtLoginHealthStatus = launchAtLogin ? .registrationMissing : .disabled
+            launchAtLoginDetail = launchAtLogin
                 ? "macOS does not currently have the login helper registered."
-                : nil
+                : "Launch at login is disabled."
         case .notFound:
-            launchAtLoginStatusText = "The embedded login helper could not be found."
-            launchAtLoginMessage =
+            launchAtLoginHealthStatus = .helperMissing
+            launchAtLoginDetail =
                 "Install Mac Smooth Scroll in Applications, reopen it, and enable Launch at login again."
         @unknown default:
-            launchAtLoginStatusText = "Login-item status is unavailable."
-            launchAtLoginMessage = "Open Login Items Settings to verify the current permission."
+            launchAtLoginHealthStatus = .unavailable
+            launchAtLoginDetail = "Open Login Items Settings to verify the current permission."
+        }
+    }
+
+    func repairLaunchAtLogin() {
+        guard managesLaunchAtLogin, launchAtLogin else { return }
+        guard #available(macOS 13.0, *) else {
+            refreshLaunchAtLoginStatus()
+            return
+        }
+
+        let launcherService = SMAppService.loginItem(identifier: Self.launcherBundleIdentifier)
+        do {
+            if launcherService.status == .enabled || launcherService.status == .requiresApproval {
+                try launcherService.unregister()
+            }
+            try launcherService.register()
+            defaults.set(
+                Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
+                forKey: Key.launchAtLoginRegisteredBuild
+            )
+            refreshLaunchAtLoginStatus()
+        } catch {
+            launchAtLoginHealthStatus = .unavailable
+            launchAtLoginDetail = "Launch at login could not be repaired: \(error.localizedDescription)"
         }
     }
 
@@ -360,8 +411,8 @@ final class ScrollSettings: ObservableObject {
                 defaults.removeObject(forKey: Key.launchAtLoginRegisteredBuild)
             }
         } catch {
-            launchAtLoginStatusText = "The login item could not be updated."
-            launchAtLoginMessage = "Launch at login could not be changed: \(error.localizedDescription)"
+            launchAtLoginHealthStatus = .unavailable
+            launchAtLoginDetail = "Launch at login could not be changed: \(error.localizedDescription)"
         }
     }
 }

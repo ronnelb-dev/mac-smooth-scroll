@@ -44,6 +44,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         settings.onHideApp = { [weak self] in
             self?.hideToMenuBar()
         }
+        settings.onRefreshRuntime = { [weak self] in
+            self?.updateRuntimeState(forceEngineRefresh: true)
+        }
+        settings.onQuitCompetingDriver = { [weak self] in
+            self?.quitCompetingDriver()
+        }
 
         configureStatusItem()
         updateRuntimeState()
@@ -104,7 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         scrollEngine.refresh()
     }
 
-    private func updateRuntimeState() {
+    private func updateRuntimeState(forceEngineRefresh: Bool = false) {
         let wasGranted = settings.permissionGranted
         let wasCompetitorRunning = settings.competingDriverRunning
         // A modifying CGEvent tap is authorized through Accessibility. The
@@ -114,10 +120,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         settings.competingDriverRunning =
             !NSRunningApplication.runningApplications(withBundleIdentifier: "com.nuebling.mac-mouse-fix").isEmpty ||
             !NSRunningApplication.runningApplications(withBundleIdentifier: "com.nuebling.mac-mouse-fix.helper").isEmpty
+        if !settings.competingDriverRunning {
+            settings.competingDriverRecoveryMessage = nil
+        }
 
-        if settings.permissionGranted != wasGranted ||
+        if forceEngineRefresh ||
+            settings.permissionGranted != wasGranted ||
             settings.competingDriverRunning != wasCompetitorRunning {
             scrollEngine.refresh()
+        }
+    }
+
+    private func quitCompetingDriver() {
+        let bundleIdentifiers = [
+            "com.nuebling.mac-mouse-fix",
+            "com.nuebling.mac-mouse-fix.helper"
+        ]
+        let applications = bundleIdentifiers.flatMap {
+            NSRunningApplication.runningApplications(withBundleIdentifier: $0)
+        }
+        let accepted = applications.reduce(false) { result, application in
+            application.terminate() || result
+        }
+
+        if !applications.isEmpty && !accepted {
+            settings.competingDriverRecoveryMessage =
+                "Mac Mouse Fix could not be quit automatically. Quit it from its menu, then retry."
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { [weak self] in
+            self?.updateRuntimeState(forceEngineRefresh: true)
+            if self?.settings.competingDriverRunning == true {
+                self?.settings.competingDriverRecoveryMessage =
+                    "Mac Mouse Fix is still running. Quit it from its menu, then retry."
+            }
         }
     }
 

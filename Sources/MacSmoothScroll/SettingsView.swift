@@ -3,14 +3,14 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var settings: ScrollSettings
     @State private var showingResetConfirmation = false
+    @State private var diagnosticsCopied = false
 
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
             Form {
-                competingDriverSection
-                permissionSection
+                systemHealthSection
                 scrollingSection
                 modifierSection
                 appSection
@@ -71,67 +71,139 @@ struct SettingsView: View {
         .padding(.vertical, 18)
     }
 
-    @ViewBuilder
-    private var competingDriverSection: some View {
-        if settings.competingDriverRunning {
-            Section {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.yellow)
-                        .frame(width: 26)
+    private var systemHealthSection: some View {
+        Section {
+            accessibilityHealthRow
+            engineHealthRow
+            competingDriverHealthRow
+            launchAtLoginHealthRow
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Mac Mouse Fix is currently running")
-                            .font(.headline)
-                        Text("Quit Mac Mouse Fix before using Mac Smooth Scroll. Running two mouse drivers together can duplicate or distort wheel input.")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+            HStack {
+                Button {
+                    copyDiagnostics()
+                } label: {
+                    Label("Copy Diagnostics", systemImage: "doc.on.doc")
                 }
-                .padding(.vertical, 5)
+                .accessibilityHint("Copies privacy-safe app and system health information")
+
+                Spacer()
+
+                if diagnosticsCopied {
+                    Label("Copied", systemImage: "checkmark")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                        .accessibilityAddTraits(.isStaticText)
+                }
+            }
+        } header: {
+            Text("System Health")
+        } footer: {
+            Text("Diagnostics contain app and system status only. Mouse activity and personal information are never included.")
+        }
+    }
+
+    private var accessibilityHealthRow: some View {
+        healthRow(
+            title: "Accessibility",
+            detail: settings.permissionGranted
+                ? "Mac Smooth Scroll can transform wheel events."
+                : "Permission is required to transform wheel events.",
+            status: settings.systemHealth.accessibility.rawValue,
+            symbol: settings.permissionGranted ? "checkmark.shield.fill" : "hand.raised.fill",
+            tone: settings.permissionGranted ? .ready : .warning
+        ) {
+            if !settings.permissionGranted {
+                Button("Request Permission") {
+                    settings.requestPermissions()
+                }
+                .buttonStyle(.borderedProminent)
+                Button("Open Settings") {
+                    settings.openPrivacySettings()
+                }
+                .help("Open Accessibility Settings")
+            }
+        }
+    }
+
+    private var engineHealthRow: some View {
+        healthRow(
+            title: "Scroll engine",
+            detail: engineHealthDetail,
+            status: settings.systemHealth.engine.rawValue,
+            symbol: engineHealthSymbol,
+            tone: engineHealthTone
+        ) {
+            switch settings.engineStatus {
+            case .disabled:
+                Button("Turn On") {
+                    settings.isEnabled = true
+                }
+                .buttonStyle(.borderedProminent)
+            case .startFailed:
+                Button("Retry") {
+                    settings.retryEngine()
+                }
+                .buttonStyle(.borderedProminent)
+            default:
+                EmptyView()
             }
         }
     }
 
     @ViewBuilder
-    private var permissionSection: some View {
-        if !settings.permissionGranted {
-            Section {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "hand.raised.fill")
-                        .font(.title2)
-                        .foregroundStyle(.orange)
-                        .frame(width: 26)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Allow mouse access")
-                            .font(.headline)
-                        Text("macOS requires Accessibility permission before Mac Smooth Scroll can transform wheel events.")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        HStack {
-                            Button("Request Permission") {
-                                settings.requestPermissions()
-                            }
-                            .buttonStyle(.borderedProminent)
-
-                            Button("Open System Settings") {
-                                settings.openPrivacySettings()
-                            }
-                        }
-                        .padding(.top, 2)
-
-                        Text("Already enabled? In System Settings, switch Mac Smooth Scroll off and on again. If that does not work, remove the old entry and add this app again.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, 2)
-                    }
+    private var competingDriverHealthRow: some View {
+        healthRow(
+            title: "Mouse drivers",
+            detail: settings.competingDriverRunning
+                ? "Another wheel driver can duplicate or distort scrolling."
+                : "No known conflicting mouse driver is running.",
+            status: settings.systemHealth.competingDriver.rawValue,
+            symbol: settings.competingDriverRunning
+                ? "exclamationmark.triangle.fill"
+                : "checkmark.circle.fill",
+            tone: settings.competingDriverRunning ? .warning : .ready
+        ) {
+            if settings.competingDriverRunning {
+                Button("Quit Mac Mouse Fix") {
+                    settings.quitCompetingDriver()
                 }
-                .padding(.vertical, 5)
+                .buttonStyle(.borderedProminent)
+            }
+        }
+
+        if let message = settings.competingDriverRecoveryMessage {
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.red)
+                .accessibilityLabel("Mouse driver recovery failed. \(message)")
+        }
+    }
+
+    private var launchAtLoginHealthRow: some View {
+        healthRow(
+            title: "Launch at login",
+            detail: settings.launchAtLoginDetail,
+            status: settings.systemHealth.launchAtLogin.rawValue,
+            symbol: launchAtLoginSymbol,
+            tone: launchAtLoginTone
+        ) {
+            switch settings.launchAtLoginHealthStatus.recovery {
+            case .openSettings:
+                Button("Open Settings") {
+                    settings.openLoginItemsSettings()
+                }
+                .help("Open Login Items Settings")
+            case .repair:
+                Button("Repair") {
+                    settings.repairLaunchAtLogin()
+                }
+                .buttonStyle(.borderedProminent)
+            case .openApplications:
+                Button("Open Applications") {
+                    settings.openApplicationsFolder()
+                }
+            case .none:
+                EmptyView()
             }
         }
     }
@@ -278,22 +350,6 @@ struct SettingsView: View {
             Toggle("Show in menu bar", isOn: $settings.showInMenuBar)
             Toggle("Launch at login", isOn: $settings.launchAtLogin)
 
-            Text(settings.launchAtLoginStatusText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            if let message = settings.launchAtLoginMessage {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(message)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                    Button("Open Login Items Settings") {
-                        settings.openLoginItemsSettings()
-                    }
-                    .font(.caption)
-                }
-            }
-
             LabeledContent {
                 Button {
                     settings.hideToMenuBar()
@@ -346,12 +402,155 @@ struct SettingsView: View {
 
     private var statusColor: Color {
         if !settings.isEnabled { return .secondary }
-        return settings.permissionGranted ? .green : .orange
+        if settings.engineStatus == .startFailed { return .red }
+        return settings.engineStatus == .active ? .green : .orange
     }
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
             ?? "Unknown"
+    }
+
+    private var appBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+            ?? "Unknown"
+    }
+
+    private var engineHealthDetail: String {
+        switch settings.engineStatus {
+        case .waiting:
+            "The engine is checking whether it can start."
+        case .active:
+            "Discrete external-mouse wheel events are being transformed."
+        case .disabled:
+            "Smooth scrolling is intentionally turned off."
+        case .permissionBlocked:
+            "The engine will start after Accessibility permission is granted."
+        case .driverConflict:
+            "The engine is paused until Mac Mouse Fix quits."
+        case .startFailed:
+            "The event tap could not be created. Check permission, then retry."
+        }
+    }
+
+    private var engineHealthSymbol: String {
+        switch settings.engineStatus {
+        case .waiting: "clock.fill"
+        case .active: "checkmark.circle.fill"
+        case .disabled: "pause.circle.fill"
+        case .permissionBlocked: "lock.fill"
+        case .driverConflict: "exclamationmark.triangle.fill"
+        case .startFailed: "xmark.octagon.fill"
+        }
+    }
+
+    private var engineHealthTone: HealthTone {
+        switch settings.engineStatus {
+        case .active: .ready
+        case .waiting, .disabled: .neutral
+        case .permissionBlocked, .driverConflict: .warning
+        case .startFailed: .error
+        }
+    }
+
+    private var launchAtLoginSymbol: String {
+        switch settings.launchAtLoginHealthStatus {
+        case .enabled: "checkmark.circle.fill"
+        case .disabled: "minus.circle.fill"
+        case .approvalRequired: "person.badge.clock.fill"
+        case .registrationMissing: "arrow.clockwise.circle.fill"
+        case .helperMissing: "questionmark.folder.fill"
+        case .unavailable: "exclamationmark.circle.fill"
+        }
+    }
+
+    private var launchAtLoginTone: HealthTone {
+        switch settings.launchAtLoginHealthStatus {
+        case .enabled: .ready
+        case .disabled: .neutral
+        case .approvalRequired, .registrationMissing: .warning
+        case .helperMissing, .unavailable: .error
+        }
+    }
+
+    private func healthRow<Actions: View>(
+        title: String,
+        detail: String,
+        status: String,
+        symbol: String,
+        tone: HealthTone,
+        @ViewBuilder actions: () -> Actions
+    ) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(tone.color)
+                .frame(width: 22, height: 22)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 12)
+
+            VStack(alignment: .trailing, spacing: 6) {
+                Text(status)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(tone.color)
+                HStack(spacing: 6) {
+                    actions()
+                }
+                .controlSize(.small)
+            }
+        }
+        .padding(.vertical, 3)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(title): \(status). \(detail)")
+    }
+
+    private func copyDiagnostics() {
+        let health = settings.systemHealth
+        let diagnostics = SystemDiagnostics(
+            appVersion: appVersion,
+            appBuild: appBuild,
+            macOSVersion: ProcessInfo.processInfo.operatingSystemVersionString,
+            architecture: SystemDiagnostics.currentArchitecture,
+            smoothScrollingEnabled: settings.isEnabled,
+            accessibility: health.accessibility,
+            engine: health.engine,
+            competingDriver: health.competingDriver,
+            showInMenuBar: settings.showInMenuBar,
+            launchAtLoginEnabled: settings.launchAtLogin,
+            launchAtLogin: health.launchAtLogin
+        )
+
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(diagnostics.report, forType: .string)
+        diagnosticsCopied = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            diagnosticsCopied = false
+        }
+    }
+}
+
+private enum HealthTone {
+    case ready
+    case neutral
+    case warning
+    case error
+
+    var color: Color {
+        switch self {
+        case .ready: .green
+        case .neutral: .secondary
+        case .warning: .orange
+        case .error: .red
+        }
     }
 }
 
