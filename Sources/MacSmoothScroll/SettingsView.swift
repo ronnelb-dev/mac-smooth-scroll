@@ -9,15 +9,9 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             header
             Divider()
-            Form {
-                systemHealthSection
-                scrollingSection
-                advancedScrollingSection
-                modifierSection
-                appSection
-            }
-            .formStyle(.grouped)
-            .scrollContentBackground(.hidden)
+            settingsTabBar
+            Divider()
+            selectedSettingsPage
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .sheet(isPresented: $settings.isSetupPresented) {
@@ -32,6 +26,74 @@ struct SettingsView: View {
         } message: {
             Text("Scrolling, advanced tuning, and modifier keys will return to their defaults.")
         }
+    }
+
+    @ViewBuilder
+    private var selectedSettingsPage: some View {
+        switch settings.selectedTab {
+        case .scrolling:
+            settingsPage {
+                scrollingSection
+                advancedScrollingSection
+            }
+        case .modifierKeys:
+            settingsPage {
+                modifierSection
+            }
+        case .app:
+            settingsPage {
+                appSection
+                systemHealthSection
+            }
+        }
+    }
+
+    private func settingsPage<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        Form {
+            content()
+        }
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+    }
+
+    private var settingsTabBar: some View {
+        HStack(spacing: 8) {
+            ForEach(SettingsTab.allCases) { tab in
+                Button {
+                    settings.selectedTab = tab
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: tab.symbolName)
+                            .font(.system(size: 17, weight: .medium))
+                        Text(tab.title)
+                            .font(.caption.weight(.medium))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(
+                        settings.selectedTab == tab ? Color.accentColor : Color.primary
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 7)
+                    .contentShape(Rectangle())
+                    .background(
+                        settings.selectedTab == tab
+                            ? Color.accentColor.opacity(0.14)
+                            : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(tab.title)
+                .accessibilityAddTraits(
+                    settings.selectedTab == tab ? .isSelected : []
+                )
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+        .background(.bar)
     }
 
     private var header: some View {
@@ -214,7 +276,7 @@ struct SettingsView: View {
     }
 
     private var scrollingSection: some View {
-        Section("Scrolling") {
+        Section {
             LabeledContent {
                 Picker("Scroll feel", selection: $settings.feel) {
                     ForEach(ScrollFeel.allCases) { feel in
@@ -313,7 +375,7 @@ struct SettingsView: View {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Minimum wheel step")
-                    Text("Minimum distance produced by each discrete wheel input.")
+                    Text("Minimum final distance after speed and adaptive precision.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -358,7 +420,7 @@ struct SettingsView: View {
             }
 
             HStack(spacing: 8) {
-                Text("Lower values favor precision; higher values scroll farther.")
+                Text("Modifier keys can intentionally reduce or increase this distance.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -408,15 +470,13 @@ struct SettingsView: View {
                 detail: "Temporarily reduce scrolling speed.",
                 selection: $settings.preciseModifier
             )
-        } header: {
-            Text("Modifier Keys")
         } footer: {
             Text("Transform actions take priority over zoom. Precision scrolling takes priority over faster scrolling.")
         }
     }
 
     private var appSection: some View {
-        Section("App") {
+        Section {
             Toggle("Show in menu bar", isOn: $settings.showInMenuBar)
             Toggle("Launch at login", isOn: $settings.launchAtLogin)
 

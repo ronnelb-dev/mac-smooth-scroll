@@ -39,6 +39,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(settings.launchAtLoginHealthStatus, .disabled)
         XCTAssertFalse(settings.onboardingCompleted)
         XCTAssertFalse(settings.isSetupPresented)
+        XCTAssertEqual(settings.selectedTab, .scrolling)
     }
 
     func testSettingsPersistAcrossInstances() {
@@ -57,6 +58,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.preciseModifier = .command
         settings.showInMenuBar = false
         settings.launchAtLogin = true
+        settings.selectedTab = .app
 
         let reloaded = makeSettings()
         XCTAssertFalse(reloaded.isEnabled)
@@ -73,6 +75,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(reloaded.preciseModifier, .command)
         XCTAssertFalse(reloaded.showInMenuBar)
         XCTAssertTrue(reloaded.launchAtLogin)
+        XCTAssertEqual(reloaded.selectedTab, .app)
     }
 
     func testResetRestoresScrollingDefaultsWithoutChangingAppPreferences() {
@@ -120,6 +123,33 @@ final class ScrollSettingsTests: XCTestCase {
         settings.speed = .slow
 
         XCTAssertEqual(changeCount, 1)
+    }
+
+    func testTabSelectionPersistsWithoutRefreshingTheScrollEngine() {
+        let settings = makeSettings()
+        var changeCount = 0
+        settings.onChange = {
+            changeCount += 1
+        }
+
+        settings.selectedTab = .app
+
+        XCTAssertEqual(changeCount, 0)
+        XCTAssertEqual(makeSettings().selectedTab, .app)
+    }
+
+    func testInvalidPersistedTabFallsBackToScrolling() {
+        defaults.set("unknown-tab", forKey: "settings.selectedTab")
+
+        XCTAssertEqual(makeSettings().selectedTab, .scrolling)
+    }
+
+    func testLegacyMergedTabsResolveToTheirNewDestinations() {
+        defaults.set("advancedScrolling", forKey: "settings.selectedTab")
+        XCTAssertEqual(makeSettings().selectedTab, .scrolling)
+
+        defaults.set("systemHealth", forKey: "settings.selectedTab")
+        XCTAssertEqual(makeSettings().selectedTab, .app)
     }
 
     func testStepRoundsAndClampsBeforePersisting() {
