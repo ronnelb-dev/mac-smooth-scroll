@@ -48,14 +48,6 @@ NSColor(
 ).setFill()
 NSBezierPath(rect: NSRect(origin: .zero, size: size)).fill()
 
-let installPanel = NSBezierPath(
-    roundedRect: NSRect(x: 75, y: 64, width: 510, height: 190),
-    xRadius: 24,
-    yRadius: 24
-)
-NSColor.white.withAlphaComponent(0.94).setFill()
-installPanel.fill()
-
 let headerLine = NSBezierPath()
 headerLine.move(to: NSPoint(x: 32, y: 326))
 headerLine.line(to: NSPoint(x: 628, y: 326))
