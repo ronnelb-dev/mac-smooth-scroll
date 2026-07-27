@@ -278,42 +278,7 @@ struct SettingsView: View {
                 }
             }
 
-            LabeledContent {
-                HStack(spacing: 8) {
-                    StepSlider(
-                        value: $settings.minimumStepDistance,
-                        range: ScrollStep.range,
-                        step: ScrollStep.increment
-                    )
-                    .frame(width: 180)
-
-                    TextField(
-                        "Step",
-                        value: $settings.minimumStepDistance,
-                        format: .number.precision(.fractionLength(2))
-                    )
-                    .labelsHidden()
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 62)
-                    .accessibilityLabel("Minimum scroll distance value")
-
-                    Stepper(
-                        "Minimum scroll distance",
-                        value: $settings.minimumStepDistance,
-                        in: ScrollStep.range,
-                        step: ScrollStep.increment
-                    )
-                    .labelsHidden()
-                    .fixedSize()
-                }
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Step")
-                    Text("Set the minimum distance produced by each wheel input.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            minimumWheelStepRow
 
             Toggle(isOn: $settings.adaptivePrecision) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -337,6 +302,84 @@ struct SettingsView: View {
         } footer: {
             Text("These controls fine-tune discrete mouse-wheel input. Trackpads and Magic Mouse remain unchanged.")
         }
+    }
+
+    private var minimumWheelStepRow: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Minimum wheel step")
+                    Text("Minimum distance produced by each discrete wheel input.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 12)
+
+                HStack(spacing: 7) {
+                    StepSlider(
+                        value: $settings.minimumStepDistance,
+                        range: ScrollStep.range,
+                        step: ScrollStep.increment
+                    )
+                    .frame(width: 155)
+
+                    TextField(
+                        "Minimum wheel step",
+                        value: $settings.minimumStepDistance,
+                        format: .number.precision(.fractionLength(2))
+                    )
+                    .labelsHidden()
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 60)
+                    .accessibilityLabel("Minimum wheel step value")
+                    .accessibilityValue(
+                        "\(ScrollStep.formatted(settings.minimumStepDistance)) points"
+                    )
+
+                    Text("pt")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+
+                    Stepper(
+                        "Minimum wheel step",
+                        value: $settings.minimumStepDistance,
+                        in: ScrollStep.range,
+                        step: ScrollStep.increment
+                    )
+                    .labelsHidden()
+                    .fixedSize()
+                }
+            }
+
+            HStack(spacing: 8) {
+                Text("Lower values favor precision; higher values scroll farther.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Text(
+                    "Range \(ScrollStep.formatted(ScrollStep.minimum))–\(ScrollStep.formatted(ScrollStep.maximum)) pt"
+                )
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+
+                Text("Default \(ScrollStep.formatted(ScrollStep.defaultValue)) pt")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+
+                Button("Reset") {
+                    settings.resetMinimumStepDistance()
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+                .disabled(settings.minimumStepDistance == ScrollStep.defaultValue)
+                .accessibilityLabel("Reset minimum wheel step to 18 points")
+            }
+        }
+        .padding(.vertical, 2)
     }
 
     private var modifierSection: some View {
@@ -582,6 +625,7 @@ private struct StepSlider: View {
     let range: ClosedRange<Double>
     let step: Double
 
+    @FocusState private var isFocused: Bool
     private let thumbDiameter: CGFloat = 18
 
     var body: some View {
@@ -625,18 +669,39 @@ private struct StepSlider: View {
             )
         }
         .frame(height: 20)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Minimum scroll distance")
-        .accessibilityValue(String(format: "%.2f", value))
-        .accessibilityAdjustableAction { direction in
+        .focusable()
+        .focused($isFocused)
+        .overlay {
+            if isFocused {
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(Color.accentColor, lineWidth: 2)
+                    .padding(-3)
+            }
+        }
+        .onMoveCommand { direction in
             switch direction {
-            case .increment:
-                value = min(value + step, range.upperBound)
-            case .decrement:
-                value = max(value - step, range.lowerBound)
-            @unknown default:
+            case .left, .down:
+                adjust(bySteps: -1)
+            case .right, .up:
+                adjust(bySteps: 1)
+            default:
                 break
             }
         }
+        .accessibilityRepresentation {
+            Slider(value: $value, in: range, step: step) {
+                Text("Minimum wheel step")
+            }
+            .focused($isFocused)
+            .accessibilityValue("\(ScrollStep.formatted(value)) points")
+            .accessibilityHint(
+                "Use arrow keys or the VoiceOver adjust gesture to change by 0.01 points"
+            )
+        }
+    }
+
+    private func adjust(bySteps steps: Int) {
+        let adjusted = ScrollStep.adjusted(value, bySteps: steps)
+        value = min(max(adjusted, range.lowerBound), range.upperBound)
     }
 }

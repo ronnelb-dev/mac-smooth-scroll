@@ -49,6 +49,14 @@ enum ScrollStep {
         let clamped = min(max(value, minimum), maximum)
         return (clamped / increment).rounded() * increment
     }
+
+    static func adjusted(_ value: Double, bySteps steps: Int) -> Double {
+        sanitized(value + (Double(steps) * increment))
+    }
+
+    static func formatted(_ value: Double) -> String {
+        String(format: "%.2f", sanitized(value))
+    }
 }
 
 enum ScrollFeel: String, CaseIterable, Identifiable {
@@ -372,6 +380,10 @@ final class ScrollSettings: ObservableObject {
         zoomModifier = .command
         swiftModifier = .control
         preciseModifier = .option
+    }
+
+    func resetMinimumStepDistance() {
+        minimumStepDistance = ScrollStep.defaultValue
     }
 
     private func persist(_ key: String, _ value: Any) {
