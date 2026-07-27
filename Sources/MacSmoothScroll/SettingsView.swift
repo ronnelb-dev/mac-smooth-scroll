@@ -12,6 +12,7 @@ struct SettingsView: View {
             Form {
                 systemHealthSection
                 scrollingSection
+                advancedScrollingSection
                 modifierSection
                 appSection
             }
@@ -25,7 +26,7 @@ struct SettingsView: View {
                 settings.resetDefaults()
             }
         } message: {
-            Text("Smoothness, speed, direction, precision, and modifier keys will return to their defaults.")
+            Text("Scrolling, advanced tuning, and modifier keys will return to their defaults.")
         }
     }
 
@@ -210,18 +211,25 @@ struct SettingsView: View {
 
     private var scrollingSection: some View {
         Section("Scrolling") {
-            LabeledContent("Smoothness") {
-                Picker("Smoothness", selection: $settings.smoothness) {
-                    ForEach(Smoothness.allCases) { level in
-                        Text(level.rawValue).tag(level)
+            LabeledContent {
+                Picker("Scroll feel", selection: $settings.feel) {
+                    ForEach(ScrollFeel.allCases) { feel in
+                        Text(feel.rawValue).tag(feel)
                     }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .frame(width: 250)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Feel")
+                    Text("Choose the balance between responsiveness and glide.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            LabeledContent("Speed") {
+            LabeledContent {
                 Picker("Speed", selection: $settings.speed) {
                     ForEach(ScrollSpeed.allCases) { speed in
                         Text(speed.rawValue).tag(speed)
@@ -230,6 +238,44 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .frame(width: 250)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Speed")
+                    Text("Control how far normal wheel movement scrolls.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Toggle(isOn: $settings.reverseDirection) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Reverse scrolling")
+                    Text("Reverse external-mouse scrolling without changing trackpad behavior.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private var advancedScrollingSection: some View {
+        Section {
+            LabeledContent {
+                Picker("Smoothness", selection: $settings.smoothness) {
+                    ForEach(Smoothness.allCases) { level in
+                        Text(level.rawValue).tag(level)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 250)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Smoothness")
+                    Text("Control how gradually scrolling slows after each wheel movement.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             LabeledContent {
@@ -263,43 +309,7 @@ struct SettingsView: View {
             } label: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Step")
-                    Text("Sets the minimum scroll distance.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            LabeledContent {
-                Picker("Scroll feel", selection: $settings.feel) {
-                    ForEach(ScrollFeel.allCases) { feel in
-                        Text(feel.rawValue).tag(feel)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 250)
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Scroll feel")
-                    Text("Controls responsiveness, acceleration, and direction changes.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Toggle(isOn: $settings.trackpadSimulation) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Trackpad simulation")
-                    Text("Adds gesture phases for natural scrolling and horizontal navigation.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Toggle(isOn: $settings.reverseDirection) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Reverse direction")
-                    Text("Reverse external mouse scrolling without changing trackpad behavior.")
+                    Text("Set the minimum distance produced by each wheel input.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -308,40 +318,53 @@ struct SettingsView: View {
             Toggle(isOn: $settings.adaptivePrecision) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Adaptive precision")
-                    Text("Slow wheel movements automatically produce smaller, more precise steps.")
+                    Text("Make slow wheel movements smaller and more precise.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
+
+            Toggle(isOn: $settings.trackpadSimulation) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Trackpad-like gestures")
+                    Text("Add gesture phases for natural scrolling and horizontal navigation.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            Text("Advanced Scrolling")
+        } footer: {
+            Text("These controls fine-tune discrete mouse-wheel input. Trackpads and Magic Mouse remain unchanged.")
         }
     }
 
     private var modifierSection: some View {
         Section {
             modifierRow(
-                title: "Scroll horizontally",
+                title: "Horizontal scrolling",
                 detail: "Convert vertical wheel movement to horizontal scrolling.",
                 selection: $settings.horizontalModifier
             )
             modifierRow(
-                title: "Zoom in or out",
+                title: "Zoom",
                 detail: "Pass the modifier through to apps with scroll-to-zoom support.",
                 selection: $settings.zoomModifier
             )
             modifierRow(
-                title: "Scroll swiftly",
+                title: "Faster scrolling",
                 detail: "Temporarily increase scrolling speed.",
                 selection: $settings.swiftModifier
             )
             modifierRow(
-                title: "Scroll precisely",
+                title: "Precision scrolling",
                 detail: "Temporarily reduce scrolling speed.",
                 selection: $settings.preciseModifier
             )
         } header: {
-            Text("Keyboard Modifiers")
+            Text("Modifier Keys")
         } footer: {
-            Text("Transform actions take priority over zoom. Precision takes priority over swift scrolling.")
+            Text("Transform actions take priority over zoom. Precision scrolling takes priority over faster scrolling.")
         }
     }
 

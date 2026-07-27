@@ -18,7 +18,7 @@ The following choices are stored locally with macOS `UserDefaults`:
 
 - Whether smooth scrolling is enabled
 - Smoothness and speed
-- Trackpad simulation, reverse direction, and adaptive precision
+- Trackpad-like gestures, reverse scrolling, and adaptive precision
 - Modifier assignments
 - Menu-bar visibility
 - Launch at Login preference
