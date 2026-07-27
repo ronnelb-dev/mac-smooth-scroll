@@ -22,6 +22,7 @@ The following choices are stored locally with macOS `UserDefaults`:
 - Modifier assignments
 - Menu-bar visibility
 - Launch at Login preference
+- Whether the first-run setup assistant has been completed
 
 These preferences use the app domain `com.ronnel.mac-smooth-scroll`. They can be
 removed with:

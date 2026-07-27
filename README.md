@@ -89,12 +89,24 @@ Mac Smooth Scroll uses a Core Graphics event tap to replace discrete external
 mouse-wheel events with smooth pixel scrolling. macOS requires Accessibility
 permission for this.
 
-1. Open Mac Smooth Scroll.
-2. Select **Request Permission**.
-3. In **System Settings → Privacy & Security → Accessibility**, enable
-   **Mac Smooth Scroll**.
-4. Return to the app. Its status should change to
-   **Smooth scrolling is active**.
+On an ordinary first launch, the setup assistant guides you through:
+
+1. Confirming the app is installed in `/Applications`.
+2. Granting Accessibility permission.
+3. Testing smooth scrolling with an external mouse.
+4. Optionally enabling Launch at Login.
+
+![Mac Smooth Scroll first-run setup](docs/first-run-setup.png)
+
+Select **Finish Later** to close the assistant without marking setup complete;
+it returns on the next ordinary launch. After finishing, you can open it again
+at any time with **App → Run Setup Again…**. Background login launches never
+show the assistant.
+
+In the Accessibility step, select **Request Permission**, enable
+**Mac Smooth Scroll** in **System Settings → Privacy & Security →
+Accessibility**, then return to the app. Its status should change to
+**Smooth scrolling is active**.
 
 Input Monitoring is not normally required by the app's permission check. If
 Accessibility is already enabled but the app still reports that permission is
