@@ -135,6 +135,11 @@ Install the app in `/Applications` before enabling **Launch at login**. The
 embedded login helper starts the main app with `--background`, so scrolling
 continues with no settings window or Dock icon.
 
+The status beneath the toggle reports whether macOS considers the helper
+enabled, disabled, missing, or waiting for approval. App updates refresh the
+registered helper, and the helper retries transient launch failures before
+asking macOS to relaunch it.
+
 If macOS requests approval, open **System Settings → General → Login Items** and
 allow Mac Smooth Scroll. Disable **Launch at login** inside the app before
 moving or deleting the application.
@@ -211,12 +216,6 @@ The tests cover launch-mode parsing, settings defaults and persistence,
 modifier behavior, burst and axis rules, direction-change braking, velocity
 limits, and refresh-rate-independent motion. GitHub Actions runs the suite
 before packaging every pull request and `main` update.
-
-## Roadmap
-
-See [ROADMAP.md](ROADMAP.md) and the
-[v0.3.0 milestone](https://github.com/ronnelb-dev/mac-smooth-scroll/milestone/1)
-for the prioritized reliability work and future backlog.
 
 ## Development notes
 

@@ -145,6 +145,7 @@ final class ScrollSettings: ObservableObject {
         static let preciseModifier = "modifier.precise"
         static let showInMenuBar = "app.showInMenuBar"
         static let launchAtLogin = "app.launchAtLogin"
+        static let launchAtLoginRegisteredBuild = "app.launchAtLoginRegisteredBuild"
     }
 
     private let defaults: UserDefaults
@@ -211,6 +212,7 @@ final class ScrollSettings: ObservableObject {
     @Published var competingDriverRunning = false
     @Published var engineMessage = "Waiting to start"
     @Published var launchAtLoginMessage: String?
+    @Published var launchAtLoginStatusText = "Checking login item status…"
 
     init(
         defaults: UserDefaults = .standard,
@@ -260,7 +262,50 @@ final class ScrollSettings: ObservableObject {
         if legacyService.status == .enabled || legacyService.status == .requiresApproval {
             try? legacyService.unregister()
         }
+
+        let launcherService = SMAppService.loginItem(identifier: Self.launcherBundleIdentifier)
+        let registeredBuild = defaults.string(forKey: Key.launchAtLoginRegisteredBuild)
+        let currentBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        if launchAtLogin,
+           launcherService.status == .enabled,
+           registeredBuild != currentBuild {
+            try? launcherService.unregister()
+        }
+
         updateLaunchAtLogin()
+    }
+
+    func refreshLaunchAtLoginStatus() {
+        guard managesLaunchAtLogin else { return }
+        guard #available(macOS 13.0, *) else {
+            launchAtLoginStatusText = "Requires macOS 13 or later."
+            return
+        }
+
+        let launcherService = SMAppService.loginItem(identifier: Self.launcherBundleIdentifier)
+        switch launcherService.status {
+        case .enabled:
+            launchAtLoginStatusText = "Enabled — starts hidden in the menu bar after login."
+            launchAtLoginMessage = nil
+        case .requiresApproval:
+            launchAtLoginStatusText = "Registered, but waiting for approval."
+            launchAtLoginMessage =
+                "Allow Mac Smooth Scroll under System Settings → General → Login Items."
+        case .notRegistered:
+            launchAtLoginStatusText = launchAtLogin
+                ? "Not registered. Turn Launch at login off and on again."
+                : "Disabled."
+            launchAtLoginMessage = launchAtLogin
+                ? "macOS does not currently have the login helper registered."
+                : nil
+        case .notFound:
+            launchAtLoginStatusText = "The embedded login helper could not be found."
+            launchAtLoginMessage =
+                "Install Mac Smooth Scroll in Applications, reopen it, and enable Launch at login again."
+        @unknown default:
+            launchAtLoginStatusText = "Login-item status is unavailable."
+            launchAtLoginMessage = "Open Login Items Settings to verify the current permission."
+        }
     }
 
     func resetDefaults() {
@@ -296,9 +341,6 @@ final class ScrollSettings: ObservableObject {
                 if launcherService.status == .notRegistered || launcherService.status == .notFound {
                     try launcherService.register()
                 }
-                launchAtLoginMessage = launcherService.status == .requiresApproval
-                    ? "Approve Mac Smooth Scroll under System Settings → General → Login Items."
-                    : nil
             } else {
                 if launcherService.status == .enabled || launcherService.status == .requiresApproval {
                     try? launcherService.unregister()
@@ -306,9 +348,19 @@ final class ScrollSettings: ObservableObject {
                 if legacyService.status == .enabled || legacyService.status == .requiresApproval {
                     try? legacyService.unregister()
                 }
-                launchAtLoginMessage = nil
+            }
+            refreshLaunchAtLoginStatus()
+            if launchAtLogin,
+               launcherService.status == .enabled || launcherService.status == .requiresApproval {
+                defaults.set(
+                    Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
+                    forKey: Key.launchAtLoginRegisteredBuild
+                )
+            } else if !launchAtLogin {
+                defaults.removeObject(forKey: Key.launchAtLoginRegisteredBuild)
             }
         } catch {
+            launchAtLoginStatusText = "The login item could not be updated."
             launchAtLoginMessage = "Launch at login could not be changed: \(error.localizedDescription)"
         }
     }

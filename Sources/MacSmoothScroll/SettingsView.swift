@@ -278,6 +278,10 @@ struct SettingsView: View {
             Toggle("Show in menu bar", isOn: $settings.showInMenuBar)
             Toggle("Launch at login", isOn: $settings.launchAtLogin)
 
+            Text(settings.launchAtLoginStatusText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             if let message = settings.launchAtLoginMessage {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(message)
@@ -310,7 +314,7 @@ struct SettingsView: View {
                     showingResetConfirmation = true
                 }
                 Spacer()
-                Text("Version 0.3.0 • Apple Silicon")
+                Text("Version \(appVersion) • Apple Silicon")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -343,6 +347,11 @@ struct SettingsView: View {
     private var statusColor: Color {
         if !settings.isEnabled { return .secondary }
         return settings.permissionGranted ? .green : .orange
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            ?? "Unknown"
     }
 }
 

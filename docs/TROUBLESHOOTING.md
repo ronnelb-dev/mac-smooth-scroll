@@ -68,6 +68,10 @@ the Dock icon disappears.
    **System Settings → General → Login Items**.
 4. Allow Mac Smooth Scroll and try the login launch again.
 
+Check the status shown directly beneath **Launch at login**. If it says the
+helper is not registered, turn the setting off and on again. If it says approval
+is required, use **Open Login Items Settings** and allow the app there.
+
 The embedded helper starts the main app in background mode. It should show a
 menu-bar item without opening Settings or adding a Dock icon.
 
