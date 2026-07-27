@@ -34,7 +34,8 @@ jobs:
       - name: Validate source files
         run: |
           set -euo pipefail
-          zsh -n Scripts/build-app.sh Scripts/build-dmg.sh
+          zsh -n Scripts/build-app.sh Scripts/build-dmg.sh Scripts/validate-release.sh
+          swiftc -parse Scripts/render-dmg-background.swift
           plutil -lint Resources/Info.plist Resources/Launcher-Info.plist
           git diff --check
 
@@ -44,85 +45,17 @@ jobs:
       - name: Build app and DMG installer
         run: ./Scripts/build-dmg.sh
 
-      - name: Verify executable architectures
-        run: |
-          set -euo pipefail
+      - name: Validate preview release bundle
+        run: ./Scripts/validate-release.sh --allow-adhoc
 
-          app="dist/Mac Smooth Scroll.app"
-          launcher="$app/Contents/Library/LoginItems/Mac Smooth Scroll Launcher.app"
-
-          test "$(lipo -archs "$app/Contents/MacOS/MacSmoothScroll")" = "arm64"
-          test "$(lipo -archs "$launcher/Contents/MacOS/MacSmoothScrollLauncher")" = "arm64"
-
-      - name: Verify bundle metadata
-        run: |
-          set -euo pipefail
-
-          app="dist/Mac Smooth Scroll.app"
-          launcher="$app/Contents/Library/LoginItems/Mac Smooth Scroll Launcher.app"
-
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" = \
-            "com.ronnel.mac-smooth-scroll"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$launcher/Contents/Info.plist")" = \
-            "com.ronnel.mac-smooth-scroll.launcher"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :LSUIElement' "$launcher/Contents/Info.plist")" = "true"
-
-          main_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")"
-          launcher_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$launcher/Contents/Info.plist")"
-          test -n "$main_version"
-          test "$main_version" = "$launcher_version"
-
-      - name: Verify ad-hoc code signatures
-        run: |
-          set -euo pipefail
-
-          app="dist/Mac Smooth Scroll.app"
-          launcher="$app/Contents/Library/LoginItems/Mac Smooth Scroll Launcher.app"
-
-          codesign --verify --strict --verbose=2 "$launcher"
-          codesign --verify --deep --strict --verbose=2 "$app"
-
-          main_signature="$(codesign -dvv "$app" 2>&1)"
-          launcher_signature="$(codesign -dvv "$launcher" 2>&1)"
-
-          grep -q '^Signature=adhoc$' <<<"$main_signature"
-          grep -q '^TeamIdentifier=not set$' <<<"$main_signature"
-          grep -q '^Signature=adhoc$' <<<"$launcher_signature"
-          grep -q '^TeamIdentifier=not set$' <<<"$launcher_signature"
-
-      - name: Verify DMG installer contents
-        run: |
-          set -euo pipefail
-
-          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
-          dmg="dist/Mac-Smooth-Scroll-$version-arm64.dmg"
-          mount_point="$(mktemp -d)"
-
-          cleanup() {
-            hdiutil detach "$mount_point" -quiet 2>/dev/null || true
-            rmdir "$mount_point" 2>/dev/null || true
-          }
-          trap cleanup EXIT
-
-          hdiutil verify "$dmg"
-          (
-            cd dist
-            shasum -a 256 -c "$(basename "$dmg").sha256"
-          )
-          hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mount_point"
-
-          test -d "$mount_point/Mac Smooth Scroll.app"
-          test -L "$mount_point/Applications"
-          test "$(readlink "$mount_point/Applications")" = "/Applications"
-          codesign --verify --deep --strict --verbose=2 "$mount_point/Mac Smooth Scroll.app"
-
-      - name: Upload DMG installer
+      - name: Upload preview release bundle
         uses: actions/upload-artifact@v7
         with:
-          name: mac-smooth-scroll-${{ github.sha }}-arm64-dmg
+          name: mac-smooth-scroll-${{ github.sha }}-arm64-preview
           path: |
             dist/Mac-Smooth-Scroll-*-arm64.dmg
             dist/Mac-Smooth-Scroll-*-arm64.dmg.sha256
+            dist/Mac-Smooth-Scroll-*-arm64-manifest.json
           if-no-files-found: error
           retention-days: 14
 

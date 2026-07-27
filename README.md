@@ -40,15 +40,18 @@ trackpad and Magic Mouse events untouched.
 
 ## Installation
 
-When a DMG is available from a trusted build or release:
+When a DMG is available from a trusted workflow run or preview release:
 
 1. Open `Mac-Smooth-Scroll-<version>-arm64.dmg`.
 2. Drag **Mac Smooth Scroll** onto the **Applications** shortcut.
 3. Open Mac Smooth Scroll from `/Applications`.
 4. Follow the Accessibility steps below.
 
-Every successful Apple Silicon CI run uploads its versioned DMG for 14 days.
-Open the workflow run on GitHub and download the `arm64-dmg` artifact.
+![Mac Smooth Scroll drag-to-Applications installer](docs/installer.png)
+
+Every successful Apple Silicon CI run uploads a preview bundle for 14 days.
+The bundle includes the versioned DMG, SHA-256 checksum, and release manifest.
+Open the workflow run on GitHub and download the `arm64-preview` artifact.
 
 The current DMG is not Developer ID signed or notarized, so it is a development
 artifact rather than a public production download.
@@ -74,7 +77,14 @@ Building from source requires the Xcode command-line tools.
    ./Scripts/build-dmg.sh
    ```
 
-3. Open the versioned DMG in `dist/`, then drag the app onto **Applications**.
+3. Validate and open the installer:
+
+   ```sh
+   ./Scripts/validate-release.sh --allow-adhoc
+   open dist/Mac-Smooth-Scroll-*-arm64.dmg
+   ```
+
+4. Drag the app onto **Applications** in the branded installer window.
 
 Confirm that the build machine is Apple Silicon with `uname -m`. The output
 should be `arm64`.
@@ -82,6 +92,10 @@ should be `arm64`.
 The local app inside the DMG is ad-hoc signed unless
 `MAC_SMOOTH_SCROLL_SIGNING_IDENTITY` is provided. It is intended for development
 use and is not a substitute for Developer ID signing and Apple notarization.
+
+Maintainers should follow the
+[preview release checklist](docs/RELEASE_CHECKLIST.md). Building the DMG does
+not publish a GitHub release.
 
 ## First launch and Accessibility
 
