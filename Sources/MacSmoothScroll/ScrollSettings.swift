@@ -49,6 +49,14 @@ enum ScrollStep {
         let clamped = min(max(value, minimum), maximum)
         return (clamped / increment).rounded() * increment
     }
+
+    static func adjusted(_ value: Double, bySteps steps: Int) -> Double {
+        sanitized(value + (Double(steps) * increment))
+    }
+
+    static func formatted(_ value: Double) -> String {
+        String(format: "%.2f", sanitized(value))
+    }
 }
 
 enum ScrollFeel: String, CaseIterable, Identifiable {
@@ -146,6 +154,7 @@ final class ScrollSettings: ObservableObject {
         static let showInMenuBar = "app.showInMenuBar"
         static let launchAtLogin = "app.launchAtLogin"
         static let launchAtLoginRegisteredBuild = "app.launchAtLoginRegisteredBuild"
+        static let onboardingCompleted = "app.onboardingCompleted"
     }
 
     private let defaults: UserDefaults
@@ -216,6 +225,8 @@ final class ScrollSettings: ObservableObject {
     @Published var launchAtLoginHealthStatus = LaunchAtLoginHealthStatus.unavailable
     @Published var launchAtLoginDetail = "Checking login item status…"
     @Published var competingDriverRecoveryMessage: String?
+    @Published private(set) var onboardingCompleted: Bool
+    @Published var isSetupPresented = false
 
     var engineMessage: String {
         engineStatus.message
@@ -251,7 +262,31 @@ final class ScrollSettings: ObservableObject {
         preciseModifier = ModifierKey(rawValue: defaults.string(forKey: Key.preciseModifier) ?? "") ?? .option
         showInMenuBar = defaults.object(forKey: Key.showInMenuBar) as? Bool ?? true
         launchAtLogin = defaults.object(forKey: Key.launchAtLogin) as? Bool ?? false
+        onboardingCompleted = defaults.bool(forKey: Key.onboardingCompleted)
         launchAtLoginHealthStatus = launchAtLogin ? .unavailable : .disabled
+    }
+
+    var isInstalledInApplications: Bool {
+        FirstRunSetup.isInstalledInApplications(Bundle.main.bundleURL)
+    }
+
+    func presentInitialSetupIfNeeded() {
+        guard !onboardingCompleted else { return }
+        isSetupPresented = true
+    }
+
+    func presentSetup() {
+        isSetupPresented = true
+    }
+
+    func dismissSetup() {
+        isSetupPresented = false
+    }
+
+    func completeSetup() {
+        onboardingCompleted = true
+        defaults.set(true, forKey: Key.onboardingCompleted)
+        isSetupPresented = false
     }
 
     func requestPermissions() {
@@ -372,6 +407,10 @@ final class ScrollSettings: ObservableObject {
         zoomModifier = .command
         swiftModifier = .control
         preciseModifier = .option
+    }
+
+    func resetMinimumStepDistance() {
+        minimumStepDistance = ScrollStep.defaultValue
     }
 
     private func persist(_ key: String, _ value: Any) {

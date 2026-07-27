@@ -17,6 +17,14 @@ or later.
    shortcut.
 5. Eject the Mac Smooth Scroll disk image.
 6. Open `/Applications/Mac Smooth Scroll.app`.
+7. Follow the four-step setup assistant. It confirms the installation
+   location, guides Accessibility permission, provides a scrolling test, and
+   offers optional Launch at Login.
+
+You can select **Finish Later** and continue setup on the next ordinary launch.
+Use **App → Run Setup Again…** after completion if you want to review the
+steps. The assistant does not appear when the login helper starts the app in
+the background.
 
 If macOS says it cannot verify the developer:
 
