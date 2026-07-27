@@ -38,14 +38,29 @@ func drawText(
 
 image.lockFocus()
 
-NSColor.white.setFill()
+// Solid background sampled from the supplied installer color reference:
+// RGB 23, 35, 56 (#172338).
+NSColor(
+    calibratedRed: 23.0 / 255.0,
+    green: 35.0 / 255.0,
+    blue: 56.0 / 255.0,
+    alpha: 1
+).setFill()
 NSBezierPath(rect: NSRect(origin: .zero, size: size)).fill()
+
+let installPanel = NSBezierPath(
+    roundedRect: NSRect(x: 75, y: 64, width: 510, height: 190),
+    xRadius: 24,
+    yRadius: 24
+)
+NSColor.white.withAlphaComponent(0.94).setFill()
+installPanel.fill()
 
 let headerLine = NSBezierPath()
 headerLine.move(to: NSPoint(x: 32, y: 326))
 headerLine.line(to: NSPoint(x: 628, y: 326))
 headerLine.lineWidth = 1
-NSColor(calibratedWhite: 0.84, alpha: 1).setStroke()
+NSColor.white.withAlphaComponent(0.12).setStroke()
 headerLine.stroke()
 
 if let brandIcon = NSImage(contentsOf: iconURL) {
@@ -61,20 +76,20 @@ drawText(
     "Mac Smooth Scroll",
     in: NSRect(x: 106, y: 369, width: 360, height: 28),
     font: .systemFont(ofSize: 24, weight: .semibold),
-    color: NSColor(calibratedWhite: 0.10, alpha: 1)
+    color: .white
 )
 drawText(
     "Version \(version) • Apple Silicon",
     in: NSRect(x: 108, y: 346, width: 300, height: 20),
     font: .systemFont(ofSize: 13, weight: .regular),
-    color: NSColor(calibratedWhite: 0.40, alpha: 1)
+    color: NSColor.white.withAlphaComponent(0.68)
 )
 
 drawText(
     "Drag Mac Smooth Scroll to Applications",
     in: NSRect(x: 80, y: 285, width: 500, height: 26),
     font: .systemFont(ofSize: 18, weight: .medium),
-    color: NSColor(calibratedWhite: 0.12, alpha: 1),
+    color: .white,
     alignment: .center
 )
 
@@ -94,14 +109,14 @@ drawText(
     "1. Drag to install     2. Open from Applications     3. Allow Accessibility",
     in: NSRect(x: 42, y: 38, width: 576, height: 20),
     font: .systemFont(ofSize: 12, weight: .medium),
-    color: NSColor(calibratedWhite: 0.28, alpha: 1),
+    color: NSColor.white.withAlphaComponent(0.82),
     alignment: .center
 )
 drawText(
     "Preview build • Not notarized • macOS may require Open Anyway",
     in: NSRect(x: 42, y: 23, width: 576, height: 18),
     font: .systemFont(ofSize: 11, weight: .regular),
-    color: NSColor(calibratedWhite: 0.50, alpha: 1),
+    color: NSColor.white.withAlphaComponent(0.55),
     alignment: .center
 )
 
