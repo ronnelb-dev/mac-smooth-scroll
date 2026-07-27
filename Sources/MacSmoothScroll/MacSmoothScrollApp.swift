@@ -10,10 +10,10 @@ struct MacSmoothScrollApp: App {
         Window("Mac Smooth Scroll", id: "settings") {
             SettingsView()
                 .environmentObject(appDelegate.settings)
-                .frame(minWidth: 640, idealWidth: 680, minHeight: 600, idealHeight: 650)
+                .frame(minWidth: 640, idealWidth: 680, minHeight: 520, idealHeight: 560)
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 680, height: 650)
+        .defaultSize(width: 680, height: 560)
         .defaultPosition(.center)
         .commands {
             CommandGroup(replacing: .newItem) {}

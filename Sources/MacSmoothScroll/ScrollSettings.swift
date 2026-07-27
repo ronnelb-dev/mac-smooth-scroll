@@ -155,6 +155,7 @@ final class ScrollSettings: ObservableObject {
         static let launchAtLogin = "app.launchAtLogin"
         static let launchAtLoginRegisteredBuild = "app.launchAtLoginRegisteredBuild"
         static let onboardingCompleted = "app.onboardingCompleted"
+        static let selectedTab = "settings.selectedTab"
     }
 
     private let defaults: UserDefaults
@@ -227,6 +228,11 @@ final class ScrollSettings: ObservableObject {
     @Published var competingDriverRecoveryMessage: String?
     @Published private(set) var onboardingCompleted: Bool
     @Published var isSetupPresented = false
+    @Published var selectedTab: SettingsTab {
+        didSet {
+            defaults.set(selectedTab.rawValue, forKey: Key.selectedTab)
+        }
+    }
 
     var engineMessage: String {
         engineStatus.message
@@ -263,6 +269,7 @@ final class ScrollSettings: ObservableObject {
         showInMenuBar = defaults.object(forKey: Key.showInMenuBar) as? Bool ?? true
         launchAtLogin = defaults.object(forKey: Key.launchAtLogin) as? Bool ?? false
         onboardingCompleted = defaults.bool(forKey: Key.onboardingCompleted)
+        selectedTab = SettingsTab.resolve(defaults.string(forKey: Key.selectedTab))
         launchAtLoginHealthStatus = launchAtLogin ? .unavailable : .disabled
     }
 

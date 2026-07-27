@@ -51,7 +51,7 @@ The build produces three files in `dist/`:
 
 - Wait for the protected **Apple Silicon arm64 build** check on `main`.
 - Create an annotated tag using a preview suffix, such as
-  `v0.3.1-preview.1`.
+  `v0.4.0-preview.1`.
 - Create a GitHub release from that exact tag.
 - Keep **Set as a pre-release** enabled.
 - Use GitHub's generated release notes, then add:

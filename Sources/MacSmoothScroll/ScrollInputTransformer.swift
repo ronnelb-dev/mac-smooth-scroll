@@ -90,29 +90,36 @@ struct ScrollInputTransformer {
             applyDominantAxisLock(x: &x, y: &y)
         }
 
-        x = applyingMinimumStep(to: x, minimum: configuration.minimumStepDistance)
-        y = applyingMinimumStep(to: y, minimum: configuration.minimumStepDistance)
-
-        var multiplier = configuration.speed.multiplier
+        var baseMultiplier = configuration.speed.multiplier
         if configuration.reverseDirection {
-            multiplier *= -1
+            baseMultiplier *= -1
         }
-        if preciseAction {
-            multiplier *= 0.28
-        } else if swiftAction {
-            multiplier *= 2.4
-        } else if configuration.adaptivePrecision {
-            multiplier *= adaptivePrecisionMultiplier(interval: interval)
+        if !preciseAction,
+           !swiftAction,
+           configuration.adaptivePrecision {
+            baseMultiplier *= adaptivePrecisionMultiplier(interval: interval)
         }
 
         if !preciseAction {
-            multiplier *= rapidInputMultiplier(
+            baseMultiplier *= rapidInputMultiplier(
                 interval: interval,
                 maximumBoost: configuration.feel.rapidInputBoost
             )
         }
 
-        let impulseScale = multiplier * (1 - configuration.smoothness.decay)
+        x *= baseMultiplier
+        y *= baseMultiplier
+        x = applyingMinimumStep(to: x, minimum: configuration.minimumStepDistance)
+        y = applyingMinimumStep(to: y, minimum: configuration.minimumStepDistance)
+
+        var modifierMultiplier = 1.0
+        if preciseAction {
+            modifierMultiplier = 0.28
+        } else if swiftAction {
+            modifierMultiplier = 2.4
+        }
+
+        let impulseScale = modifierMultiplier * (1 - configuration.smoothness.decay)
         var outputFlags: CGEventFlags = []
         let transformedActionActive = horizontalAction || preciseAction || swiftAction
         if !transformedActionActive,
