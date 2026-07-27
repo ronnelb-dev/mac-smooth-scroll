@@ -135,6 +135,11 @@ Install the app in `/Applications` before enabling **Launch at login**. The
 embedded login helper starts the main app with `--background`, so scrolling
 continues with no settings window or Dock icon.
 
+The status beneath the toggle reports whether macOS considers the helper
+enabled, disabled, missing, or waiting for approval. App updates refresh the
+registered helper, and the helper retries transient launch failures before
+asking macOS to relaunch it.
+
 If macOS requests approval, open **System Settings → General → Login Items** and
 allow Mac Smooth Scroll. Disable **Launch at login** inside the app before
 moving or deleting the application.

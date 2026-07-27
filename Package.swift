@@ -22,7 +22,7 @@ let package = Package(
         ),
         .testTarget(
             name: "MacSmoothScrollTests",
-            dependencies: ["MacSmoothScroll"],
+            dependencies: ["MacSmoothScroll", "MacSmoothScrollLauncher"],
             path: "Tests/MacSmoothScrollTests"
         )
     ]

@@ -76,6 +76,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         scrollEngine.stop()
     }
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        settings.refreshLaunchAtLoginStatus()
+    }
+
     func applicationDidHide(_ notification: Notification) {
         guard !isTerminating else { return }
         hideToMenuBar()
