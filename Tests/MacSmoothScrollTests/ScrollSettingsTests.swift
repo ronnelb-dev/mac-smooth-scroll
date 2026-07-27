@@ -37,6 +37,8 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.showInMenuBar)
         XCTAssertFalse(settings.launchAtLogin)
         XCTAssertEqual(settings.launchAtLoginHealthStatus, .disabled)
+        XCTAssertFalse(settings.onboardingCompleted)
+        XCTAssertFalse(settings.isSetupPresented)
     }
 
     func testSettingsPersistAcrossInstances() {
@@ -146,6 +148,93 @@ final class ScrollSettingsTests: XCTestCase {
             ScrollStep.defaultValue,
             accuracy: 0.0001
         )
+    }
+
+    func testInitialSetupPresentsUntilCompleted() {
+        let settings = makeSettings()
+
+        settings.presentInitialSetupIfNeeded()
+        XCTAssertTrue(settings.isSetupPresented)
+
+        settings.dismissSetup()
+        XCTAssertFalse(settings.isSetupPresented)
+        XCTAssertFalse(settings.onboardingCompleted)
+
+        settings.presentInitialSetupIfNeeded()
+        XCTAssertTrue(settings.isSetupPresented)
+    }
+
+    func testCompletingSetupPersistsAndPreventsAutomaticPresentation() {
+        let settings = makeSettings()
+        settings.presentInitialSetupIfNeeded()
+
+        settings.completeSetup()
+
+        XCTAssertTrue(settings.onboardingCompleted)
+        XCTAssertFalse(settings.isSetupPresented)
+
+        let reloaded = makeSettings()
+        XCTAssertTrue(reloaded.onboardingCompleted)
+        reloaded.presentInitialSetupIfNeeded()
+        XCTAssertFalse(reloaded.isSetupPresented)
+    }
+
+    func testCompletedSetupCanBePresentedAgainWithoutChangingPreferences() {
+        let settings = makeSettings()
+        settings.speed = .fast
+        settings.completeSetup()
+
+        settings.presentSetup()
+
+        XCTAssertTrue(settings.isSetupPresented)
+        XCTAssertTrue(settings.onboardingCompleted)
+        XCTAssertEqual(settings.speed, .fast)
+    }
+
+    func testApplicationsLocationDetection() {
+        XCTAssertTrue(
+            FirstRunSetup.isInstalledInApplications(
+                URL(fileURLWithPath: "/Applications/Mac Smooth Scroll.app")
+            )
+        )
+        XCTAssertFalse(
+            FirstRunSetup.isInstalledInApplications(
+                URL(fileURLWithPath: "/Users/example/Downloads/Mac Smooth Scroll.app")
+            )
+        )
+        XCTAssertFalse(
+            FirstRunSetup.isInstalledInApplications(
+                URL(fileURLWithPath: "/Volumes/Mac Smooth Scroll/Mac Smooth Scroll.app")
+            )
+        )
+    }
+
+    func testStepFormattingAndKeyboardSizedAdjustments() {
+        XCTAssertEqual(ScrollStep.formatted(18), "18.00")
+        XCTAssertEqual(ScrollStep.formatted(12.345), "12.35")
+        XCTAssertEqual(ScrollStep.adjusted(18, bySteps: 1), 18.01, accuracy: 0.0001)
+        XCTAssertEqual(ScrollStep.adjusted(18, bySteps: -1), 17.99, accuracy: 0.0001)
+        XCTAssertEqual(
+            ScrollStep.adjusted(ScrollStep.maximum, bySteps: 1),
+            ScrollStep.maximum,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            ScrollStep.adjusted(ScrollStep.minimum, bySteps: -1),
+            ScrollStep.minimum,
+            accuracy: 0.0001
+        )
+    }
+
+    func testMinimumStepCanResetWithoutChangingOtherSettings() {
+        let settings = makeSettings()
+        settings.minimumStepDistance = 72
+        settings.speed = .fast
+
+        settings.resetMinimumStepDistance()
+
+        XCTAssertEqual(settings.minimumStepDistance, ScrollStep.defaultValue)
+        XCTAssertEqual(settings.speed, .fast)
     }
 
     private func makeSettings() -> ScrollSettings {

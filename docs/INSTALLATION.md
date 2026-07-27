@@ -1,6 +1,6 @@
 # Installing Mac Smooth Scroll
 
-Mac Smooth Scroll 0.3.0 Preview requires an Apple Silicon Mac running macOS 13
+Mac Smooth Scroll 0.3.1 Preview requires an Apple Silicon Mac running macOS 13
 or later.
 
 > **Preview build:** This download is not Developer ID signed or notarized.
@@ -9,12 +9,20 @@ or later.
 
 ## Install from the DMG
 
-1. Download both `Mac-Smooth-Scroll-0.3.0-arm64.dmg` and its `.sha256` file
+1. Download both `Mac-Smooth-Scroll-0.3.1-arm64.dmg` and its `.sha256` file
    from the GitHub release.
 2. Open the DMG.
 3. Drag **Mac Smooth Scroll** onto the **Applications** shortcut.
 4. Eject the Mac Smooth Scroll disk image.
 5. Open `/Applications/Mac Smooth Scroll.app`.
+6. Follow the four-step setup assistant. It confirms the installation
+   location, guides Accessibility permission, provides a scrolling test, and
+   offers optional Launch at Login.
+
+You can select **Finish Later** and continue setup on the next ordinary launch.
+Use **App → Run Setup Again…** after completion if you want to review the
+steps. The assistant does not appear when the login helper starts the app in
+the background.
 
 If macOS says it cannot verify the developer:
 
@@ -42,7 +50,7 @@ copy from `/Applications` again, and relaunch.
 From the folder containing both downloaded files, run:
 
 ```sh
-shasum -a 256 -c Mac-Smooth-Scroll-0.3.0-arm64.dmg.sha256
+shasum -a 256 -c Mac-Smooth-Scroll-0.3.1-arm64.dmg.sha256
 ```
 
 The command should report `OK`.
