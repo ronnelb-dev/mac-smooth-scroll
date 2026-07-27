@@ -144,8 +144,18 @@ smooth scrolling active without a Dock icon. Use **Open Mac Smooth Scroll…**
 from the menu-bar item—or open the app again—to restore Settings.
 
 Hiding the app automatically enables **Show in menu bar** so there is always a
-way to reopen Settings or quit. The menu-bar item can also turn smooth
-scrolling on or off while the window is hidden.
+way to reopen Settings or quit. The menu-bar item shows the live scroll-engine
+status and provides:
+
+- A checkmarked **Smooth Scrolling** toggle
+- Quick, checkmarked **Feel** and **Speed** submenus
+- A contextual recovery command when permission, Mac Mouse Fix, or the event
+  tap blocks scrolling
+- **Open Settings…** and **Quit Mac Smooth Scroll**
+
+The menu-bar icon and its VoiceOver label also reflect whether scrolling is
+active, intentionally off, or needs attention. Status is refreshed whenever
+the menu opens.
 
 ## Launch at login
 

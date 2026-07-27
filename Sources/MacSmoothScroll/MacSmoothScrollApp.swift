@@ -21,7 +21,7 @@ struct MacSmoothScrollApp: App {
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
     let settings = ScrollSettings()
     private lazy var scrollEngine = SmoothScrollEngine(settings: settings)
     private var statusItem: NSStatusItem?
@@ -51,9 +51,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             self?.quitCompetingDriver()
         }
 
-        configureStatusItem()
         updateRuntimeState()
         scrollEngine.refresh()
+        configureStatusItem()
         settings.migrateLaunchAtLoginRegistration()
 
         permissionTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
@@ -107,8 +107,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     private func settingsDidChange() {
-        configureStatusItem()
         scrollEngine.refresh()
+        configureStatusItem()
     }
 
     private func updateRuntimeState(forceEngineRefresh: Bool = false) {
@@ -129,6 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             settings.permissionGranted != wasGranted ||
             settings.competingDriverRunning != wasCompetitorRunning {
             scrollEngine.refresh()
+            updateStatusItemAppearance()
         }
     }
 
@@ -171,34 +172,198 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         }
 
-        statusItem?.button?.image = NSImage(
-            systemSymbolName: settings.isEnabled ? "computermouse.fill" : "computermouse",
-            accessibilityDescription: "Mac Smooth Scroll"
-        )
-        statusItem?.button?.image?.isTemplate = true
+        updateStatusItemAppearance()
+        rebuildStatusMenu()
+    }
 
-        let menu = NSMenu()
+    private func updateStatusItemAppearance() {
+        guard let button = statusItem?.button else { return }
+        let presentation = currentMenuBarPresentation
+        button.image = symbolImage(
+            presentation.statusItemSymbolName,
+            accessibilityDescription: presentation.statusItemAccessibilityLabel
+        )
+        button.image?.isTemplate = true
+        button.toolTip = presentation.statusItemAccessibilityLabel
+        button.setAccessibilityLabel(presentation.statusItemAccessibilityLabel)
+    }
+
+    private var currentMenuBarPresentation: MenuBarPresentation {
+        MenuBarPresentation.make(
+            isEnabled: settings.isEnabled,
+            engineStatus: settings.engineStatus
+        )
+    }
+
+    private func rebuildStatusMenu(_ existingMenu: NSMenu? = nil) {
+        guard statusItem != nil else { return }
+        let presentation = currentMenuBarPresentation
+        let menu = existingMenu ?? NSMenu()
+        menu.removeAllItems()
+        menu.delegate = self
+
+        let status = NSMenuItem(
+            title: presentation.statusTitle,
+            action: nil,
+            keyEquivalent: ""
+        )
+        status.image = symbolImage(presentation.statusSymbolName)
+        status.isEnabled = false
+        menu.addItem(status)
+        menu.addItem(.separator())
+
         let toggle = NSMenuItem(
-            title: settings.isEnabled ? "Turn Smooth Scrolling Off" : "Turn Smooth Scrolling On",
+            title: "Smooth Scrolling",
             action: #selector(toggleScrolling),
             keyEquivalent: ""
         )
         toggle.target = self
+        toggle.state = presentation.smoothScrollingIsOn ? .on : .off
         menu.addItem(toggle)
+
+        menu.addItem(makeFeelMenu())
+        menu.addItem(makeSpeedMenu())
+
+        if let recoveryItem = makeRecoveryItem(for: presentation.recoveryAction) {
+            menu.addItem(.separator())
+            menu.addItem(recoveryItem)
+        }
+
         menu.addItem(.separator())
 
-        let open = NSMenuItem(title: "Open Mac Smooth Scroll…", action: #selector(openSettings), keyEquivalent: ",")
+        let open = NSMenuItem(
+            title: "Open Settings…",
+            action: #selector(openSettings),
+            keyEquivalent: ","
+        )
         open.target = self
         menu.addItem(open)
 
-        let quit = NSMenuItem(title: "Quit Mac Smooth Scroll", action: #selector(quitApp), keyEquivalent: "q")
+        menu.addItem(.separator())
+
+        let quit = NSMenuItem(
+            title: "Quit Mac Smooth Scroll",
+            action: #selector(quitApp),
+            keyEquivalent: "q"
+        )
         quit.target = self
         menu.addItem(quit)
         statusItem?.menu = menu
     }
 
+    private func makeFeelMenu() -> NSMenuItem {
+        let parent = NSMenuItem(
+            title: "Feel: \(settings.feel.rawValue)",
+            action: nil,
+            keyEquivalent: ""
+        )
+        let submenu = NSMenu(title: "Feel")
+        for feel in ScrollFeel.allCases {
+            let item = NSMenuItem(
+                title: feel.rawValue,
+                action: #selector(selectFeel(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = feel.rawValue
+            item.state = settings.feel == feel ? .on : .off
+            submenu.addItem(item)
+        }
+        parent.submenu = submenu
+        return parent
+    }
+
+    private func makeSpeedMenu() -> NSMenuItem {
+        let parent = NSMenuItem(
+            title: "Speed: \(settings.speed.rawValue)",
+            action: nil,
+            keyEquivalent: ""
+        )
+        let submenu = NSMenu(title: "Speed")
+        for speed in ScrollSpeed.allCases {
+            let item = NSMenuItem(
+                title: speed.rawValue,
+                action: #selector(selectSpeed(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = speed.rawValue
+            item.state = settings.speed == speed ? .on : .off
+            submenu.addItem(item)
+        }
+        parent.submenu = submenu
+        return parent
+    }
+
+    private func makeRecoveryItem(
+        for recovery: MenuBarRecoveryAction
+    ) -> NSMenuItem? {
+        guard let title = recovery.title else { return nil }
+        let selector: Selector
+        let symbolName: String
+        switch recovery {
+        case .none:
+            return nil
+        case .openAccessibilitySettings:
+            selector = #selector(openAccessibilitySettings)
+            symbolName = "hand.raised"
+        case .quitMacMouseFix:
+            selector = #selector(quitMacMouseFixFromMenu)
+            symbolName = "exclamationmark.triangle"
+        case .retryEngine:
+            selector = #selector(retryEngineFromMenu)
+            symbolName = "arrow.clockwise"
+        }
+
+        let item = NSMenuItem(title: title, action: selector, keyEquivalent: "")
+        item.target = self
+        item.image = symbolImage(symbolName)
+        return item
+    }
+
+    private func symbolImage(
+        _ name: String,
+        accessibilityDescription: String? = nil
+    ) -> NSImage? {
+        let image = NSImage(
+            systemSymbolName: name,
+            accessibilityDescription: accessibilityDescription
+        )
+        image?.isTemplate = true
+        return image
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        updateRuntimeState(forceEngineRefresh: true)
+        rebuildStatusMenu(menu)
+    }
+
     @objc private func toggleScrolling() {
         settings.isEnabled.toggle()
+    }
+
+    @objc private func selectFeel(_ sender: NSMenuItem) {
+        guard let rawValue = sender.representedObject as? String,
+              let feel = ScrollFeel(rawValue: rawValue) else { return }
+        settings.feel = feel
+    }
+
+    @objc private func selectSpeed(_ sender: NSMenuItem) {
+        guard let rawValue = sender.representedObject as? String,
+              let speed = ScrollSpeed(rawValue: rawValue) else { return }
+        settings.speed = speed
+    }
+
+    @objc private func openAccessibilitySettings() {
+        settings.openPrivacySettings()
+    }
+
+    @objc private func quitMacMouseFixFromMenu() {
+        settings.quitCompetingDriver()
+    }
+
+    @objc private func retryEngineFromMenu() {
+        settings.retryEngine()
     }
 
     @objc private func openSettings() {

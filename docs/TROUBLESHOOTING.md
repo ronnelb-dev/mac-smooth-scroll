@@ -47,14 +47,19 @@ or other software that transforms wheel events and test again.
 
 ## Smooth scrolling is off
 
-Turn on the switch in the settings header or choose
-**Turn Smooth Scrolling On** from the menu-bar item.
+Turn on the switch in the settings header or select the checkmarked
+**Smooth Scrolling** item in the menu-bar menu.
+
+The first line of the menu reports the live scroll-engine status. When
+scrolling needs attention, use the contextual command shown below the Feel and
+Speed submenus to open Accessibility Settings, retry the engine, or quit Mac
+Mouse Fix.
 
 ## The settings window and Dock icon disappeared
 
 This is expected after closing the window, pressing `⌘H`, or choosing
 **Hide to Menu Bar**. Select the mouse icon in the menu bar and choose
-**Open Mac Smooth Scroll…**.
+**Open Settings…**.
 
 You can also reopen Mac Smooth Scroll from `/Applications`. The existing
 settings window is restored instead of creating another one.
