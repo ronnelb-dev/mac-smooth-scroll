@@ -26,7 +26,7 @@ enum ScrollEngineStatus: String, Equatable {
         case .driverConflict:
             "Paused while Mac Mouse Fix is running"
         case .startFailed:
-            "Could not start. Check Accessibility and Input Monitoring."
+            "Could not start. Verify Accessibility, then retry."
         }
     }
 }

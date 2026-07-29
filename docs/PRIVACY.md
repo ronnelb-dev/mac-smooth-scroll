@@ -17,12 +17,13 @@ mouse usage history.
 The following choices are stored locally with macOS `UserDefaults`:
 
 - Whether smooth scrolling is enabled
-- Smoothness and speed
+- Smoothness, speed, scroll feel, and minimum wheel step
 - Trackpad-like gestures, reverse scrolling, and adaptive precision
 - Modifier assignments
 - Menu-bar visibility
-- Launch at Login preference
+- Launch at Login preference and the last registered helper build
 - Whether the first-run setup assistant has been completed
+- The last selected Settings tab
 
 These preferences use the app domain `com.ronnel.mac-smooth-scroll`. They can be
 removed with:
@@ -30,6 +31,11 @@ removed with:
 ```sh
 defaults delete com.ronnel.mac-smooth-scroll
 ```
+
+The helper build value is internal registration metadata used to repair Launch
+at Login after an app update. It does not contain login history, account
+identifiers, or device identifiers. These preferences and metadata remain local
+and are not transmitted.
 
 ## Permissions
 

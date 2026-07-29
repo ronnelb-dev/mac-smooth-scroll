@@ -43,6 +43,16 @@ final class SystemHealthTests: XCTestCase {
         XCTAssertTrue(statuses.allSatisfy { !$0.message.isEmpty })
     }
 
+    func testStartFailureMessageUsesAccessibilityTerminology() {
+        XCTAssertEqual(
+            ScrollEngineStatus.startFailed.message,
+            "Could not start. Verify Accessibility, then retry."
+        )
+        XCTAssertFalse(
+            ScrollEngineStatus.startFailed.message.contains("Input Monitoring")
+        )
+    }
+
     func testDisabledLaunchAtLoginIsAnExplicitNeutralStatus() {
         XCTAssertEqual(LaunchAtLoginHealthStatus.disabled.rawValue, "Off")
     }
