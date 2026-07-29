@@ -2,14 +2,17 @@
 
 ## Supported versions
 
-Mac Smooth Scroll is currently distributed as source code. Security fixes are
-applied to the latest commit on `main`; older commits and locally modified
-builds are not supported.
+Mac Smooth Scroll is distributed as source code and as ad-hoc-signed preview
+releases. Best-effort security fixes are applied to the latest preview release
+and the current commit on `main`. Older previews, commits, locally modified
+builds, and forks are not supported.
 
 | Version | Supported |
 | --- | --- |
+| Latest preview release | Yes |
 | Latest `main` | Yes |
-| Older commits or forks | No |
+| Older preview releases | No |
+| Older commits, modified builds, or forks | No |
 
 ## Reporting a vulnerability
 

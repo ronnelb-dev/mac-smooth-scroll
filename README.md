@@ -162,7 +162,7 @@ app supports modifier-scroll zooming.
 ## Menu-bar mode
 
 Choose **Hide to Menu Bar**, close the settings window, or press `⌘H` to keep
-smooth scrolling active without a Dock icon. Use **Open Mac Smooth Scroll…**
+smooth scrolling active without a Dock icon. Use **Open Settings…**
 from the menu-bar item—or open the app again—to restore Settings.
 
 Hiding the app automatically enables **Show in menu bar** so there is always a
@@ -236,7 +236,8 @@ See [Troubleshooting Mac Smooth Scroll](docs/TROUBLESHOOTING.md) for help with:
 ## Known limitations
 
 - Apple Silicon and macOS 13 or later are required.
-- There is no notarized public binary yet; users build the app from source.
+- Public preview DMGs are ad-hoc signed and not notarized, so macOS may require
+  **Open Anyway** before the app can launch.
 - Settings are global; per-app and per-mouse profiles are not implemented.
 - Other mouse drivers can duplicate or distort wheel input. Mac Mouse Fix is
   detected automatically, but other utilities may need to be quit manually.
