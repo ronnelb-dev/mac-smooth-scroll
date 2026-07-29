@@ -34,6 +34,18 @@ driver problem.
 Input Monitoring is not normally required by Mac Smooth Scroll's permission
 check. Accessibility is the primary permission for its modifying event tap.
 
+## The status says "Recovering"
+
+macOS can temporarily disable an event tap after a timeout or certain user
+input. Mac Smooth Scroll first tries to re-enable an isolated interruption. If
+interruptions repeat, or the periodic health check finds a disabled tap, the
+app rebuilds the tap automatically.
+
+**Recovering** should normally return to **Active** without any action. If it
+changes to **Could not start**, verify Accessibility and use **Retry**. If
+recovery happens repeatedly, quit other mouse utilities and include
+**Copy Diagnostics** output in a bug report.
+
 ## Mac Mouse Fix is running
 
 Mac Smooth Scroll pauses automatically while the Mac Mouse Fix app or helper is

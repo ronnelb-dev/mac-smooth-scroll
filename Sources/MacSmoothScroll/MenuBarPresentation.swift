@@ -45,6 +45,10 @@ struct MenuBarPresentation: Equatable {
             symbol = "checkmark.circle.fill"
             statusItemSymbol = "computermouse.fill"
             recovery = .none
+        case .recovering:
+            symbol = "arrow.clockwise.circle.fill"
+            statusItemSymbol = "arrow.clockwise"
+            recovery = .none
         case .disabled:
             symbol = "pause.circle.fill"
             statusItemSymbol = "computermouse"

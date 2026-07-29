@@ -6,6 +6,7 @@ final class MenuBarPresentationTests: XCTestCase {
         let statuses: [ScrollEngineStatus] = [
             .waiting,
             .active,
+            .recovering,
             .disabled,
             .permissionBlocked,
             .driverConflict,
@@ -33,6 +34,10 @@ final class MenuBarPresentationTests: XCTestCase {
         )
         XCTAssertEqual(
             MenuBarPresentation.make(isEnabled: false, engineStatus: .disabled).recoveryAction,
+            .none
+        )
+        XCTAssertEqual(
+            MenuBarPresentation.make(isEnabled: true, engineStatus: .recovering).recoveryAction,
             .none
         )
     }

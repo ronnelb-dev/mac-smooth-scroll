@@ -215,6 +215,7 @@ See [Troubleshooting Mac Smooth Scroll](docs/TROUBLESHOOTING.md) for help with:
 
 - Accessibility permission that is already enabled but not detected
 - Smooth scrolling that does not start
+- Automatic recovery after the event tap is interrupted
 - Conflicts with Mac Mouse Fix or another mouse utility
 - A missing Dock or menu-bar icon
 - Launch at Login approval

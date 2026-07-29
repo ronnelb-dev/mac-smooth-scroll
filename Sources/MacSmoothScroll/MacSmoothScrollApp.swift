@@ -130,6 +130,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             settings.competingDriverRunning != wasCompetitorRunning {
             scrollEngine.refresh()
             updateStatusItemAppearance()
+        } else {
+            let previousEngineStatus = settings.engineStatus
+            scrollEngine.auditHealth()
+            if settings.engineStatus != previousEngineStatus {
+                updateStatusItemAppearance()
+            }
         }
     }
 
