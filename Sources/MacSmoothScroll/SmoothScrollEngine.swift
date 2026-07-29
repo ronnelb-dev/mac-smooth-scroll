@@ -3,8 +3,6 @@ import CoreGraphics
 import Foundation
 
 final class SmoothScrollEngine {
-    private static let syntheticMarker: Int64 = 0x4D_53_53_43_52_4F_4C_4C
-
     private let settings: ScrollSettings
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -16,8 +14,8 @@ final class SmoothScrollEngine {
     private var recoveryPolicy = EventTapRecoveryPolicy()
     private var recoveryGeneration = 0
     private var recoveryScheduled = false
-    private var gestureActive = false
-    private var gestureFlags: CGEventFlags = []
+    private let eventFilter = ScrollEventFilter()
+    private var gestureLifecycle = ScrollGestureLifecycle()
 
     init(settings: ScrollSettings) {
         self.settings = settings
@@ -143,13 +141,11 @@ final class SmoothScrollEngine {
             return Unmanaged.passUnretained(event)
         }
 
-        if event.getIntegerValueField(.eventSourceUserData) == Self.syntheticMarker {
-            return Unmanaged.passUnretained(event)
-        }
-
-        // Preserve native trackpad and Magic Mouse input. Only discrete mouse-wheel
-        // events are transformed.
-        if event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0 {
+        let disposition = eventFilter.disposition(
+            sourceUserData: event.getIntegerValueField(.eventSourceUserData),
+            isContinuous: event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
+        )
+        guard disposition == .transform else {
             return Unmanaged.passUnretained(event)
         }
 
@@ -224,11 +220,11 @@ final class SmoothScrollEngine {
 
         if result.beginsNewBurst {
             finishGestureIfNeeded()
-            gestureFlags = result.outputFlags
+            gestureLifecycle.prepareForBurst(flags: result.outputFlags)
         }
         if motion.add(result.impulse, feel: settings.feel) {
             finishGestureIfNeeded()
-            gestureFlags = result.outputFlags
+            gestureLifecycle.prepareForBurst(flags: result.outputFlags)
         }
         displayLink.start()
     }
@@ -258,22 +254,29 @@ final class SmoothScrollEngine {
             wheel3: 0
         ) else { return }
 
-        event.setIntegerValueField(.eventSourceUserData, value: Self.syntheticMarker)
-        // Modifier semantics are frozen for the physical wheel burst so releasing
-        // a key cannot change an already-animating gesture tail.
-        event.flags = gestureFlags
-
-        if settings.trackpadSimulation {
+        event.setIntegerValueField(
+            .eventSourceUserData,
+            value: ScrollEventFilter.syntheticMarker
+        )
+        if let emission = gestureLifecycle.phaseForOutput(
+            trackpadSimulation: settings.trackpadSimulation
+        ) {
             event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
-            let phase: CGScrollPhase = gestureActive ? .changed : .began
-            event.setIntegerValueField(.scrollWheelEventScrollPhase, value: Int64(phase.rawValue))
-            gestureActive = true
+            event.setIntegerValueField(
+                .scrollWheelEventScrollPhase,
+                value: Int64(cgPhase(for: emission.phase).rawValue)
+            )
+            event.flags = emission.flags
+        } else {
+            // Modifier semantics are frozen for the physical wheel burst so
+            // releasing a key cannot change an already-animating gesture tail.
+            event.flags = gestureLifecycle.outputFlags
         }
         event.post(tap: .cgSessionEventTap)
     }
 
     private func finishGestureIfNeeded() {
-        guard gestureActive else { return }
+        guard let emission = gestureLifecycle.finish() else { return }
         guard let event = CGEvent(
             scrollWheelEvent2Source: nil,
             units: .pixel,
@@ -283,12 +286,27 @@ final class SmoothScrollEngine {
             wheel3: 0
         ) else { return }
 
-        event.setIntegerValueField(.eventSourceUserData, value: Self.syntheticMarker)
+        event.setIntegerValueField(
+            .eventSourceUserData,
+            value: ScrollEventFilter.syntheticMarker
+        )
         event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
-        event.setIntegerValueField(.scrollWheelEventScrollPhase, value: Int64(CGScrollPhase.ended.rawValue))
-        event.flags = gestureFlags
+        event.setIntegerValueField(
+            .scrollWheelEventScrollPhase,
+            value: Int64(cgPhase(for: emission.phase).rawValue)
+        )
+        event.flags = emission.flags
         event.post(tap: .cgSessionEventTap)
-        gestureActive = false
-        gestureFlags = []
+    }
+
+    private func cgPhase(for phase: ScrollGesturePhase) -> CGScrollPhase {
+        switch phase {
+        case .began:
+            .began
+        case .changed:
+            .changed
+        case .ended:
+            .ended
+        }
     }
 }
