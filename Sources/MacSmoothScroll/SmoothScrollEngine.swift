@@ -13,6 +13,9 @@ final class SmoothScrollEngine {
     }
     private var motion = ScrollMotionController()
     private var inputTransformer = ScrollInputTransformer()
+    private var recoveryPolicy = EventTapRecoveryPolicy()
+    private var recoveryGeneration = 0
+    private var recoveryScheduled = false
     private var gestureActive = false
     private var gestureFlags: CGEventFlags = []
 
@@ -40,8 +43,12 @@ final class SmoothScrollEngine {
     }
 
     func start() {
-        guard eventTap == nil else {
-            settings.engineStatus = .active
+        if let eventTap {
+            if CGEvent.tapIsEnabled(tap: eventTap) {
+                settings.engineStatus = .active
+            } else {
+                scheduleEventTapRebuild()
+            }
             return
         }
 
@@ -71,15 +78,49 @@ final class SmoothScrollEngine {
         CGEvent.tapEnable(tap: tap, enable: true)
         eventTap = tap
         runLoopSource = source
-        settings.engineStatus = .active
+        if CGEvent.tapIsEnabled(tap: tap) {
+            recoveryPolicy.reset()
+            settings.engineStatus = .active
+        } else {
+            tearDownEventTap()
+            settings.engineStatus = .startFailed
+        }
+    }
+
+    func auditHealth() {
+        guard settings.isEnabled,
+              settings.permissionGranted,
+              !settings.competingDriverRunning,
+              let eventTap
+        else {
+            return
+        }
+
+        if CGEvent.tapIsEnabled(tap: eventTap) {
+            if settings.engineStatus == .recovering {
+                settings.engineStatus = .active
+            }
+        } else {
+            recoverEventTap(after: .healthCheck)
+        }
     }
 
     func stop() {
+        recoveryGeneration &+= 1
+        recoveryScheduled = false
+        recoveryPolicy.reset()
+        resetMotion()
+        tearDownEventTap()
+    }
+
+    private func resetMotion() {
         displayLink.stop()
         motion.reset()
         inputTransformer.reset()
         finishGestureIfNeeded()
+    }
 
+    private func tearDownEventTap() {
         if let eventTap {
             CGEvent.tapEnable(tap: eventTap, enable: false)
         }
@@ -92,9 +133,9 @@ final class SmoothScrollEngine {
 
     private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            if let eventTap {
-                CGEvent.tapEnable(tap: eventTap, enable: true)
-            }
+            recoverEventTap(
+                after: type == .tapDisabledByTimeout ? .timeout : .userInput
+            )
             return Unmanaged.passUnretained(event)
         }
 
@@ -114,6 +155,53 @@ final class SmoothScrollEngine {
 
         ingest(event)
         return nil
+    }
+
+    private func recoverEventTap(after reason: EventTapDisableReason) {
+        settings.engineStatus = .recovering
+        let action = recoveryPolicy.action(
+            for: reason,
+            at: ProcessInfo.processInfo.systemUptime
+        )
+
+        switch action {
+        case .reenable:
+            guard let eventTap else {
+                scheduleEventTapRebuild()
+                return
+            }
+            CGEvent.tapEnable(tap: eventTap, enable: true)
+            if CGEvent.tapIsEnabled(tap: eventTap) {
+                settings.engineStatus = .active
+            } else {
+                scheduleEventTapRebuild()
+            }
+        case .rebuild:
+            scheduleEventTapRebuild()
+        }
+    }
+
+    private func scheduleEventTapRebuild() {
+        guard !recoveryScheduled else { return }
+        settings.engineStatus = .recovering
+        recoveryScheduled = true
+        recoveryGeneration &+= 1
+        let generation = recoveryGeneration
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  self.recoveryScheduled,
+                  self.recoveryGeneration == generation
+            else {
+                return
+            }
+
+            self.recoveryScheduled = false
+            self.resetMotion()
+            self.tearDownEventTap()
+            self.recoveryPolicy.reset()
+            self.refresh()
+        }
     }
 
     private func ingest(_ event: CGEvent) {

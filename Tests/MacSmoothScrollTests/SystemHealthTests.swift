@@ -33,6 +33,7 @@ final class SystemHealthTests: XCTestCase {
         let statuses: [ScrollEngineStatus] = [
             .waiting,
             .active,
+            .recovering,
             .disabled,
             .permissionBlocked,
             .driverConflict,

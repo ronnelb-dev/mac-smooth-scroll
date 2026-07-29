@@ -565,6 +565,8 @@ struct SettingsView: View {
             "The engine is checking whether it can start."
         case .active:
             "Discrete external-mouse wheel events are being transformed."
+        case .recovering:
+            "The event tap was interrupted and is being restored automatically."
         case .disabled:
             "Smooth scrolling is intentionally turned off."
         case .permissionBlocked:
@@ -580,6 +582,7 @@ struct SettingsView: View {
         switch settings.engineStatus {
         case .waiting: "clock.fill"
         case .active: "checkmark.circle.fill"
+        case .recovering: "arrow.clockwise.circle.fill"
         case .disabled: "pause.circle.fill"
         case .permissionBlocked: "lock.fill"
         case .driverConflict: "exclamationmark.triangle.fill"
@@ -590,7 +593,7 @@ struct SettingsView: View {
     private var engineHealthTone: HealthTone {
         switch settings.engineStatus {
         case .active: .ready
-        case .waiting, .disabled: .neutral
+        case .waiting, .recovering, .disabled: .neutral
         case .permissionBlocked, .driverConflict: .warning
         case .startFailed: .error
         }

@@ -8,6 +8,7 @@ enum AccessibilityHealthStatus: String, Equatable {
 enum ScrollEngineStatus: String, Equatable {
     case waiting = "Waiting"
     case active = "Active"
+    case recovering = "Recovering"
     case disabled = "Off"
     case permissionBlocked = "Permission blocked"
     case driverConflict = "Driver conflict"
@@ -19,6 +20,8 @@ enum ScrollEngineStatus: String, Equatable {
             "Waiting to start"
         case .active:
             "Smooth scrolling is active"
+        case .recovering:
+            "Restoring the scroll engine"
         case .disabled:
             "Smooth scrolling is off"
         case .permissionBlocked:
