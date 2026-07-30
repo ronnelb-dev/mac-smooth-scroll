@@ -52,6 +52,7 @@ struct ScrollInputTransformer {
     private var lockedAxis: LockedAxis?
     private var burstFlags: CGEventFlags = []
     private var rapidInputLevel = 0.0
+    private let modifierResolver = ScrollModifierResolver()
 
     mutating func reset() {
         lastPhysicalEventTime = nil
@@ -77,12 +78,14 @@ struct ScrollInputTransformer {
         var x = sample.pointX == 0 ? sample.lineX * 18 : sample.pointX
         var y = sample.pointY == 0 ? sample.lineY * 18 : sample.pointY
 
-        let horizontalAction = configuration.horizontalModifier.isActive(in: burstFlags) &&
-            abs(y) >= abs(x)
-        let preciseAction = configuration.preciseModifier.isActive(in: burstFlags)
-        let swiftAction = configuration.swiftModifier.isActive(in: burstFlags)
+        let modifierResolution = modifierResolver.resolve(
+            x: x,
+            y: y,
+            flags: burstFlags,
+            configuration: configuration
+        )
 
-        if horizontalAction {
+        if modifierResolution.convertsToHorizontal {
             x = y
             y = 0
             lockedAxis = .horizontal
@@ -94,13 +97,12 @@ struct ScrollInputTransformer {
         if configuration.reverseDirection {
             baseMultiplier *= -1
         }
-        if !preciseAction,
-           !swiftAction,
+        if modifierResolution.speedAction.allowsAdaptivePrecision,
            configuration.adaptivePrecision {
             baseMultiplier *= adaptivePrecisionMultiplier(interval: interval)
         }
 
-        if !preciseAction {
+        if modifierResolution.speedAction.allowsRapidInputAcceleration {
             baseMultiplier *= rapidInputMultiplier(
                 interval: interval,
                 maximumBoost: configuration.feel.rapidInputBoost
@@ -112,24 +114,13 @@ struct ScrollInputTransformer {
         x = applyingMinimumStep(to: x, minimum: configuration.minimumStepDistance)
         y = applyingMinimumStep(to: y, minimum: configuration.minimumStepDistance)
 
-        var modifierMultiplier = 1.0
-        if preciseAction {
-            modifierMultiplier = 0.28
-        } else if swiftAction {
-            modifierMultiplier = 2.4
-        }
-
-        let impulseScale = modifierMultiplier * (1 - configuration.smoothness.decay)
-        var outputFlags: CGEventFlags = []
-        let transformedActionActive = horizontalAction || preciseAction || swiftAction
-        if !transformedActionActive,
-           configuration.zoomModifier.isActive(in: burstFlags) {
-            outputFlags.insert(configuration.zoomModifier.flag)
-        }
+        let impulseScale =
+            modifierResolution.speedAction.multiplier *
+            (1 - configuration.smoothness.decay)
 
         return ScrollTransformResult(
             impulse: ScrollImpulse(x: x * impulseScale, y: y * impulseScale),
-            outputFlags: outputFlags,
+            outputFlags: modifierResolution.forwardedFlags,
             beginsNewBurst: beginsNewBurst
         )
     }
