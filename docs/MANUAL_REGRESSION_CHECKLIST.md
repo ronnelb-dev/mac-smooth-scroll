@@ -84,9 +84,10 @@ Use a long document or webpage with enough content to make changes obvious.
 | C7 | Enable **Reverse scrolling** and test the external mouse, then the native input. | External-wheel direction reverses; trackpad or Magic Mouse direction does not change. | |
 | C8 | Enable **Adaptive precision**, pause, then move one notch and follow with rapid notches. | The first movement is precise and subsequent rapid movement ramps smoothly. | |
 | C9 | Compare rapid wheel movement with **Scroll acceleration** off and on using each available external mouse. | Off preserves normal transformed distance; On adds a consistent speed boost without a sudden jump on mice that emit many small events. | |
-| C10 | Reverse wheel direction while momentum remains. | Existing momentum brakes immediately rather than sliding far in the old direction. | |
-| C11 | Enable **Trackpad-like gestures** and test a compatible horizontal-navigation view. | Gesture phases begin, change, and end cleanly; navigation does not remain stuck. | |
-| C12 | Test on each available 60 Hz and high-refresh-rate display. | Perceived distance remains comparable and animation stays display-synchronized. | |
+| C10 | With **Automatic axis lock** enabled, introduce one perpendicular wheel event, then two consecutive strongly perpendicular events; repeat with it disabled. | One event is suppressed without a wrong-direction nudge; two deliberate events switch the axis; disabled input preserves both axes. | |
+| C11 | Reverse wheel direction while momentum remains. | Existing momentum brakes immediately rather than sliding far in the old direction. | |
+| C12 | Enable **Trackpad-like gestures** and test a compatible horizontal-navigation view. | Gesture phases begin, change, and end cleanly; navigation does not remain stuck. | |
+| C13 | Test on each available 60 Hz and high-refresh-rate display. | Perceived distance remains comparable and animation stays display-synchronized. | |
 
 ## D. Modifier keys
 

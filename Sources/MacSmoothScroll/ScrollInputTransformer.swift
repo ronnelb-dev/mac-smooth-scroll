@@ -19,6 +19,7 @@ struct ScrollTransformConfiguration {
     let reverseDirection: Bool
     let adaptivePrecision: Bool
     let accelerationEnabled: Bool
+    let axisLockEnabled: Bool
     let horizontalModifier: ModifierKey
     let zoomModifier: ModifierKey
     let swiftModifier: ModifierKey
@@ -52,6 +53,8 @@ struct ScrollInputTransformer {
     ]
     private var lastPhysicalEventTime: TimeInterval?
     private var lockedAxis: LockedAxis?
+    private var pendingAxisSwitch: LockedAxis?
+    private var pendingAxisSwitchCount = 0
     private var burstFlags: CGEventFlags = []
     private var rapidInputLevel = 0.0
     private let modifierResolver = ScrollModifierResolver()
@@ -59,6 +62,7 @@ struct ScrollInputTransformer {
     mutating func reset() {
         lastPhysicalEventTime = nil
         lockedAxis = nil
+        resetPendingAxisSwitch()
         burstFlags = []
         rapidInputLevel = 0
     }
@@ -72,6 +76,7 @@ struct ScrollInputTransformer {
 
         if beginsNewBurst {
             lockedAxis = nil
+            resetPendingAxisSwitch()
             rapidInputLevel = 0
             burstFlags = sample.flags.intersection(Self.forwardedModifierFlags)
         }
@@ -91,8 +96,12 @@ struct ScrollInputTransformer {
             x = y
             y = 0
             lockedAxis = .horizontal
-        } else {
+            resetPendingAxisSwitch()
+        } else if configuration.axisLockEnabled {
             applyDominantAxisLock(x: &x, y: &y)
+        } else {
+            lockedAxis = nil
+            resetPendingAxisSwitch()
         }
 
         var baseMultiplier = configuration.speed.multiplier
@@ -142,7 +151,12 @@ struct ScrollInputTransformer {
             let smaller = min(abs(x), abs(y))
             if larger >= 2, smaller == 0 || larger / smaller >= 1.2 {
                 lockedAxis = abs(x) > abs(y) ? .horizontal : .vertical
+                resetPendingAxisSwitch()
             }
+        } else if updateAxisLockForDirectionChange(x: x, y: y) {
+            x = 0
+            y = 0
+            return
         }
 
         switch lockedAxis {
@@ -153,6 +167,60 @@ struct ScrollInputTransformer {
         case nil:
             break
         }
+    }
+
+    private mutating func updateAxisLockForDirectionChange(
+        x: Double,
+        y: Double
+    ) -> Bool {
+        let candidate: LockedAxis?
+        switch lockedAxis {
+        case .horizontal:
+            candidate = isStronglyDominant(primary: y, secondary: x)
+                ? .vertical
+                : nil
+        case .vertical:
+            candidate = isStronglyDominant(primary: x, secondary: y)
+                ? .horizontal
+                : nil
+        case nil:
+            candidate = nil
+        }
+
+        guard let candidate else {
+            resetPendingAxisSwitch()
+            return false
+        }
+
+        if pendingAxisSwitch == candidate {
+            pendingAxisSwitchCount += 1
+        } else {
+            pendingAxisSwitch = candidate
+            pendingAxisSwitchCount = 1
+        }
+
+        if pendingAxisSwitchCount >= 2 {
+            lockedAxis = candidate
+            resetPendingAxisSwitch()
+            return false
+        }
+        return true
+    }
+
+    private func isStronglyDominant(
+        primary: Double,
+        secondary: Double
+    ) -> Bool {
+        let primaryMagnitude = abs(primary)
+        let secondaryMagnitude = abs(secondary)
+        guard primaryMagnitude >= 2 else { return false }
+        return secondaryMagnitude == 0 ||
+            primaryMagnitude / secondaryMagnitude >= 1.8
+    }
+
+    private mutating func resetPendingAxisSwitch() {
+        pendingAxisSwitch = nil
+        pendingAxisSwitchCount = 0
     }
 
     private func applyingMinimumStep(
@@ -211,6 +279,7 @@ extension ScrollSettings {
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,
             accelerationEnabled: accelerationEnabled,
+            axisLockEnabled: axisLockEnabled,
             horizontalModifier: horizontalModifier,
             zoomModifier: zoomModifier,
             swiftModifier: swiftModifier,

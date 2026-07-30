@@ -364,6 +364,15 @@ struct SettingsView: View {
                 }
             }
 
+            Toggle(isOn: $settings.axisLockEnabled) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Automatic axis lock")
+                    Text("Suppress diagonal noise while allowing deliberate direction changes.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Toggle(isOn: $settings.trackpadSimulation) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Trackpad-like gestures")

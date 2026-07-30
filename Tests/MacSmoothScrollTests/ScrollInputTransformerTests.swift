@@ -187,13 +187,105 @@ final class ScrollInputTransformerTests: XCTestCase {
             using: config
         )
         let continued = transformer.transform(
-            sample(pointX: 8, pointY: 3, timestamp: 1.05),
+            sample(pointX: 3, pointY: 8, timestamp: 1.05),
             using: config
         )
 
         XCTAssertEqual(first.impulse.x, 0, accuracy: 0.0001)
         XCTAssertEqual(continued.impulse.x, 0, accuracy: 0.0001)
         XCTAssertNotEqual(continued.impulse.y, 0)
+    }
+
+    func testDisabledAxisLockPreservesBothAxes() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointX: 2, pointY: 10),
+            using: configuration(
+                smoothness: .low,
+                minimumStepEnabled: false,
+                accelerationEnabled: false,
+                axisLockEnabled: false
+            )
+        )
+
+        XCTAssertEqual(result.impulse.x, 0.4, accuracy: 0.0001)
+        XCTAssertEqual(result.impulse.y, 2, accuracy: 0.0001)
+    }
+
+    func testAxisLockSwitchesAfterTwoStrongPerpendicularEvents() {
+        var transformer = ScrollInputTransformer()
+        let config = configuration(
+            smoothness: .low,
+            accelerationEnabled: false,
+            axisLockEnabled: true
+        )
+
+        let vertical = transformer.transform(
+            sample(pointX: 2, pointY: 10, timestamp: 1),
+            using: config
+        )
+        let firstHorizontal = transformer.transform(
+            sample(pointX: 10, pointY: 2, timestamp: 1.05),
+            using: config
+        )
+        let secondHorizontal = transformer.transform(
+            sample(pointX: 10, pointY: 2, timestamp: 1.1),
+            using: config
+        )
+
+        XCTAssertEqual(vertical.impulse.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(firstHorizontal.impulse.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(firstHorizontal.impulse.y, 0, accuracy: 0.0001)
+        XCTAssertEqual(secondHorizontal.impulse.x, 3.6, accuracy: 0.0001)
+        XCTAssertEqual(secondHorizontal.impulse.y, 0, accuracy: 0.0001)
+    }
+
+    func testSinglePerpendicularEventDoesNotSwitchAxisLock() {
+        var transformer = ScrollInputTransformer()
+        let config = configuration(
+            smoothness: .low,
+            accelerationEnabled: false,
+            axisLockEnabled: true
+        )
+
+        _ = transformer.transform(
+            sample(pointX: 2, pointY: 10, timestamp: 1),
+            using: config
+        )
+        let horizontalSpike = transformer.transform(
+            sample(pointX: 10, pointY: 2, timestamp: 1.05),
+            using: config
+        )
+        let vertical = transformer.transform(
+            sample(pointX: 2, pointY: 10, timestamp: 1.1),
+            using: config
+        )
+        let laterHorizontalSpike = transformer.transform(
+            sample(pointX: 10, pointY: 2, timestamp: 1.15),
+            using: config
+        )
+
+        XCTAssertEqual(horizontalSpike.impulse.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(horizontalSpike.impulse.y, 0, accuracy: 0.0001)
+        XCTAssertEqual(vertical.impulse.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(laterHorizontalSpike.impulse.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(laterHorizontalSpike.impulse.y, 0, accuracy: 0.0001)
+    }
+
+    func testHorizontalModifierStillConvertsWhenAxisLockIsDisabled() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointY: 10, flags: .maskShift),
+            using: configuration(
+                smoothness: .low,
+                minimumStepEnabled: false,
+                accelerationEnabled: false,
+                axisLockEnabled: false
+            )
+        )
+
+        XCTAssertEqual(result.impulse.x, 2, accuracy: 0.0001)
+        XCTAssertEqual(result.impulse.y, 0, accuracy: 0.0001)
     }
 
     func testStepRaisesSmallDeltasAndPreservesSigns() {
@@ -380,6 +472,7 @@ final class ScrollInputTransformerTests: XCTestCase {
         reverseDirection: Bool = false,
         adaptivePrecision: Bool = false,
         accelerationEnabled: Bool = true,
+        axisLockEnabled: Bool = true,
         horizontalModifier: ModifierKey = .shift,
         zoomModifier: ModifierKey = .command,
         swiftModifier: ModifierKey = .control,
@@ -394,6 +487,7 @@ final class ScrollInputTransformerTests: XCTestCase {
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,
             accelerationEnabled: accelerationEnabled,
+            axisLockEnabled: axisLockEnabled,
             horizontalModifier: horizontalModifier,
             zoomModifier: zoomModifier,
             swiftModifier: swiftModifier,

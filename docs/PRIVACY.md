@@ -21,6 +21,7 @@ The following choices are stored locally with macOS `UserDefaults`:
   including its saved distance
 - Trackpad-like gestures, reverse scrolling, adaptive precision, and scroll
   acceleration
+- Whether automatic axis locking is enabled
 - Modifier assignments
 - Menu-bar visibility
 - Launch at Login preference and the last registered helper build
