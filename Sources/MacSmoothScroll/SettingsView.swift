@@ -372,55 +372,61 @@ struct SettingsView: View {
 
     private var minimumWheelStepRow: some View {
         VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .center, spacing: 12) {
+            Toggle(isOn: $settings.minimumStepEnabled) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Minimum wheel step")
                     Text("Minimum final distance after speed and adaptive precision.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-
-                Spacer(minLength: 12)
-
-                HStack(spacing: 7) {
-                    StepSlider(
-                        value: $settings.minimumStepDistance,
-                        range: ScrollStep.range,
-                        step: ScrollStep.increment
-                    )
-                    .frame(width: 155)
-
-                    TextField(
-                        "Minimum wheel step",
-                        value: $settings.minimumStepDistance,
-                        format: .number.precision(.fractionLength(2))
-                    )
-                    .labelsHidden()
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 60)
-                    .accessibilityLabel("Minimum wheel step value")
-                    .accessibilityValue(
-                        "\(ScrollStep.formatted(settings.minimumStepDistance)) points"
-                    )
-
-                    Text("pt")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-
-                    Stepper(
-                        "Minimum wheel step",
-                        value: $settings.minimumStepDistance,
-                        in: ScrollStep.range,
-                        step: ScrollStep.increment
-                    )
-                    .labelsHidden()
-                    .fixedSize()
-                }
             }
+            .accessibilityHint(
+                "When disabled, small wheel movements are not raised to the saved minimum."
+            )
+
+            HStack(spacing: 7) {
+                StepSlider(
+                    value: $settings.minimumStepDistance,
+                    range: ScrollStep.range,
+                    step: ScrollStep.increment
+                )
+                .frame(minWidth: 155, maxWidth: .infinity)
+
+                TextField(
+                    "Minimum wheel step",
+                    value: $settings.minimumStepDistance,
+                    format: .number.precision(.fractionLength(2))
+                )
+                .labelsHidden()
+                .multilineTextAlignment(.trailing)
+                .frame(width: 60)
+                .accessibilityLabel("Minimum wheel step value")
+                .accessibilityValue(
+                    "\(ScrollStep.formatted(settings.minimumStepDistance)) points"
+                )
+
+                Text("pt")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+
+                Stepper(
+                    "Minimum wheel step",
+                    value: $settings.minimumStepDistance,
+                    in: ScrollStep.range,
+                    step: ScrollStep.increment
+                )
+                .labelsHidden()
+                .fixedSize()
+            }
+            .disabled(!settings.minimumStepEnabled)
 
             HStack(spacing: 8) {
-                Text("Modifier keys can intentionally reduce or increase this distance.")
+                Text(
+                    settings.minimumStepEnabled
+                        ? "Modifier keys can intentionally reduce or increase this distance."
+                        : "The saved value will be used again when this feature is enabled."
+                )
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -441,8 +447,13 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.borderless)
                 .controlSize(.small)
-                .disabled(settings.minimumStepDistance == ScrollStep.defaultValue)
-                .accessibilityLabel("Reset minimum wheel step to 18 points")
+                .disabled(
+                    settings.minimumStepEnabled &&
+                        settings.minimumStepDistance == ScrollStep.defaultValue
+                )
+                .accessibilityLabel(
+                    "Enable minimum wheel step and reset it to 18 points"
+                )
             }
         }
         .padding(.vertical, 2)

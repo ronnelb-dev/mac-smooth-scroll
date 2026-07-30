@@ -25,6 +25,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.isEnabled)
         XCTAssertEqual(settings.smoothness, .high)
         XCTAssertEqual(settings.speed, .medium)
+        XCTAssertTrue(settings.minimumStepEnabled)
         XCTAssertEqual(settings.minimumStepDistance, 18)
         XCTAssertEqual(settings.feel, .balanced)
         XCTAssertTrue(settings.trackpadSimulation)
@@ -47,6 +48,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.isEnabled = false
         settings.smoothness = .low
         settings.speed = .fast
+        settings.minimumStepEnabled = false
         settings.minimumStepDistance = 33.6
         settings.feel = .responsive
         settings.trackpadSimulation = false
@@ -64,6 +66,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertFalse(reloaded.isEnabled)
         XCTAssertEqual(reloaded.smoothness, .low)
         XCTAssertEqual(reloaded.speed, .fast)
+        XCTAssertFalse(reloaded.minimumStepEnabled)
         XCTAssertEqual(reloaded.minimumStepDistance, 33.6)
         XCTAssertEqual(reloaded.feel, .responsive)
         XCTAssertFalse(reloaded.trackpadSimulation)
@@ -83,6 +86,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.isEnabled = false
         settings.smoothness = .low
         settings.speed = .fast
+        settings.minimumStepEnabled = false
         settings.minimumStepDistance = 75
         settings.feel = .glide
         settings.trackpadSimulation = false
@@ -100,6 +104,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.isEnabled)
         XCTAssertEqual(settings.smoothness, .high)
         XCTAssertEqual(settings.speed, .medium)
+        XCTAssertTrue(settings.minimumStepEnabled)
         XCTAssertEqual(settings.minimumStepDistance, 18)
         XCTAssertEqual(settings.feel, .balanced)
         XCTAssertTrue(settings.trackpadSimulation)
@@ -166,6 +171,26 @@ final class ScrollSettingsTests: XCTestCase {
 
         let reloaded = makeSettings()
         XCTAssertEqual(reloaded.minimumStepDistance, 100, accuracy: 0.0001)
+    }
+
+    func testLegacySettingsEnableMinimumStepByDefault() {
+        defaults.set(42.5, forKey: "scroll.step")
+
+        let settings = makeSettings()
+
+        XCTAssertTrue(settings.minimumStepEnabled)
+        XCTAssertEqual(settings.minimumStepDistance, 42.5, accuracy: 0.0001)
+    }
+
+    func testDisabledMinimumStepRetainsItsValueAcrossInstances() {
+        let settings = makeSettings()
+        settings.minimumStepDistance = 33.6
+        settings.minimumStepEnabled = false
+
+        let reloaded = makeSettings()
+
+        XCTAssertFalse(reloaded.minimumStepEnabled)
+        XCTAssertEqual(reloaded.minimumStepDistance, 33.6, accuracy: 0.0001)
     }
 
     func testNonFiniteStepFallsBackToDefault() {
@@ -258,11 +283,13 @@ final class ScrollSettingsTests: XCTestCase {
 
     func testMinimumStepCanResetWithoutChangingOtherSettings() {
         let settings = makeSettings()
+        settings.minimumStepEnabled = false
         settings.minimumStepDistance = 72
         settings.speed = .fast
 
         settings.resetMinimumStepDistance()
 
+        XCTAssertTrue(settings.minimumStepEnabled)
         XCTAssertEqual(settings.minimumStepDistance, ScrollStep.defaultValue)
         XCTAssertEqual(settings.speed, .fast)
     }

@@ -13,6 +13,7 @@ struct ScrollInputSample {
 struct ScrollTransformConfiguration {
     let smoothness: Smoothness
     let speed: ScrollSpeed
+    let minimumStepEnabled: Bool
     let minimumStepDistance: Double
     let feel: ScrollFeel
     let reverseDirection: Bool
@@ -111,8 +112,10 @@ struct ScrollInputTransformer {
 
         x *= baseMultiplier
         y *= baseMultiplier
-        x = applyingMinimumStep(to: x, minimum: configuration.minimumStepDistance)
-        y = applyingMinimumStep(to: y, minimum: configuration.minimumStepDistance)
+        if configuration.minimumStepEnabled {
+            x = applyingMinimumStep(to: x, minimum: configuration.minimumStepDistance)
+            y = applyingMinimumStep(to: y, minimum: configuration.minimumStepDistance)
+        }
 
         let impulseScale =
             modifierResolution.speedAction.multiplier *
@@ -191,6 +194,7 @@ extension ScrollSettings {
         ScrollTransformConfiguration(
             smoothness: smoothness,
             speed: speed,
+            minimumStepEnabled: minimumStepEnabled,
             minimumStepDistance: minimumStepDistance,
             feel: feel,
             reverseDirection: reverseDirection,

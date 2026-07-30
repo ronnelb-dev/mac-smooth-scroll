@@ -212,6 +212,22 @@ final class ScrollInputTransformerTests: XCTestCase {
         XCTAssertEqual(result.impulse.y, 1.4, accuracy: 0.0001)
     }
 
+    func testDisabledStepDoesNotRaiseSmallDeltas() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointY: 10),
+            using: configuration(
+                smoothness: .low,
+                speed: .slow,
+                minimumStepEnabled: false,
+                minimumStepDistance: 100,
+                adaptivePrecision: true
+            )
+        )
+
+        XCTAssertEqual(result.impulse.y, 0.432, accuracy: 0.0001)
+    }
+
     func testStepLeavesLargeAndZeroDeltasUnchanged() {
         var transformer = ScrollInputTransformer()
         let result = transformer.transform(
@@ -290,6 +306,7 @@ final class ScrollInputTransformerTests: XCTestCase {
     private func configuration(
         smoothness: Smoothness = .high,
         speed: ScrollSpeed = .medium,
+        minimumStepEnabled: Bool = true,
         minimumStepDistance: Double = ScrollStep.defaultValue,
         feel: ScrollFeel = .balanced,
         reverseDirection: Bool = false,
@@ -302,6 +319,7 @@ final class ScrollInputTransformerTests: XCTestCase {
         ScrollTransformConfiguration(
             smoothness: smoothness,
             speed: speed,
+            minimumStepEnabled: minimumStepEnabled,
             minimumStepDistance: minimumStepDistance,
             feel: feel,
             reverseDirection: reverseDirection,

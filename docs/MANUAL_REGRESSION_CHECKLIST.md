@@ -80,7 +80,7 @@ Use a long document or webpage with enough content to make changes obvious.
 | C3 | Compare **Feel**: Responsive, Balanced, and Glide. | Each preset changes responsiveness, acceleration, and direction-change behavior in the expected order. | |
 | C4 | Compare **Speed**: Slow, Medium, and Fast. | Distance increases consistently from Slow to Fast. | |
 | C5 | Compare **Smoothness**: Low, Medium, and High. | The scroll tail becomes progressively longer; no preset sticks or runs indefinitely. | |
-| C6 | Set **Minimum wheel step** near its minimum, default, and maximum. | Small wheel input respects the configured minimum; the field, slider, stepper, and reset remain synchronized. | |
+| C6 | Set **Minimum wheel step** near its minimum, default, and maximum, then turn it off and on again. | Enabled input respects the configured minimum; when disabled, its controls remain visible but unavailable and input does not enforce it; the saved value returns unchanged when re-enabled. | |
 | C7 | Enable **Reverse scrolling** and test the external mouse, then the native input. | External-wheel direction reverses; trackpad or Magic Mouse direction does not change. | |
 | C8 | Enable **Adaptive precision**, pause, then move one notch and follow with rapid notches. | The first movement is precise and subsequent rapid movement ramps smoothly. | |
 | C9 | Reverse wheel direction while momentum remains. | Existing momentum brakes immediately rather than sliding far in the old direction. | |
@@ -154,7 +154,7 @@ Mark unavailable third-party utilities **Not run**, not **Pass**.
 | H1 | Change scrolling presets, toggles, minimum step, and modifier assignments, then select **Reset Scrolling Settings…** and cancel. | No setting changes. | |
 | H2 | Confirm **Reset Scrolling Settings…**. | Scrolling and modifier values return to documented defaults. | |
 | H3 | Check **Show in menu bar**, **Launch at login**, setup completion, and the selected tab after reset. | App preferences remain unchanged. | |
-| H4 | Select the Minimum wheel step **Reset** action by itself. | Only Minimum wheel step returns to `18.00 pt`. | |
+| H4 | Disable Minimum wheel step, change its saved value, then select its **Reset** action. | Minimum wheel step turns on and returns to `18.00 pt`; unrelated settings remain unchanged. | |
 | H5 | Prepare to uninstall by disabling **Launch at login**, then quit from the menu bar. | The helper is unregistered and no app process or menu-bar item remains. | |
 | H6 | Review the README uninstall steps without attaching private system data. | The instructions cover app removal, Accessibility cleanup, and optional preference deletion. | |
 
