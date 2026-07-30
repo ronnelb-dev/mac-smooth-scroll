@@ -25,6 +25,14 @@ The script signs local builds ad-hoc by default. Do not use an employer,
 organization, or distribution certificate unless you own it and explicitly
 intend to use it for this project.
 
+## Compatibility results
+
+The [compatibility matrix](docs/COMPATIBILITY.md) accepts only evidence tied to
+an exact app commit, test date, macOS build, Apple Silicon generation, and
+input device. Submit successful manual results as focused pull requests. Open
+a focused bug report for failures and link it from the matrix instead of
+placing investigation logs in the documentation.
+
 ## Before opening a pull request
 
 Run:

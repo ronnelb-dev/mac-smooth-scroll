@@ -39,6 +39,10 @@ trackpad and Magic Mouse events untouched.
 - macOS 13 or later
 - Accessibility permission
 
+See the [compatibility matrix](docs/COMPATIBILITY.md) for the difference
+between supported targets, automated build evidence, and manually verified
+Mac, macOS, mouse, and display combinations.
+
 ## Installation
 
 When a DMG is available from a trusted workflow run or preview release:
