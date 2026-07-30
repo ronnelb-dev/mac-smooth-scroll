@@ -47,9 +47,11 @@ git diff --check
 codesign --verify --deep --strict --verbose=2 "dist/Mac Smooth Scroll.app"
 ```
 
-For behavior changes, manually verify the relevant settings, Accessibility
-permission flow, scrolling behavior, menu-bar mode, and launch-at-login
-behavior. Explain what you tested in the pull request.
+For behavior changes, run the relevant sections of the
+[manual macOS regression checklist](docs/MANUAL_REGRESSION_CHECKLIST.md) and
+paste its compact result template into the pull request. Mark unavailable
+hardware and third-party utilities **Not run** rather than treating them as
+passing.
 
 ## Pull requests
 

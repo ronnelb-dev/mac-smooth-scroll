@@ -8,7 +8,8 @@
 
 ## Testing
 
-<!-- List automated checks and manual macOS testing performed. -->
+<!-- List automated checks. For behavior changes, include the compact result
+template from docs/MANUAL_REGRESSION_CHECKLIST.md. -->
 
 ## Screenshots
 

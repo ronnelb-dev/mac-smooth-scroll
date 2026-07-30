@@ -41,6 +41,11 @@ Inspect the mounted DMG manually:
 - The app launches from Applications on an Apple Silicon Mac.
 - Accessibility recovery and Launch at Login work after replacement.
 
+Run the relevant sections of the
+[manual macOS regression checklist](MANUAL_REGRESSION_CHECKLIST.md) and retain
+the compact result with the release pull request. A passing build does not
+replace physical mouse, permission, menu-bar, or login-session testing.
+
 The build produces three files in `dist/`:
 
 - `Mac-Smooth-Scroll-<version>-arm64.dmg`
