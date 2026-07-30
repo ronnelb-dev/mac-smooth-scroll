@@ -87,7 +87,7 @@ final class ScrollInputTransformerTests: XCTestCase {
         XCTAssertEqual(first.y, 6, accuracy: 0.0001)
         XCTAssertEqual(isolated.y, 6, accuracy: 0.0001)
         XCTAssertEqual(slower.y, 13, accuracy: 0.0001)
-        XCTAssertEqual(rapid.y, 21.232, accuracy: 0.0001)
+        XCTAssertEqual(rapid.y, 24.4, accuracy: 0.0001)
     }
 
     func testResetClearsAdaptivePrecisionHistory() {
@@ -228,6 +228,74 @@ final class ScrollInputTransformerTests: XCTestCase {
         XCTAssertEqual(result.impulse.y, 0.432, accuracy: 0.0001)
     }
 
+    func testDisabledAccelerationDoesNotBoostRapidInput() {
+        var transformer = ScrollInputTransformer()
+        let config = configuration(
+            smoothness: .low,
+            minimumStepEnabled: false,
+            accelerationEnabled: false
+        )
+
+        let first = transformer.transform(
+            sample(pointY: 100, timestamp: 1),
+            using: config
+        )
+        let rapid = transformer.transform(
+            sample(pointY: 100, timestamp: 1.05),
+            using: config
+        )
+
+        XCTAssertEqual(first.impulse.y, 20, accuracy: 0.0001)
+        XCTAssertEqual(rapid.impulse.y, 20, accuracy: 0.0001)
+    }
+
+    func testAccelerationStateUsesDistanceInsteadOfEventCount() {
+        let config = configuration(
+            smoothness: .low,
+            minimumStepEnabled: false,
+            accelerationEnabled: true
+        )
+        var unsplitTransformer = ScrollInputTransformer()
+        var splitTransformer = ScrollInputTransformer()
+
+        _ = unsplitTransformer.transform(
+            sample(pointY: 18, timestamp: 1),
+            using: config
+        )
+        _ = unsplitTransformer.transform(
+            sample(pointY: 18, timestamp: 1.05),
+            using: config
+        )
+
+        _ = splitTransformer.transform(
+            sample(pointY: 18, timestamp: 1),
+            using: config
+        )
+        _ = splitTransformer.transform(
+            sample(pointY: 9, timestamp: 1.025),
+            using: config
+        )
+        _ = splitTransformer.transform(
+            sample(pointY: 9, timestamp: 1.05),
+            using: config
+        )
+
+        let unsplitProbe = unsplitTransformer.transform(
+            sample(pointY: 18, timestamp: 1.1),
+            using: config
+        )
+        let splitProbe = splitTransformer.transform(
+            sample(pointY: 18, timestamp: 1.1),
+            using: config
+        )
+
+        XCTAssertEqual(
+            unsplitProbe.impulse.y,
+            splitProbe.impulse.y,
+            accuracy: 0.0001
+        )
+    }
+
     func testStepLeavesLargeAndZeroDeltasUnchanged() {
         var transformer = ScrollInputTransformer()
         let result = transformer.transform(
@@ -311,6 +379,7 @@ final class ScrollInputTransformerTests: XCTestCase {
         feel: ScrollFeel = .balanced,
         reverseDirection: Bool = false,
         adaptivePrecision: Bool = false,
+        accelerationEnabled: Bool = true,
         horizontalModifier: ModifierKey = .shift,
         zoomModifier: ModifierKey = .command,
         swiftModifier: ModifierKey = .control,
@@ -324,6 +393,7 @@ final class ScrollInputTransformerTests: XCTestCase {
             feel: feel,
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,
+            accelerationEnabled: accelerationEnabled,
             horizontalModifier: horizontalModifier,
             zoomModifier: zoomModifier,
             swiftModifier: swiftModifier,
