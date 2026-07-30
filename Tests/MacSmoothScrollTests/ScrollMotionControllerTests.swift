@@ -55,6 +55,25 @@ final class ScrollMotionControllerTests: XCTestCase {
         XCTAssertEqual(motion.velocityY, 0)
     }
 
+    func testResetClearsVelocityAndFractionalRemainder() {
+        var motion = ScrollMotionController()
+        _ = motion.add(
+            ScrollImpulse(x: 0.2, y: 0.2),
+            feel: .balanced
+        )
+        _ = motion.step(
+            elapsedTime: 1.0 / 120.0,
+            decay: Smoothness.high.decay
+        )
+        XCTAssertTrue(motion.isActive)
+
+        motion.reset()
+
+        XCTAssertFalse(motion.isActive)
+        XCTAssertEqual(motion.velocityX, 0)
+        XCTAssertEqual(motion.velocityY, 0)
+    }
+
     private func integratedDistance(frameRate: Double) -> Double {
         var motion = ScrollMotionController()
         _ = motion.add(ScrollImpulse(x: 0, y: 4), feel: .balanced)
