@@ -17,7 +17,8 @@ mouse usage history.
 The following choices are stored locally with macOS `UserDefaults`:
 
 - Whether smooth scrolling is enabled
-- Smoothness, speed, scroll feel, and minimum wheel step
+- Smoothness, speed, scroll feel, and whether Minimum wheel step is enabled,
+  including its saved distance
 - Trackpad-like gestures, reverse scrolling, and adaptive precision
 - Modifier assignments
 - Menu-bar visibility

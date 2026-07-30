@@ -150,6 +150,7 @@ final class ScrollModifierResolverTests: XCTestCase {
         ScrollTransformConfiguration(
             smoothness: .high,
             speed: .medium,
+            minimumStepEnabled: true,
             minimumStepDistance: ScrollStep.defaultValue,
             feel: .balanced,
             reverseDirection: false,

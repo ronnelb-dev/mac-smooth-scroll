@@ -142,6 +142,7 @@ final class ScrollSettings: ObservableObject {
         static let enabled = "scroll.enabled"
         static let smoothness = "scroll.smoothness"
         static let speed = "scroll.speed"
+        static let minimumStepEnabled = "scroll.minimumStepEnabled"
         static let minimumStepDistance = "scroll.step"
         static let feel = "scroll.feel"
         static let trackpadSimulation = "scroll.trackpadSimulation"
@@ -174,6 +175,9 @@ final class ScrollSettings: ObservableObject {
     }
     @Published var speed: ScrollSpeed {
         didSet { persist(Key.speed, speed.rawValue) }
+    }
+    @Published var minimumStepEnabled: Bool {
+        didSet { persist(Key.minimumStepEnabled, minimumStepEnabled) }
     }
     @Published var minimumStepDistance: Double {
         didSet {
@@ -256,6 +260,8 @@ final class ScrollSettings: ObservableObject {
         isEnabled = defaults.object(forKey: Key.enabled) as? Bool ?? true
         smoothness = Smoothness(rawValue: defaults.string(forKey: Key.smoothness) ?? "") ?? .high
         speed = ScrollSpeed(rawValue: defaults.string(forKey: Key.speed) ?? "") ?? .medium
+        minimumStepEnabled =
+            defaults.object(forKey: Key.minimumStepEnabled) as? Bool ?? true
         let storedStep = (defaults.object(forKey: Key.minimumStepDistance) as? NSNumber)?.doubleValue
         minimumStepDistance = ScrollStep.sanitized(storedStep ?? ScrollStep.defaultValue)
         feel = ScrollFeel(rawValue: defaults.string(forKey: Key.feel) ?? "") ?? .balanced
@@ -405,6 +411,7 @@ final class ScrollSettings: ObservableObject {
         isEnabled = true
         smoothness = .high
         speed = .medium
+        minimumStepEnabled = true
         minimumStepDistance = ScrollStep.defaultValue
         feel = .balanced
         trackpadSimulation = true
@@ -417,6 +424,7 @@ final class ScrollSettings: ObservableObject {
     }
 
     func resetMinimumStepDistance() {
+        minimumStepEnabled = true
         minimumStepDistance = ScrollStep.defaultValue
     }
 
