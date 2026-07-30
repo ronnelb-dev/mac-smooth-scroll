@@ -80,14 +80,14 @@ Use a long document or webpage with enough content to make changes obvious.
 | C3 | Compare **Feel**: Responsive, Balanced, and Glide. | Each preset changes responsiveness, acceleration, and direction-change behavior in the expected order. | |
 | C4 | Compare **Speed**: Slow, Medium, and Fast. | Distance increases consistently from Slow to Fast. | |
 | C5 | Compare **Smoothness**: Low, Medium, and High. | The scroll tail becomes progressively longer; no preset sticks or runs indefinitely. | |
-| C6 | Set **Minimum wheel step** near its minimum, default, and maximum, then turn it off and on again. | Enabled input respects the configured minimum; when disabled, its controls remain visible but unavailable and input does not enforce it; the saved value returns unchanged when re-enabled. | |
+| C6 | Set **Minimum wheel step** near its minimum, default, and maximum, then turn it off and on again; test diagonal input when available. | Enabled input respects the configured minimum without changing diagonal direction; when disabled, its controls remain visible but unavailable and input does not enforce it; the saved value returns unchanged when re-enabled. | |
 | C7 | Enable **Reverse scrolling** and test the external mouse, then the native input. | External-wheel direction reverses; trackpad or Magic Mouse direction does not change. | |
 | C8 | Enable **Adaptive precision**, pause, then move one notch and follow with rapid notches. | The first movement is precise and subsequent rapid movement ramps smoothly. | |
 | C9 | Compare rapid wheel movement with **Scroll acceleration** off and on using each available external mouse. | Off preserves normal transformed distance; On adds a consistent speed boost without a sudden jump on mice that emit many small events. | |
 | C10 | With **Automatic axis lock** enabled, introduce one perpendicular wheel event, then two consecutive strongly perpendicular events; repeat with it disabled. | One event is suppressed without a wrong-direction nudge; two deliberate events switch the axis; disabled input preserves both axes. | |
 | C11 | Reverse wheel direction while momentum remains. | Existing momentum brakes immediately rather than sliding far in the old direction. | |
 | C12 | Enable **Trackpad-like gestures** and test a compatible horizontal-navigation view. | Gesture phases begin, change, and end cleanly; navigation does not remain stuck. | |
-| C13 | Test on each available 60 Hz and high-refresh-rate display. | Perceived distance remains comparable and animation stays display-synchronized. | |
+| C13 | Test on each available 60 Hz and high-refresh-rate display, including a short period of system load. | Perceived distance remains comparable and animation stays display-synchronized; a delayed frame catches up through bounded output instead of losing distance or producing one large jump. | |
 
 ## D. Modifier keys
 

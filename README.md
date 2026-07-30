@@ -148,7 +148,8 @@ reopened.
   range remains `0.01–100.00 pt`, the default is `18.00 pt`, and the slider
   supports arrow keys and VoiceOver adjustment. Turn the feature off to use
   the transformed wheel distance without enforcing a minimum; the saved value
-  remains available when you turn it on again.
+  remains available when you turn it on again. When both axes are present, the
+  minimum scales the complete movement vector without changing its direction.
 - Enable **Adaptive precision** to make the first wheel step after idle precise,
   then ramp smoothly as the wheel is moved faster.
 - Enable **Scroll acceleration** to increase movement during rapid wheel input.

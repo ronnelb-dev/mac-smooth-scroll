@@ -9,6 +9,7 @@ struct ScrollMotionOutput: Equatable {
 struct ScrollMotionController {
     private static let referenceFrameRate = 120.0
     private static let stopVelocity = 0.025
+    private static let maximumOutputPerFrame: Int32 = 120
 
     private(set) var velocityX = 0.0
     private(set) var velocityY = 0.0
@@ -48,9 +49,13 @@ struct ScrollMotionController {
             return ScrollMotionOutput(x: 0, y: 0, finished: true)
         }
 
-        // Integrate an exponential curve over the actual elapsed time. This
-        // preserves the old 120 Hz total-distance behavior at every refresh rate.
-        let referenceFrames = (elapsedTime * Self.referenceFrameRate).clamped(to: 0.25...4)
+        // Integrate the complete elapsed interval so a delayed display-link
+        // callback does not discard distance. Large accumulated output remains
+        // in the fractional remainder and drains over bounded frames.
+        let elapsedFrames = elapsedTime.isFinite
+            ? elapsedTime * Self.referenceFrameRate
+            : 0.25
+        let referenceFrames = max(elapsedFrames, 0.25)
         let effectiveDecay = pow(decay, referenceFrames)
         let integrationScale = decay == 1
             ? referenceFrames
@@ -61,8 +66,8 @@ struct ScrollMotionController {
         velocityX *= effectiveDecay
         velocityY *= effectiveDecay
 
-        let outputX = Int32(remainderX.rounded(.towardZero))
-        let outputY = Int32(remainderY.rounded(.towardZero))
+        let outputX = boundedOutput(from: remainderX)
+        let outputY = boundedOutput(from: remainderY)
         remainderX -= Double(outputX)
         remainderY -= Double(outputY)
 
@@ -93,6 +98,15 @@ struct ScrollMotionController {
         abs(current) > Self.stopVelocity &&
             abs(incoming) > Self.stopVelocity &&
             current.sign != incoming.sign
+    }
+
+    private func boundedOutput(from value: Double) -> Int32 {
+        let limit = Double(Self.maximumOutputPerFrame)
+        return Int32(
+            value
+                .clamped(to: -limit...limit)
+                .rounded(.towardZero)
+        )
     }
 }
 

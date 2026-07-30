@@ -127,8 +127,11 @@ struct ScrollInputTransformer {
         x *= baseMultiplier
         y *= baseMultiplier
         if configuration.minimumStepEnabled {
-            x = applyingMinimumStep(to: x, minimum: configuration.minimumStepDistance)
-            y = applyingMinimumStep(to: y, minimum: configuration.minimumStepDistance)
+            applyMinimumStep(
+                x: &x,
+                y: &y,
+                minimum: configuration.minimumStepDistance
+            )
         }
 
         let impulseScale =
@@ -223,14 +226,17 @@ struct ScrollInputTransformer {
         pendingAxisSwitchCount = 0
     }
 
-    private func applyingMinimumStep(
-        to value: Double,
+    private func applyMinimumStep(
+        x: inout Double,
+        y: inout Double,
         minimum: Double
-    ) -> Double {
-        guard value != 0 else { return 0 }
-        return value.sign == .minus
-            ? -max(abs(value), minimum)
-            : max(abs(value), minimum)
+    ) {
+        let magnitude = hypot(x, y)
+        guard magnitude > 0, magnitude < minimum else { return }
+
+        let scale = minimum / magnitude
+        x *= scale
+        y *= scale
     }
 
     private func adaptivePrecisionMultiplier(
