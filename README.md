@@ -154,6 +154,10 @@ reopened.
 - Enable **Scroll acceleration** to increase movement during rapid wheel input.
   Acceleration uses total wheel distance and elapsed time so mice that divide
   the same movement into different numbers of events behave consistently.
+- Enable **Automatic axis lock** to suppress small diagonal wheel noise. A
+  deliberate perpendicular movement switches the active axis after two
+  strongly dominant events; the first candidate event is suppressed to avoid
+  a wrong-direction nudge. Turn it off to preserve both axes unchanged.
 - Enable **Trackpad-like gestures** to add gesture phases used by natural
   scrolling and horizontal navigation.
 - In **Modifier Keys**, assign keys for horizontal scrolling, zoom, faster

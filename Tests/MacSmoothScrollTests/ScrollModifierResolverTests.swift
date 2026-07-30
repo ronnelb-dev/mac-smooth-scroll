@@ -156,6 +156,7 @@ final class ScrollModifierResolverTests: XCTestCase {
             reverseDirection: false,
             adaptivePrecision: false,
             accelerationEnabled: true,
+            axisLockEnabled: true,
             horizontalModifier: horizontalModifier,
             zoomModifier: zoomModifier,
             swiftModifier: swiftModifier,
