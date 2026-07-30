@@ -31,6 +31,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.trackpadSimulation)
         XCTAssertFalse(settings.reverseDirection)
         XCTAssertTrue(settings.adaptivePrecision)
+        XCTAssertTrue(settings.accelerationEnabled)
         XCTAssertEqual(settings.horizontalModifier, .shift)
         XCTAssertEqual(settings.zoomModifier, .command)
         XCTAssertEqual(settings.swiftModifier, .control)
@@ -54,6 +55,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.trackpadSimulation = false
         settings.reverseDirection = true
         settings.adaptivePrecision = false
+        settings.accelerationEnabled = false
         settings.horizontalModifier = .control
         settings.zoomModifier = .option
         settings.swiftModifier = .shift
@@ -72,6 +74,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertFalse(reloaded.trackpadSimulation)
         XCTAssertTrue(reloaded.reverseDirection)
         XCTAssertFalse(reloaded.adaptivePrecision)
+        XCTAssertFalse(reloaded.accelerationEnabled)
         XCTAssertEqual(reloaded.horizontalModifier, .control)
         XCTAssertEqual(reloaded.zoomModifier, .option)
         XCTAssertEqual(reloaded.swiftModifier, .shift)
@@ -92,6 +95,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.trackpadSimulation = false
         settings.reverseDirection = true
         settings.adaptivePrecision = false
+        settings.accelerationEnabled = false
         settings.horizontalModifier = .none
         settings.zoomModifier = .none
         settings.swiftModifier = .none
@@ -110,6 +114,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.trackpadSimulation)
         XCTAssertFalse(settings.reverseDirection)
         XCTAssertTrue(settings.adaptivePrecision)
+        XCTAssertTrue(settings.accelerationEnabled)
         XCTAssertEqual(settings.horizontalModifier, .shift)
         XCTAssertEqual(settings.zoomModifier, .command)
         XCTAssertEqual(settings.swiftModifier, .control)
@@ -180,6 +185,12 @@ final class ScrollSettingsTests: XCTestCase {
 
         XCTAssertTrue(settings.minimumStepEnabled)
         XCTAssertEqual(settings.minimumStepDistance, 42.5, accuracy: 0.0001)
+    }
+
+    func testLegacySettingsEnableAccelerationByDefault() {
+        defaults.set(ScrollFeel.glide.rawValue, forKey: "scroll.feel")
+
+        XCTAssertTrue(makeSettings().accelerationEnabled)
     }
 
     func testDisabledMinimumStepRetainsItsValueAcrossInstances() {

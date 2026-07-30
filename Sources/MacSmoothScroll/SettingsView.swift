@@ -355,6 +355,15 @@ struct SettingsView: View {
                 }
             }
 
+            Toggle(isOn: $settings.accelerationEnabled) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Scroll acceleration")
+                    Text("Increase movement when the wheel is turned rapidly.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Toggle(isOn: $settings.trackpadSimulation) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Trackpad-like gestures")

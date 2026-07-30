@@ -18,6 +18,7 @@ struct ScrollTransformConfiguration {
     let feel: ScrollFeel
     let reverseDirection: Bool
     let adaptivePrecision: Bool
+    let accelerationEnabled: Bool
     let horizontalModifier: ModifierKey
     let zoomModifier: ModifierKey
     let swiftModifier: ModifierKey
@@ -103,11 +104,15 @@ struct ScrollInputTransformer {
             baseMultiplier *= adaptivePrecisionMultiplier(interval: interval)
         }
 
-        if modifierResolution.speedAction.allowsRapidInputAcceleration {
+        if modifierResolution.speedAction.allowsRapidInputAcceleration,
+           configuration.accelerationEnabled {
             baseMultiplier *= rapidInputMultiplier(
                 interval: interval,
+                inputDistance: max(abs(x), abs(y)),
                 maximumBoost: configuration.feel.rapidInputBoost
             )
+        } else if !configuration.accelerationEnabled {
+            rapidInputLevel = 0
         }
 
         x *= baseMultiplier
@@ -173,17 +178,23 @@ struct ScrollInputTransformer {
 
     private mutating func rapidInputMultiplier(
         interval: TimeInterval?,
+        inputDistance: Double,
         maximumBoost: Double
     ) -> Double {
-        guard let interval else { return 1 }
-
-        if interval < 0.055 {
-            rapidInputLevel += 0.28
-        } else if interval < 0.09 {
-            rapidInputLevel += 0.16
-        } else {
-            rapidInputLevel -= 0.25
+        guard let interval else {
+            rapidInputLevel = 0
+            return 1
         }
+        guard interval >= 0, interval < 0.12 else {
+            rapidInputLevel = 0
+            return 1
+        }
+
+        // Build acceleration from total physical movement and elapsed time
+        // instead of event count. Mice that split the same wheel movement into
+        // more events therefore reach the same acceleration level.
+        rapidInputLevel -= interval
+        rapidInputLevel += inputDistance / 72
         rapidInputLevel = min(max(rapidInputLevel, 0), 1)
         return 1 + (rapidInputLevel * maximumBoost)
     }
@@ -199,6 +210,7 @@ extension ScrollSettings {
             feel: feel,
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,
+            accelerationEnabled: accelerationEnabled,
             horizontalModifier: horizontalModifier,
             zoomModifier: zoomModifier,
             swiftModifier: swiftModifier,

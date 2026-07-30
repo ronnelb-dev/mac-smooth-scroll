@@ -21,7 +21,7 @@ trackpad and Magic Mouse events untouched.
 - Display-synchronized motion on 60 Hz and high-refresh-rate screens
 - Optional trackpad-like gesture phases
 - External-mouse-only reverse direction
-- Adaptive first-notch precision with cadence-based acceleration
+- Adaptive first-notch precision with optional movement-based acceleration
 - Immediate braking on direction changes and bounded maximum velocity
 - Dominant-axis locking that filters diagonal wheel noise
 - Configurable horizontal, zoom, swift, and precision modifier keys
@@ -151,6 +151,9 @@ reopened.
   remains available when you turn it on again.
 - Enable **Adaptive precision** to make the first wheel step after idle precise,
   then ramp smoothly as the wheel is moved faster.
+- Enable **Scroll acceleration** to increase movement during rapid wheel input.
+  Acceleration uses total wheel distance and elapsed time so mice that divide
+  the same movement into different numbers of events behave consistently.
 - Enable **Trackpad-like gestures** to add gesture phases used by natural
   scrolling and horizontal navigation.
 - In **Modifier Keys**, assign keys for horizontal scrolling, zoom, faster

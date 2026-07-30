@@ -148,6 +148,7 @@ final class ScrollSettings: ObservableObject {
         static let trackpadSimulation = "scroll.trackpadSimulation"
         static let reverseDirection = "scroll.reverseDirection"
         static let adaptivePrecision = "scroll.adaptivePrecision"
+        static let accelerationEnabled = "scroll.accelerationEnabled"
         static let horizontalModifier = "modifier.horizontal"
         static let zoomModifier = "modifier.zoom"
         static let swiftModifier = "modifier.swift"
@@ -200,6 +201,9 @@ final class ScrollSettings: ObservableObject {
     }
     @Published var adaptivePrecision: Bool {
         didSet { persist(Key.adaptivePrecision, adaptivePrecision) }
+    }
+    @Published var accelerationEnabled: Bool {
+        didSet { persist(Key.accelerationEnabled, accelerationEnabled) }
     }
     @Published var horizontalModifier: ModifierKey {
         didSet { persist(Key.horizontalModifier, horizontalModifier.rawValue) }
@@ -268,6 +272,8 @@ final class ScrollSettings: ObservableObject {
         trackpadSimulation = defaults.object(forKey: Key.trackpadSimulation) as? Bool ?? true
         reverseDirection = defaults.object(forKey: Key.reverseDirection) as? Bool ?? false
         adaptivePrecision = defaults.object(forKey: Key.adaptivePrecision) as? Bool ?? true
+        accelerationEnabled =
+            defaults.object(forKey: Key.accelerationEnabled) as? Bool ?? true
         horizontalModifier = ModifierKey(rawValue: defaults.string(forKey: Key.horizontalModifier) ?? "") ?? .shift
         zoomModifier = ModifierKey(rawValue: defaults.string(forKey: Key.zoomModifier) ?? "") ?? .command
         swiftModifier = ModifierKey(rawValue: defaults.string(forKey: Key.swiftModifier) ?? "") ?? .control
@@ -417,6 +423,7 @@ final class ScrollSettings: ObservableObject {
         trackpadSimulation = true
         reverseDirection = false
         adaptivePrecision = true
+        accelerationEnabled = true
         horizontalModifier = .shift
         zoomModifier = .command
         swiftModifier = .control
