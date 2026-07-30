@@ -452,26 +452,26 @@ struct SettingsView: View {
         Section {
             modifierRow(
                 title: "Horizontal scrolling",
-                detail: "Convert vertical wheel movement to horizontal scrolling.",
+                detail: "Convert vertical-dominant movement; combines with Faster or Precision.",
                 selection: $settings.horizontalModifier
             )
             modifierRow(
                 title: "Zoom",
-                detail: "Pass the modifier through to apps with scroll-to-zoom support.",
+                detail: "Pass the modifier only when no transform action is active.",
                 selection: $settings.zoomModifier
             )
             modifierRow(
                 title: "Faster scrolling",
-                detail: "Temporarily increase scrolling speed.",
+                detail: "Temporarily increase speed unless Precision is active.",
                 selection: $settings.swiftModifier
             )
             modifierRow(
                 title: "Precision scrolling",
-                detail: "Temporarily reduce scrolling speed.",
+                detail: "Temporarily reduce speed and take priority over Faster.",
                 selection: $settings.preciseModifier
             )
         } footer: {
-            Text("Transform actions take priority over zoom. Precision scrolling takes priority over faster scrolling.")
+            Text("Assignments are frozen for each wheel burst. Horizontal can combine with Faster or Precision; transform actions suppress Zoom.")
         }
     }
 

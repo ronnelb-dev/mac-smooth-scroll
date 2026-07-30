@@ -148,7 +148,9 @@ reopened.
 - Enable **Trackpad-like gestures** to add gesture phases used by natural
   scrolling and horizontal navigation.
 - In **Modifier Keys**, assign keys for horizontal scrolling, zoom, faster
-  scrolling, and precision scrolling.
+  scrolling, and precision scrolling. See
+  [Modifier Key Behavior](docs/MODIFIER_BEHAVIOR.md) for the exact conflict and
+  priority rules.
 - In **App**, manage background behavior and setup, then check **System
   Health** for Accessibility, scroll-engine, mouse-driver, and login-helper
   status. When attention is required, use the recovery button shown on the
