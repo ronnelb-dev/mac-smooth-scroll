@@ -162,9 +162,14 @@ reopened.
 - Enable **Trackpad-like gestures** to add gesture phases used by natural
   scrolling and horizontal navigation.
 - In **Modifier Keys**, assign keys for horizontal scrolling, zoom, faster
-  scrolling, and precision scrolling. See
+  scrolling, precision scrolling, or temporary native-event bypass. Bypass
+  defaults to **None** and takes priority over every other assignment while
+  held. See
   [Modifier Key Behavior](docs/MODIFIER_BEHAVIOR.md) for the exact conflict and
   priority rules.
+- Under **Native Scrolling**, add applications that should always receive
+  unmodified wheel events. Exclusions are matched using the foreground
+  application’s bundle identifier and can be removed at any time.
 - In **App**, manage background behavior and setup, then check **System
   Health** for Accessibility, scroll-engine, mouse-driver, and login-helper
   status. When attention is required, use the recovery button shown on the

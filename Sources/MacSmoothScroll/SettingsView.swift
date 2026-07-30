@@ -1,9 +1,11 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject private var settings: ScrollSettings
     @State private var showingResetConfirmation = false
     @State private var diagnosticsCopied = false
+    @State private var applicationSelectionError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,7 +26,22 @@ struct SettingsView: View {
                 settings.resetDefaults()
             }
         } message: {
-            Text("Scrolling, advanced tuning, and modifier keys will return to their defaults.")
+            Text("Scrolling, advanced tuning, modifier keys, and application exclusions will return to their defaults.")
+        }
+        .alert(
+            "Couldn’t Add Application",
+            isPresented: Binding(
+                get: { applicationSelectionError != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        applicationSelectionError = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(applicationSelectionError ?? "")
         }
     }
 
@@ -35,6 +52,7 @@ struct SettingsView: View {
             settingsPage {
                 scrollingSection
                 advancedScrollingSection
+                nativeScrollingSection
             }
         case .modifierKeys:
             settingsPage {
@@ -499,8 +517,82 @@ struct SettingsView: View {
                 detail: "Temporarily reduce speed and take priority over Faster.",
                 selection: $settings.preciseModifier
             )
+            modifierRow(
+                title: "Bypass smooth scrolling",
+                detail: "Hold to send native wheel events and stop the current smooth tail.",
+                selection: $settings.bypassModifier
+            )
         } footer: {
-            Text("Assignments are frozen for each wheel burst. Horizontal can combine with Faster or Precision; transform actions suppress Zoom.")
+            Text("Bypass takes priority over every action. Other assignments are frozen for each wheel burst; transform actions suppress Zoom.")
+        }
+    }
+
+    private var nativeScrollingSection: some View {
+        Section {
+            if settings.excludedApplications.isEmpty {
+                LabeledContent("Excluded applications") {
+                    Text("None")
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                ForEach(settings.excludedApplications) { application in
+                    LabeledContent {
+                        Button {
+                            settings.removeExcludedApplication(
+                                bundleIdentifier: application.bundleIdentifier
+                            )
+                        } label: {
+                            Image(systemName: "minus.circle")
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.red)
+                        .help("Remove \(application.name)")
+                        .accessibilityLabel(
+                            "Remove \(application.name) from native scrolling exclusions"
+                        )
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(application.name)
+                            Text(application.bundleIdentifier)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+
+            Button {
+                chooseExcludedApplication()
+            } label: {
+                Label("Add Application…", systemImage: "plus")
+            }
+            .accessibilityHint(
+                "Choose an application that should receive native wheel events"
+            )
+        } header: {
+            Text("Native Scrolling")
+        } footer: {
+            Text("Excluded applications receive unmodified wheel events. This is useful for games, remote-desktop clients, and creative tools.")
+        }
+    }
+
+    private func chooseExcludedApplication() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose an Application"
+        panel.prompt = "Add"
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.allowedContentTypes = [.application]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                try settings.addExcludedApplication(at: url)
+            } catch {
+                applicationSelectionError = error.localizedDescription
+            }
         }
     }
 

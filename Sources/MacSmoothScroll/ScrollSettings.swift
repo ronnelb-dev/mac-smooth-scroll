@@ -154,6 +154,8 @@ final class ScrollSettings: ObservableObject {
         static let zoomModifier = "modifier.zoom"
         static let swiftModifier = "modifier.swift"
         static let preciseModifier = "modifier.precise"
+        static let bypassModifier = "modifier.bypass"
+        static let excludedApplications = "scroll.excludedApplications"
         static let showInMenuBar = "app.showInMenuBar"
         static let launchAtLogin = "app.launchAtLogin"
         static let launchAtLoginRegisteredBuild = "app.launchAtLoginRegisteredBuild"
@@ -221,6 +223,15 @@ final class ScrollSettings: ObservableObject {
     @Published var preciseModifier: ModifierKey {
         didSet { persist(Key.preciseModifier, preciseModifier.rawValue) }
     }
+    @Published var bypassModifier: ModifierKey {
+        didSet { persist(Key.bypassModifier, bypassModifier.rawValue) }
+    }
+    @Published private(set) var excludedApplications: [ExcludedApplication] {
+        didSet {
+            let encoded = try? JSONEncoder().encode(excludedApplications)
+            persist(Key.excludedApplications, encoded ?? Data())
+        }
+    }
     @Published var showInMenuBar: Bool {
         didSet { persist(Key.showInMenuBar, showInMenuBar) }
     }
@@ -284,6 +295,14 @@ final class ScrollSettings: ObservableObject {
         zoomModifier = ModifierKey(rawValue: defaults.string(forKey: Key.zoomModifier) ?? "") ?? .command
         swiftModifier = ModifierKey(rawValue: defaults.string(forKey: Key.swiftModifier) ?? "") ?? .control
         preciseModifier = ModifierKey(rawValue: defaults.string(forKey: Key.preciseModifier) ?? "") ?? .option
+        bypassModifier =
+            ModifierKey(rawValue: defaults.string(forKey: Key.bypassModifier) ?? "")
+            ?? .none
+        let storedExcludedApplications = defaults.data(forKey: Key.excludedApplications)
+        excludedApplications =
+            storedExcludedApplications
+                .flatMap { try? JSONDecoder().decode([ExcludedApplication].self, from: $0) }
+            ?? []
         showInMenuBar = defaults.object(forKey: Key.showInMenuBar) as? Bool ?? true
         launchAtLogin = defaults.object(forKey: Key.launchAtLogin) as? Bool ?? false
         onboardingCompleted = defaults.bool(forKey: Key.onboardingCompleted)
@@ -435,11 +454,40 @@ final class ScrollSettings: ObservableObject {
         zoomModifier = .command
         swiftModifier = .control
         preciseModifier = .option
+        bypassModifier = .none
+        excludedApplications = []
     }
 
     func resetMinimumStepDistance() {
         minimumStepEnabled = true
         minimumStepDistance = ScrollStep.defaultValue
+    }
+
+    func addExcludedApplication(at url: URL) throws {
+        addExcludedApplication(try ExcludedApplication.resolve(at: url))
+    }
+
+    func addExcludedApplication(_ application: ExcludedApplication) {
+        guard !excludedApplications.contains(where: {
+            $0.bundleIdentifier == application.bundleIdentifier
+        }) else {
+            return
+        }
+
+        excludedApplications.append(application)
+        excludedApplications.sort {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    func removeExcludedApplication(bundleIdentifier: String) {
+        excludedApplications.removeAll {
+            $0.bundleIdentifier == bundleIdentifier
+        }
+    }
+
+    var excludedApplicationBundleIdentifiers: Set<String> {
+        Set(excludedApplications.map(\.bundleIdentifier))
     }
 
     private func persist(_ key: String, _ value: Any) {
