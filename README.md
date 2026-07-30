@@ -275,6 +275,10 @@ modifier behavior, burst and axis rules, direction-change braking, velocity
 limits, and refresh-rate-independent motion. GitHub Actions runs the suite
 before packaging every pull request and `main` update.
 
+Hardware, Accessibility, menu-bar, and login-session behavior must also be
+checked with the
+[manual macOS regression checklist](docs/MANUAL_REGRESSION_CHECKLIST.md).
+
 ## Development notes
 
 The app uses an independent Swift implementation built with public macOS APIs:
