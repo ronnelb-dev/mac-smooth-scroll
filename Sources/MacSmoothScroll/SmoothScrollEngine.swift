@@ -1,4 +1,5 @@
 import ApplicationServices
+import AppKit
 import CoreGraphics
 import Foundation
 
@@ -15,6 +16,7 @@ final class SmoothScrollEngine {
     private var recoveryGeneration = 0
     private var recoveryScheduled = false
     private let eventFilter = ScrollEventFilter()
+    private let bypassPolicy = ScrollBypassPolicy()
     private var gestureLifecycle = ScrollGestureLifecycle()
 
     init(settings: ScrollSettings) {
@@ -146,6 +148,18 @@ final class SmoothScrollEngine {
             isContinuous: event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
         )
         guard disposition == .transform else {
+            return Unmanaged.passUnretained(event)
+        }
+
+        if bypassPolicy.shouldBypass(
+            flags: event.flags,
+            modifier: settings.bypassModifier,
+            frontmostBundleIdentifier:
+                NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
+            excludedBundleIdentifiers:
+                settings.excludedApplicationBundleIdentifiers
+        ) {
+            resetMotion()
             return Unmanaged.passUnretained(event)
         }
 

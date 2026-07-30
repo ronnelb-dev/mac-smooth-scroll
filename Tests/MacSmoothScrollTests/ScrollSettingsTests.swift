@@ -37,6 +37,8 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(settings.zoomModifier, .command)
         XCTAssertEqual(settings.swiftModifier, .control)
         XCTAssertEqual(settings.preciseModifier, .option)
+        XCTAssertEqual(settings.bypassModifier, .none)
+        XCTAssertTrue(settings.excludedApplications.isEmpty)
         XCTAssertTrue(settings.showInMenuBar)
         XCTAssertFalse(settings.launchAtLogin)
         XCTAssertEqual(settings.launchAtLoginHealthStatus, .disabled)
@@ -62,6 +64,13 @@ final class ScrollSettingsTests: XCTestCase {
         settings.zoomModifier = .option
         settings.swiftModifier = .shift
         settings.preciseModifier = .command
+        settings.bypassModifier = .shift
+        settings.addExcludedApplication(
+            ExcludedApplication(
+                bundleIdentifier: "com.example.RemoteDesktop",
+                name: "Remote Desktop"
+            )
+        )
         settings.showInMenuBar = false
         settings.launchAtLogin = true
         settings.selectedTab = .app
@@ -82,6 +91,16 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(reloaded.zoomModifier, .option)
         XCTAssertEqual(reloaded.swiftModifier, .shift)
         XCTAssertEqual(reloaded.preciseModifier, .command)
+        XCTAssertEqual(reloaded.bypassModifier, .shift)
+        XCTAssertEqual(
+            reloaded.excludedApplications,
+            [
+                ExcludedApplication(
+                    bundleIdentifier: "com.example.RemoteDesktop",
+                    name: "Remote Desktop"
+                )
+            ]
+        )
         XCTAssertFalse(reloaded.showInMenuBar)
         XCTAssertTrue(reloaded.launchAtLogin)
         XCTAssertEqual(reloaded.selectedTab, .app)
@@ -104,6 +123,13 @@ final class ScrollSettingsTests: XCTestCase {
         settings.zoomModifier = .none
         settings.swiftModifier = .none
         settings.preciseModifier = .none
+        settings.bypassModifier = .command
+        settings.addExcludedApplication(
+            ExcludedApplication(
+                bundleIdentifier: "com.example.Game",
+                name: "Example Game"
+            )
+        )
         settings.showInMenuBar = false
         settings.launchAtLogin = true
 
@@ -124,6 +150,8 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(settings.zoomModifier, .command)
         XCTAssertEqual(settings.swiftModifier, .control)
         XCTAssertEqual(settings.preciseModifier, .option)
+        XCTAssertEqual(settings.bypassModifier, .none)
+        XCTAssertTrue(settings.excludedApplications.isEmpty)
         XCTAssertFalse(settings.showInMenuBar)
         XCTAssertTrue(settings.launchAtLogin)
     }
@@ -314,6 +342,44 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.minimumStepEnabled)
         XCTAssertEqual(settings.minimumStepDistance, ScrollStep.defaultValue)
         XCTAssertEqual(settings.speed, .fast)
+    }
+
+    func testExcludedApplicationsAreDeduplicatedSortedAndRemovable() {
+        let settings = makeSettings()
+        let editor = ExcludedApplication(
+            bundleIdentifier: "com.example.Editor",
+            name: "Editor"
+        )
+        let game = ExcludedApplication(
+            bundleIdentifier: "com.example.Game",
+            name: "A Game"
+        )
+
+        settings.addExcludedApplication(editor)
+        settings.addExcludedApplication(game)
+        settings.addExcludedApplication(editor)
+
+        XCTAssertEqual(settings.excludedApplications, [game, editor])
+        XCTAssertEqual(
+            settings.excludedApplicationBundleIdentifiers,
+            ["com.example.Editor", "com.example.Game"]
+        )
+
+        settings.removeExcludedApplication(
+            bundleIdentifier: editor.bundleIdentifier
+        )
+
+        XCTAssertEqual(settings.excludedApplications, [game])
+        XCTAssertEqual(makeSettings().excludedApplications, [game])
+    }
+
+    func testInvalidExcludedApplicationDataFallsBackToEmptyList() {
+        defaults.set(
+            Data("not-json".utf8),
+            forKey: "scroll.excludedApplications"
+        )
+
+        XCTAssertTrue(makeSettings().excludedApplications.isEmpty)
     }
 
     private func makeSettings() -> ScrollSettings {

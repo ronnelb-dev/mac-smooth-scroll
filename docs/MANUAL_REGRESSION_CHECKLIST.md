@@ -106,67 +106,79 @@ Use the assignments shown in **Modifier Keys** and consult
 | D8 | Hold Zoom together with any active transform key. | The transform applies and Zoom is suppressed. | |
 | D9 | Press or release a modifier during an existing wheel burst. | The current animated tail keeps the modifiers captured at the burst start. | |
 | D10 | Assign **None** to an action. | That action no longer activates. | |
+| D11 | Assign **Bypass smooth scrolling**, begin a smooth tail, then hold the key and scroll. | The existing tail stops and subsequent physical wheel events pass through natively. | |
+| D12 | Assign Bypass to the same key as another action. | Bypass wins and no transform, zoom, or synthetic gesture event is produced. | |
 
 Record the foreground app used for D2 because modifier-scroll zoom support is
 application-specific.
 
-## E. Menu bar and background mode
+## E. Native scrolling exclusions
 
 | ID | Test | Expected result | Result |
 | --- | --- | --- | --- |
-| E1 | Close Settings with the red close button. | Settings and the Dock icon disappear; the menu-bar item and scrolling remain active. | |
-| E2 | Restore Settings, then press `Command-H`. | The app hides to the menu bar with no Dock icon. | |
-| E3 | Restore Settings, then select **Hide to Menu Bar**. | The same background state is entered. | |
-| E4 | Disable **Show in menu bar**, then hide the app. | The preference is enabled automatically before the Dock icon disappears. | |
-| E5 | Select **Open Settings…** from the menu-bar menu. | The Dock icon and existing Settings window return without duplication. | |
-| E6 | Select **Smooth Scrolling** in the menu. | The checkmark, header switch, engine status, and actual scrolling all reflect the new state. | |
-| E7 | Change **Feel** and **Speed** from their menu submenus. | Checkmarks and Settings controls update immediately. | |
-| E8 | Select **Quit Mac Smooth Scroll**. | The app, menu-bar item, event tap, and synthetic scrolling stop. | |
+| E1 | Add an application using **Add Application…**, then reopen Settings. | The application remains listed by name and bundle identifier without storing its filesystem path. | |
+| E2 | Use a discrete external wheel while the excluded application is foreground. | The current smooth tail stops and physical wheel events pass through unchanged. | |
+| E3 | Use the wheel in an application that is not excluded. | Smooth scrolling continues normally. | |
+| E4 | Remove an excluded application. | It disappears from the list and smooth scrolling resumes there. | |
+| E5 | Cancel the application picker or select an invalid bundle. | No exclusion is added; invalid selections produce a clear error. | |
 
-## F. Launch at Login
+## F. Menu bar and background mode
+
+| ID | Test | Expected result | Result |
+| --- | --- | --- | --- |
+| F1 | Close Settings with the red close button. | Settings and the Dock icon disappear; the menu-bar item and scrolling remain active. | |
+| F2 | Restore Settings, then press `Command-H`. | The app hides to the menu bar with no Dock icon. | |
+| F3 | Restore Settings, then select **Hide to Menu Bar**. | The same background state is entered. | |
+| F4 | Disable **Show in menu bar**, then hide the app. | The preference is enabled automatically before the Dock icon disappears. | |
+| F5 | Select **Open Settings…** from the menu-bar menu. | The Dock icon and existing Settings window return without duplication. | |
+| F6 | Select **Smooth Scrolling** in the menu. | The checkmark, header switch, engine status, and actual scrolling all reflect the new state. | |
+| F7 | Change **Feel** and **Speed** from their menu submenus. | Checkmarks and Settings controls update immediately. | |
+| F8 | Select **Quit Mac Smooth Scroll**. | The app, menu-bar item, event tap, and synthetic scrolling stop. | |
+
+## G. Launch at Login
 
 Run these cases with the app installed in `/Applications`.
 
 | ID | Test | Expected result | Result |
 | --- | --- | --- | --- |
-| F1 | Enable **Launch at login**. | System Health reports **Ready**, or shows **Approval required** with an Open Settings action. | |
-| F2 | If requested, approve the item under **General → Login Items**. | Status changes to **Ready** without changing the saved preference. | |
-| F3 | Log out and back in, or restart the Mac. | The helper launches the main app in background mode: scrolling and the menu-bar item are available with no Settings window or Dock icon. | |
-| F4 | Open Mac Smooth Scroll manually after the background launch. | The existing app becomes visible and shows one Settings window. | |
-| F5 | Replace the app with a newer build while Launch at Login remains enabled, then launch it once. | The registered helper refreshes to the installed build and remains usable. | |
-| F6 | Disable **Launch at login**, quit, then repeat a login. | Mac Smooth Scroll does not launch automatically and System Health reports **Off**. | |
-| F7 | If System Health reports **Registration missing**, select **Repair**. | The embedded helper is registered without changing the enabled preference. | |
+| G1 | Enable **Launch at login**. | System Health reports **Ready**, or shows **Approval required** with an Open Settings action. | |
+| G2 | If requested, approve the item under **General → Login Items**. | Status changes to **Ready** without changing the saved preference. | |
+| G3 | Log out and back in, or restart the Mac. | The helper launches the main app in background mode: scrolling and the menu-bar item are available with no Settings window or Dock icon. | |
+| G4 | Open Mac Smooth Scroll manually after the background launch. | The existing app becomes visible and shows one Settings window. | |
+| G5 | Replace the app with a newer build while Launch at Login remains enabled, then launch it once. | The registered helper refreshes to the installed build and remains usable. | |
+| G6 | Disable **Launch at login**, quit, then repeat a login. | Mac Smooth Scroll does not launch automatically and System Health reports **Off**. | |
+| G7 | If System Health reports **Registration missing**, select **Repair**. | The embedded helper is registered without changing the enabled preference. | |
 
-## G. Competing mouse utilities and engine recovery
+## H. Competing mouse utilities and engine recovery
 
 | ID | Test | Expected result | Result |
 | --- | --- | --- | --- |
-| G1 | Start Mac Mouse Fix while Mac Smooth Scroll is active. | Mac Smooth Scroll pauses, reports **Driver conflict**, and avoids duplicate transformation. | |
-| G2 | Select **Quit Mac Mouse Fix** from System Health. | A graceful quit is requested; Mac Smooth Scroll resumes when the conflict clears. | |
-| G3 | If graceful termination is declined or fails, quit Mac Mouse Fix manually. | The warning remains actionable until the process exits, then the engine resumes. | |
-| G4 | If the event tap is interrupted during testing, observe System Health. | **Recovering** returns to **Active** automatically, or changes to **Could not start** with **Retry**. | |
-| G5 | Test alongside any other installed mouse utility. | Record whether scrolling is clear, doubled, distorted, or blocked; no automatic detection is expected for utilities other than Mac Mouse Fix. | |
+| H1 | Start Mac Mouse Fix while Mac Smooth Scroll is active. | Mac Smooth Scroll pauses, reports **Driver conflict**, and avoids duplicate transformation. | |
+| H2 | Select **Quit Mac Mouse Fix** from System Health. | A graceful quit is requested; Mac Smooth Scroll resumes when the conflict clears. | |
+| H3 | If graceful termination is declined or fails, quit Mac Mouse Fix manually. | The warning remains actionable until the process exits, then the engine resumes. | |
+| H4 | If the event tap is interrupted during testing, observe System Health. | **Recovering** returns to **Active** automatically, or changes to **Could not start** with **Retry**. | |
+| H5 | Test alongside any other installed mouse utility. | Record whether scrolling is clear, doubled, distorted, or blocked; no automatic detection is expected for utilities other than Mac Mouse Fix. | |
 
 Mark unavailable third-party utilities **Not run**, not **Pass**.
 
-## H. Reset and uninstall preparation
+## I. Reset and uninstall preparation
 
 | ID | Test | Expected result | Result |
 | --- | --- | --- | --- |
-| H1 | Change scrolling presets, toggles, minimum step, and modifier assignments, then select **Reset Scrolling Settings…** and cancel. | No setting changes. | |
-| H2 | Confirm **Reset Scrolling Settings…**. | Scrolling and modifier values return to documented defaults. | |
-| H3 | Check **Show in menu bar**, **Launch at login**, setup completion, and the selected tab after reset. | App preferences remain unchanged. | |
-| H4 | Disable Minimum wheel step, change its saved value, then select its **Reset** action. | Minimum wheel step turns on and returns to `18.00 pt`; unrelated settings remain unchanged. | |
-| H5 | Prepare to uninstall by disabling **Launch at login**, then quit from the menu bar. | The helper is unregistered and no app process or menu-bar item remains. | |
-| H6 | Review the README uninstall steps without attaching private system data. | The instructions cover app removal, Accessibility cleanup, and optional preference deletion. | |
+| I1 | Change scrolling presets, toggles, minimum step, modifier assignments, and exclusions, then select **Reset Scrolling Settings…** and cancel. | No setting changes. | |
+| I2 | Confirm **Reset Scrolling Settings…**. | Scrolling, modifiers, bypass, and application exclusions return to documented defaults. | |
+| I3 | Check **Show in menu bar**, **Launch at login**, setup completion, and the selected tab after reset. | App preferences remain unchanged. | |
+| I4 | Disable Minimum wheel step, change its saved value, then select its **Reset** action. | Minimum wheel step turns on and returns to `18.00 pt`; unrelated settings remain unchanged. | |
+| I5 | Prepare to uninstall by disabling **Launch at login**, then quit from the menu bar. | The helper is unregistered and no app process or menu-bar item remains. | |
+| I6 | Review the README uninstall steps without attaching private system data. | The instructions cover app removal, Accessibility cleanup, and optional preference deletion. | |
 
-## I. Basic interface accessibility
+## J. Basic interface accessibility
 
 | ID | Test | Expected result | Result |
 | --- | --- | --- | --- |
-| I1 | Navigate tabs and controls with Full Keyboard Access. | Focus is visible and every control is reachable in a logical order. | |
-| I2 | Inspect the header, tabs, health rows, step control, modifier pickers, and menu-bar item with VoiceOver. | Controls have understandable labels, values, and actions; status meaning is available without color alone. | |
-| I3 | Check light and dark appearance at the minimum window size. | Text remains readable, controls do not overlap, and each tab scrolls when needed. | |
+| J1 | Navigate tabs and controls with Full Keyboard Access. | Focus is visible and every control is reachable in a logical order. | |
+| J2 | Inspect the header, tabs, health rows, step control, modifier pickers, exclusion controls, and menu-bar item with VoiceOver. | Controls have understandable labels, values, and actions; status meaning is available without color alone. | |
+| J3 | Check light and dark appearance at the minimum window size. | Text remains readable, controls do not overlap, and each tab scrolls when needed. | |
 
 ## Pull-request result template
 
@@ -193,11 +205,12 @@ the table; do not paste private system logs.
 | B. Accessibility | Pass / Fail / Blocked / Not run |
 | C. Scrolling and native input | Pass / Fail / Blocked / Not run |
 | D. Modifier keys | Pass / Fail / Blocked / Not run |
-| E. Menu bar and background | Pass / Fail / Blocked / Not run |
-| F. Launch at Login | Pass / Fail / Blocked / Not run |
-| G. Conflicts and recovery | Pass / Fail / Blocked / Not run |
-| H. Reset and uninstall preparation | Pass / Fail / Blocked / Not run |
-| I. Interface accessibility | Pass / Fail / Blocked / Not run |
+| E. Native scrolling exclusions | Pass / Fail / Blocked / Not run |
+| F. Menu bar and background | Pass / Fail / Blocked / Not run |
+| G. Launch at Login | Pass / Fail / Blocked / Not run |
+| H. Conflicts and recovery | Pass / Fail / Blocked / Not run |
+| I. Reset and uninstall preparation | Pass / Fail / Blocked / Not run |
+| J. Interface accessibility | Pass / Fail / Blocked / Not run |
 
 Failures or limitations:
 - `<case ID — observed result and minimal reproduction steps>`
