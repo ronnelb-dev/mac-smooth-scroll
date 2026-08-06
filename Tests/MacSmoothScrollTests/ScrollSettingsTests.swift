@@ -27,6 +27,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(settings.speed, .medium)
         XCTAssertTrue(settings.minimumStepEnabled)
         XCTAssertEqual(settings.minimumStepDistance, 18)
+        XCTAssertEqual(settings.minimumStepMultiplier, .standard)
         XCTAssertEqual(settings.feel, .balanced)
         XCTAssertTrue(settings.trackpadSimulation)
         XCTAssertFalse(settings.reverseDirection)
@@ -35,6 +36,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.axisLockEnabled)
         XCTAssertEqual(settings.horizontalModifier, .shift)
         XCTAssertEqual(settings.zoomModifier, .command)
+        XCTAssertEqual(settings.zoomBehavior, .pinch)
         XCTAssertEqual(settings.swiftModifier, .control)
         XCTAssertEqual(settings.preciseModifier, .option)
         XCTAssertEqual(settings.bypassModifier, .none)
@@ -54,6 +56,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.speed = .fast
         settings.minimumStepEnabled = false
         settings.minimumStepDistance = 33.6
+        settings.minimumStepMultiplier = .triple
         settings.feel = .responsive
         settings.trackpadSimulation = false
         settings.reverseDirection = true
@@ -62,6 +65,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.axisLockEnabled = false
         settings.horizontalModifier = .control
         settings.zoomModifier = .option
+        settings.zoomBehavior = .page
         settings.swiftModifier = .shift
         settings.preciseModifier = .command
         settings.bypassModifier = .shift
@@ -81,6 +85,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(reloaded.speed, .fast)
         XCTAssertFalse(reloaded.minimumStepEnabled)
         XCTAssertEqual(reloaded.minimumStepDistance, 33.6)
+        XCTAssertEqual(reloaded.minimumStepMultiplier, .triple)
         XCTAssertEqual(reloaded.feel, .responsive)
         XCTAssertFalse(reloaded.trackpadSimulation)
         XCTAssertTrue(reloaded.reverseDirection)
@@ -89,6 +94,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertFalse(reloaded.axisLockEnabled)
         XCTAssertEqual(reloaded.horizontalModifier, .control)
         XCTAssertEqual(reloaded.zoomModifier, .option)
+        XCTAssertEqual(reloaded.zoomBehavior, .page)
         XCTAssertEqual(reloaded.swiftModifier, .shift)
         XCTAssertEqual(reloaded.preciseModifier, .command)
         XCTAssertEqual(reloaded.bypassModifier, .shift)
@@ -113,6 +119,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.speed = .fast
         settings.minimumStepEnabled = false
         settings.minimumStepDistance = 75
+        settings.minimumStepMultiplier = .half
         settings.feel = .glide
         settings.trackpadSimulation = false
         settings.reverseDirection = true
@@ -121,6 +128,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.axisLockEnabled = false
         settings.horizontalModifier = .none
         settings.zoomModifier = .none
+        settings.zoomBehavior = .page
         settings.swiftModifier = .none
         settings.preciseModifier = .none
         settings.bypassModifier = .command
@@ -140,6 +148,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(settings.speed, .medium)
         XCTAssertTrue(settings.minimumStepEnabled)
         XCTAssertEqual(settings.minimumStepDistance, 18)
+        XCTAssertEqual(settings.minimumStepMultiplier, .standard)
         XCTAssertEqual(settings.feel, .balanced)
         XCTAssertTrue(settings.trackpadSimulation)
         XCTAssertFalse(settings.reverseDirection)
@@ -148,6 +157,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.axisLockEnabled)
         XCTAssertEqual(settings.horizontalModifier, .shift)
         XCTAssertEqual(settings.zoomModifier, .command)
+        XCTAssertEqual(settings.zoomBehavior, .pinch)
         XCTAssertEqual(settings.swiftModifier, .control)
         XCTAssertEqual(settings.preciseModifier, .option)
         XCTAssertEqual(settings.bypassModifier, .none)
@@ -218,6 +228,13 @@ final class ScrollSettingsTests: XCTestCase {
 
         XCTAssertTrue(settings.minimumStepEnabled)
         XCTAssertEqual(settings.minimumStepDistance, 42.5, accuracy: 0.0001)
+        XCTAssertEqual(settings.minimumStepMultiplier, .standard)
+    }
+
+    func testInvalidMinimumStepMultiplierFallsBackToStandard() {
+        defaults.set("unsupported", forKey: "scroll.minimumStepMultiplier")
+
+        XCTAssertEqual(makeSettings().minimumStepMultiplier, .standard)
     }
 
     func testLegacySettingsEnableAccelerationByDefault() {
@@ -232,15 +249,23 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(makeSettings().axisLockEnabled)
     }
 
+    func testInvalidZoomBehaviorFallsBackToPinchStyle() {
+        defaults.set("unsupported", forKey: "modifier.zoomBehavior")
+
+        XCTAssertEqual(makeSettings().zoomBehavior, .pinch)
+    }
+
     func testDisabledMinimumStepRetainsItsValueAcrossInstances() {
         let settings = makeSettings()
         settings.minimumStepDistance = 33.6
+        settings.minimumStepMultiplier = .triple
         settings.minimumStepEnabled = false
 
         let reloaded = makeSettings()
 
         XCTAssertFalse(reloaded.minimumStepEnabled)
         XCTAssertEqual(reloaded.minimumStepDistance, 33.6, accuracy: 0.0001)
+        XCTAssertEqual(reloaded.minimumStepMultiplier, .triple)
     }
 
     func testNonFiniteStepFallsBackToDefault() {
@@ -329,18 +354,47 @@ final class ScrollSettingsTests: XCTestCase {
             ScrollStep.minimum,
             accuracy: 0.0001
         )
+        XCTAssertEqual(
+            ScrollStep.effectiveMinimum(distance: 18, multiplier: .triple),
+            54,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            ScrollStep.formattedEffectiveMinimum(
+                distance: 100,
+                multiplier: .triple
+            ),
+            "300.00"
+        )
+    }
+
+    func testMinimumStepMultiplierPresetsHaveStableOrderAndValues() {
+        XCTAssertEqual(
+            MinimumStepMultiplier.allCases,
+            [.half, .standard, .oneAndHalf, .double, .triple]
+        )
+        XCTAssertEqual(
+            MinimumStepMultiplier.allCases.map(\.value),
+            [0.5, 1, 1.5, 2, 3]
+        )
+        XCTAssertEqual(
+            MinimumStepMultiplier.allCases.map(\.title),
+            ["0.5×", "1×", "1.5×", "2×", "3×"]
+        )
     }
 
     func testMinimumStepCanResetWithoutChangingOtherSettings() {
         let settings = makeSettings()
         settings.minimumStepEnabled = false
         settings.minimumStepDistance = 72
+        settings.minimumStepMultiplier = .triple
         settings.speed = .fast
 
         settings.resetMinimumStepDistance()
 
         XCTAssertTrue(settings.minimumStepEnabled)
         XCTAssertEqual(settings.minimumStepDistance, ScrollStep.defaultValue)
+        XCTAssertEqual(settings.minimumStepMultiplier, .standard)
         XCTAssertEqual(settings.speed, .fast)
     }
 

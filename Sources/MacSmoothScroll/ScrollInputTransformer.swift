@@ -15,6 +15,7 @@ struct ScrollTransformConfiguration {
     let speed: ScrollSpeed
     let minimumStepEnabled: Bool
     let minimumStepDistance: Double
+    let minimumStepMultiplier: MinimumStepMultiplier
     let feel: ScrollFeel
     let reverseDirection: Bool
     let adaptivePrecision: Bool
@@ -22,6 +23,7 @@ struct ScrollTransformConfiguration {
     let axisLockEnabled: Bool
     let horizontalModifier: ModifierKey
     let zoomModifier: ModifierKey
+    let zoomBehavior: ZoomBehavior
     let swiftModifier: ModifierKey
     let preciseModifier: ModifierKey
 }
@@ -33,8 +35,9 @@ struct ScrollImpulse: Equatable {
 
 struct ScrollTransformResult: Equatable {
     let impulse: ScrollImpulse
-    let outputFlags: CGEventFlags
+    let output: ScrollTransformOutput
     let beginsNewBurst: Bool
+    let velocityLimitMultiplier: Double
 }
 
 struct ScrollInputTransformer {
@@ -43,7 +46,18 @@ struct ScrollInputTransformer {
         case vertical
     }
 
+    private enum TravelDirection: Equatable {
+        case horizontalNegative
+        case horizontalPositive
+        case verticalNegative
+        case verticalPositive
+    }
+
     private static let burstIdleInterval = 0.22
+    private static let longDistanceMaximumInterval = 0.16
+    private static let longDistanceRampStart = 0.4
+    private static let longDistanceRampEnd = 1.0
+    private static let longDistanceMaximumMultiplier = 3.0
     private static let forwardedModifierFlags: CGEventFlags = [
         .maskShift,
         .maskControl,
@@ -57,6 +71,8 @@ struct ScrollInputTransformer {
     private var pendingAxisSwitchCount = 0
     private var burstFlags: CGEventFlags = []
     private var rapidInputLevel = 0.0
+    private var sustainedRapidDuration = 0.0
+    private var lastAccelerationDirection: TravelDirection?
     private let modifierResolver = ScrollModifierResolver()
 
     mutating func reset() {
@@ -64,7 +80,7 @@ struct ScrollInputTransformer {
         lockedAxis = nil
         resetPendingAxisSwitch()
         burstFlags = []
-        rapidInputLevel = 0
+        resetAccelerationState()
     }
 
     mutating func transform(
@@ -77,7 +93,7 @@ struct ScrollInputTransformer {
         if beginsNewBurst {
             lockedAxis = nil
             resetPendingAxisSwitch()
-            rapidInputLevel = 0
+            resetAccelerationState()
             burstFlags = sample.flags.intersection(Self.forwardedModifierFlags)
         }
         lastPhysicalEventTime = sample.timestamp
@@ -92,9 +108,36 @@ struct ScrollInputTransformer {
             configuration: configuration
         )
 
+        if modifierResolution.zoomActive,
+           configuration.zoomBehavior == .page {
+            resetAccelerationState()
+            let dominantDelta = abs(y) >= abs(x) ? y : x
+            let directedDelta = configuration.reverseDirection
+                ? -dominantDelta
+                : dominantDelta
+            let direction: PageZoomDirection?
+            if directedDelta > 0 {
+                direction = .zoomIn
+            } else if directedDelta < 0 {
+                direction = .zoomOut
+            } else {
+                direction = nil
+            }
+            return ScrollTransformResult(
+                impulse: ScrollImpulse(x: 0, y: 0),
+                output: .pageZoom(direction: direction),
+                beginsNewBurst: beginsNewBurst,
+                velocityLimitMultiplier: 1
+            )
+        }
+
         if modifierResolution.convertsToHorizontal {
             x = y
             y = 0
+        }
+        let accelerationDirection = dominantTravelDirection(x: x, y: y)
+
+        if modifierResolution.convertsToHorizontal {
             lockedAxis = .horizontal
             resetPendingAxisSwitch()
         } else if configuration.axisLockEnabled {
@@ -113,15 +156,20 @@ struct ScrollInputTransformer {
             baseMultiplier *= adaptivePrecisionMultiplier(interval: interval)
         }
 
+        let longDistanceMultiplier: Double
         if modifierResolution.speedAction.allowsRapidInputAcceleration,
            configuration.accelerationEnabled {
-            baseMultiplier *= rapidInputMultiplier(
+            let acceleration = accelerationMultipliers(
                 interval: interval,
                 inputDistance: max(abs(x), abs(y)),
-                maximumBoost: configuration.feel.rapidInputBoost
+                direction: accelerationDirection,
+                maximumRapidInputBoost: configuration.feel.rapidInputBoost
             )
-        } else if !configuration.accelerationEnabled {
-            rapidInputLevel = 0
+            baseMultiplier *= acceleration.rapidInput
+            longDistanceMultiplier = acceleration.longDistance
+        } else {
+            resetAccelerationState()
+            longDistanceMultiplier = 1
         }
 
         x *= baseMultiplier
@@ -130,18 +178,25 @@ struct ScrollInputTransformer {
             applyMinimumStep(
                 x: &x,
                 y: &y,
-                minimum: configuration.minimumStepDistance
+                minimum: ScrollStep.effectiveMinimum(
+                    distance: configuration.minimumStepDistance,
+                    multiplier: configuration.minimumStepMultiplier
+                )
             )
         }
 
         let impulseScale =
             modifierResolution.speedAction.multiplier *
+            longDistanceMultiplier *
             (1 - configuration.smoothness.decay)
 
         return ScrollTransformResult(
             impulse: ScrollImpulse(x: x * impulseScale, y: y * impulseScale),
-            outputFlags: modifierResolution.forwardedFlags,
-            beginsNewBurst: beginsNewBurst
+            output: modifierResolution.zoomActive
+                ? .pinchZoom
+                : .scroll(flags: []),
+            beginsNewBurst: beginsNewBurst,
+            velocityLimitMultiplier: longDistanceMultiplier
         )
     }
 
@@ -272,6 +327,75 @@ struct ScrollInputTransformer {
         rapidInputLevel = min(max(rapidInputLevel, 0), 1)
         return 1 + (rapidInputLevel * maximumBoost)
     }
+
+    private mutating func accelerationMultipliers(
+        interval: TimeInterval?,
+        inputDistance: Double,
+        direction: TravelDirection?,
+        maximumRapidInputBoost: Double
+    ) -> (rapidInput: Double, longDistance: Double) {
+        guard inputDistance > 0, let direction else {
+            resetAccelerationState()
+            return (1, 1)
+        }
+
+        guard let interval,
+              interval >= 0,
+              interval <= Self.longDistanceMaximumInterval else {
+            resetAccelerationState()
+            lastAccelerationDirection = direction
+            return (1, 1)
+        }
+
+        if lastAccelerationDirection == direction {
+            sustainedRapidDuration += interval
+        } else {
+            rapidInputLevel = 0
+            sustainedRapidDuration = 0
+            lastAccelerationDirection = direction
+        }
+
+        let rapidInput = rapidInputMultiplier(
+            interval: interval,
+            inputDistance: inputDistance,
+            maximumBoost: maximumRapidInputBoost
+        )
+        let rampRange =
+            Self.longDistanceRampEnd - Self.longDistanceRampStart
+        let linearProgress = (
+            (sustainedRapidDuration - Self.longDistanceRampStart) / rampRange
+        ).clamped(to: 0...1)
+        let smoothProgress =
+            linearProgress * linearProgress * (3 - (2 * linearProgress))
+        let longDistance = 1 + (
+            (Self.longDistanceMaximumMultiplier - 1) * smoothProgress
+        )
+        return (rapidInput, longDistance)
+    }
+
+    private func dominantTravelDirection(
+        x: Double,
+        y: Double
+    ) -> TravelDirection? {
+        if abs(x) > abs(y) {
+            guard x != 0 else { return nil }
+            return x < 0 ? .horizontalNegative : .horizontalPositive
+        }
+        guard y != 0 else { return nil }
+        return y < 0 ? .verticalNegative : .verticalPositive
+    }
+
+    private mutating func resetAccelerationState() {
+        rapidInputLevel = 0
+        sustainedRapidDuration = 0
+        lastAccelerationDirection = nil
+    }
+}
+
+private extension Double {
+    func clamped(to range: ClosedRange<Double>) -> Double {
+        min(max(self, range.lowerBound), range.upperBound)
+    }
 }
 
 extension ScrollSettings {
@@ -281,6 +405,7 @@ extension ScrollSettings {
             speed: speed,
             minimumStepEnabled: minimumStepEnabled,
             minimumStepDistance: minimumStepDistance,
+            minimumStepMultiplier: minimumStepMultiplier,
             feel: feel,
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,
@@ -288,6 +413,7 @@ extension ScrollSettings {
             axisLockEnabled: axisLockEnabled,
             horizontalModifier: horizontalModifier,
             zoomModifier: zoomModifier,
+            zoomBehavior: zoomBehavior,
             swiftModifier: swiftModifier,
             preciseModifier: preciseModifier
         )

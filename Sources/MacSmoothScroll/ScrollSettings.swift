@@ -57,6 +57,53 @@ enum ScrollStep {
     static func formatted(_ value: Double) -> String {
         String(format: "%.2f", sanitized(value))
     }
+
+    static func effectiveMinimum(
+        distance: Double,
+        multiplier: MinimumStepMultiplier
+    ) -> Double {
+        sanitized(distance) * multiplier.value
+    }
+
+    static func formattedEffectiveMinimum(
+        distance: Double,
+        multiplier: MinimumStepMultiplier
+    ) -> String {
+        String(
+            format: "%.2f",
+            effectiveMinimum(distance: distance, multiplier: multiplier)
+        )
+    }
+}
+
+enum MinimumStepMultiplier: String, CaseIterable, Identifiable {
+    case half = "half"
+    case standard = "standard"
+    case oneAndHalf = "oneAndHalf"
+    case double = "double"
+    case triple = "triple"
+
+    var id: String { rawValue }
+
+    var value: Double {
+        switch self {
+        case .half: 0.5
+        case .standard: 1
+        case .oneAndHalf: 1.5
+        case .double: 2
+        case .triple: 3
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .half: "0.5×"
+        case .standard: "1×"
+        case .oneAndHalf: "1.5×"
+        case .double: "2×"
+        case .triple: "3×"
+        }
+    }
 }
 
 enum ScrollFeel: String, CaseIterable, Identifiable {
@@ -144,6 +191,7 @@ final class ScrollSettings: ObservableObject {
         static let speed = "scroll.speed"
         static let minimumStepEnabled = "scroll.minimumStepEnabled"
         static let minimumStepDistance = "scroll.step"
+        static let minimumStepMultiplier = "scroll.minimumStepMultiplier"
         static let feel = "scroll.feel"
         static let trackpadSimulation = "scroll.trackpadSimulation"
         static let reverseDirection = "scroll.reverseDirection"
@@ -152,6 +200,7 @@ final class ScrollSettings: ObservableObject {
         static let axisLockEnabled = "scroll.axisLockEnabled"
         static let horizontalModifier = "modifier.horizontal"
         static let zoomModifier = "modifier.zoom"
+        static let zoomBehavior = "modifier.zoomBehavior"
         static let swiftModifier = "modifier.swift"
         static let preciseModifier = "modifier.precise"
         static let bypassModifier = "modifier.bypass"
@@ -193,6 +242,11 @@ final class ScrollSettings: ObservableObject {
             persist(Key.minimumStepDistance, minimumStepDistance)
         }
     }
+    @Published var minimumStepMultiplier: MinimumStepMultiplier {
+        didSet {
+            persist(Key.minimumStepMultiplier, minimumStepMultiplier.rawValue)
+        }
+    }
     @Published var feel: ScrollFeel {
         didSet { persist(Key.feel, feel.rawValue) }
     }
@@ -216,6 +270,9 @@ final class ScrollSettings: ObservableObject {
     }
     @Published var zoomModifier: ModifierKey {
         didSet { persist(Key.zoomModifier, zoomModifier.rawValue) }
+    }
+    @Published var zoomBehavior: ZoomBehavior {
+        didSet { persist(Key.zoomBehavior, zoomBehavior.rawValue) }
     }
     @Published var swiftModifier: ModifierKey {
         didSet { persist(Key.swiftModifier, swiftModifier.rawValue) }
@@ -283,6 +340,10 @@ final class ScrollSettings: ObservableObject {
             defaults.object(forKey: Key.minimumStepEnabled) as? Bool ?? true
         let storedStep = (defaults.object(forKey: Key.minimumStepDistance) as? NSNumber)?.doubleValue
         minimumStepDistance = ScrollStep.sanitized(storedStep ?? ScrollStep.defaultValue)
+        minimumStepMultiplier =
+            MinimumStepMultiplier(
+                rawValue: defaults.string(forKey: Key.minimumStepMultiplier) ?? ""
+            ) ?? .standard
         feel = ScrollFeel(rawValue: defaults.string(forKey: Key.feel) ?? "") ?? .balanced
         trackpadSimulation = defaults.object(forKey: Key.trackpadSimulation) as? Bool ?? true
         reverseDirection = defaults.object(forKey: Key.reverseDirection) as? Bool ?? false
@@ -293,6 +354,9 @@ final class ScrollSettings: ObservableObject {
             defaults.object(forKey: Key.axisLockEnabled) as? Bool ?? true
         horizontalModifier = ModifierKey(rawValue: defaults.string(forKey: Key.horizontalModifier) ?? "") ?? .shift
         zoomModifier = ModifierKey(rawValue: defaults.string(forKey: Key.zoomModifier) ?? "") ?? .command
+        zoomBehavior =
+            ZoomBehavior(rawValue: defaults.string(forKey: Key.zoomBehavior) ?? "")
+            ?? .pinch
         swiftModifier = ModifierKey(rawValue: defaults.string(forKey: Key.swiftModifier) ?? "") ?? .control
         preciseModifier = ModifierKey(rawValue: defaults.string(forKey: Key.preciseModifier) ?? "") ?? .option
         bypassModifier =
@@ -444,6 +508,7 @@ final class ScrollSettings: ObservableObject {
         speed = .medium
         minimumStepEnabled = true
         minimumStepDistance = ScrollStep.defaultValue
+        minimumStepMultiplier = .standard
         feel = .balanced
         trackpadSimulation = true
         reverseDirection = false
@@ -452,6 +517,7 @@ final class ScrollSettings: ObservableObject {
         axisLockEnabled = true
         horizontalModifier = .shift
         zoomModifier = .command
+        zoomBehavior = .pinch
         swiftModifier = .control
         preciseModifier = .option
         bypassModifier = .none
@@ -461,6 +527,7 @@ final class ScrollSettings: ObservableObject {
     func resetMinimumStepDistance() {
         minimumStepEnabled = true
         minimumStepDistance = ScrollStep.defaultValue
+        minimumStepMultiplier = .standard
     }
 
     func addExcludedApplication(at url: URL) throws {

@@ -18,6 +18,10 @@ final class SmoothScrollEngine {
     private let eventFilter = ScrollEventFilter()
     private let bypassPolicy = ScrollBypassPolicy()
     private var gestureLifecycle = ScrollGestureLifecycle()
+    private var magnificationLifecycle = MagnificationLifecycle()
+    private var pageZoomController = PageZoomController()
+    private let chromiumClassifier = ChromiumBundleClassifier()
+    private var activeOutput: ScrollTransformOutput?
 
     init(settings: ScrollSettings) {
         self.settings = settings
@@ -117,7 +121,8 @@ final class SmoothScrollEngine {
         displayLink.stop()
         motion.reset()
         inputTransformer.reset()
-        finishGestureIfNeeded()
+        pageZoomController.reset()
+        finishActiveOutputIfNeeded()
     }
 
     private func tearDownEventTap() {
@@ -220,6 +225,7 @@ final class SmoothScrollEngine {
         let pointY = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1))
         let pointX = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2))
 
+        let timestamp = ProcessInfo.processInfo.systemUptime
         let result = inputTransformer.transform(
             ScrollInputSample(
                 lineX: lineX,
@@ -227,18 +233,39 @@ final class SmoothScrollEngine {
                 pointX: pointX,
                 pointY: pointY,
                 flags: event.flags,
-                timestamp: ProcessInfo.processInfo.systemUptime
+                timestamp: timestamp
             ),
             using: settings.scrollTransformConfiguration
         )
 
         if result.beginsNewBurst {
-            finishGestureIfNeeded()
-            gestureLifecycle.prepareForBurst(flags: result.outputFlags)
+            finishActiveOutputIfNeeded()
+            prepareActiveOutput(result.output)
         }
-        if motion.add(result.impulse, feel: settings.feel) {
-            finishGestureIfNeeded()
-            gestureLifecycle.prepareForBurst(flags: result.outputFlags)
+
+        if case let .pageZoom(direction) = result.output {
+            displayLink.stop()
+            motion.reset()
+            finishActiveOutputIfNeeded()
+            if let command = pageZoomController.command(
+                for: direction,
+                at: timestamp
+            ) {
+                postPageZoom(command)
+            }
+            return
+        }
+
+        if activeOutput == nil {
+            prepareActiveOutput(result.output)
+        }
+        if motion.add(
+            result.impulse,
+            feel: settings.feel,
+            maximumVelocityMultiplier: result.velocityLimitMultiplier
+        ) {
+            finishActiveOutputIfNeeded()
+            prepareActiveOutput(result.output)
         }
         displayLink.start()
     }
@@ -249,12 +276,19 @@ final class SmoothScrollEngine {
             decay: settings.smoothness.decay
         )
         if output.x != 0 || output.y != 0 {
-            postScroll(x: output.x, y: output.y)
+            switch activeOutput {
+            case .pinchZoom:
+                postMagnification(x: output.x, y: output.y)
+            case .scroll:
+                postScroll(x: output.x, y: output.y)
+            case .pageZoom, nil:
+                break
+            }
         }
 
         if output.finished {
             displayLink.stop()
-            finishGestureIfNeeded()
+            finishActiveOutputIfNeeded()
         }
     }
 
@@ -289,8 +323,38 @@ final class SmoothScrollEngine {
         event.post(tap: .cgSessionEventTap)
     }
 
-    private func finishGestureIfNeeded() {
-        guard let emission = gestureLifecycle.finish() else { return }
+    private func prepareActiveOutput(_ output: ScrollTransformOutput) {
+        switch output {
+        case let .scroll(flags):
+            gestureLifecycle.prepareForBurst(flags: flags)
+            activeOutput = output
+        case .pinchZoom:
+            magnificationLifecycle.prepareForBurst(
+                isChromium: chromiumClassifier.matches(
+                    NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+                )
+            )
+            activeOutput = output
+        case .pageZoom:
+            activeOutput = nil
+        }
+    }
+
+    private func finishActiveOutputIfNeeded() {
+        defer { activeOutput = nil }
+        switch activeOutput {
+        case .scroll:
+            guard let emission = gestureLifecycle.finish() else { return }
+            postScrollEnd(emission)
+        case .pinchZoom:
+            guard let descriptor = magnificationLifecycle.finish() else { return }
+            postMagnification(descriptor)
+        case .pageZoom, nil:
+            break
+        }
+    }
+
+    private func postScrollEnd(_ emission: ScrollGestureEmission) {
         guard let event = CGEvent(
             scrollWheelEvent2Source: nil,
             units: .pixel,
@@ -311,6 +375,47 @@ final class SmoothScrollEngine {
         )
         event.flags = emission.flags
         event.post(tap: .cgSessionEventTap)
+    }
+
+    private func postMagnification(x: Int32, y: Int32) {
+        for descriptor in magnificationLifecycle.events(x: x, y: y) {
+            postMagnification(descriptor)
+        }
+    }
+
+    private func postMagnification(_ descriptor: MagnificationEventDescriptor) {
+        guard let event = CGEvent(source: nil) else { return }
+        event.type = CGEventType(rawValue: 29)!
+        event.setIntegerValueField(
+            CGEventField(rawValue: 110)!,
+            value: 8
+        )
+        event.setIntegerValueField(
+            CGEventField(rawValue: 132)!,
+            value: descriptor.phase.rawValue
+        )
+        event.setDoubleValueField(
+            CGEventField(rawValue: 113)!,
+            value: descriptor.magnification
+        )
+        event.post(tap: .cghidEventTap)
+    }
+
+    private func postPageZoom(_ descriptor: PageZoomCommandDescriptor) {
+        guard let keyDown = CGEvent(
+            keyboardEventSource: nil,
+            virtualKey: descriptor.keyCode,
+            keyDown: true
+        ), let keyUp = CGEvent(
+            keyboardEventSource: nil,
+            virtualKey: descriptor.keyCode,
+            keyDown: false
+        ) else { return }
+
+        keyDown.flags = descriptor.flags
+        keyUp.flags = descriptor.flags
+        keyDown.post(tap: .cghidEventTap)
+        keyUp.post(tap: .cghidEventTap)
     }
 
     private func cgPhase(for phase: ScrollGesturePhase) -> CGScrollPhase {

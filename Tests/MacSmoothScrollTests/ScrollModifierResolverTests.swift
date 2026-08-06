@@ -5,7 +5,7 @@ import XCTest
 final class ScrollModifierResolverTests: XCTestCase {
     private let resolver = ScrollModifierResolver()
 
-    func testZoomAloneIsForwardedToTheTargetApplication() {
+    func testZoomAloneSelectsZoomOutput() {
         let result = resolve(
             flags: .maskCommand,
             configuration: configuration()
@@ -13,7 +13,7 @@ final class ScrollModifierResolverTests: XCTestCase {
 
         XCTAssertEqual(result.speedAction, .standard)
         XCTAssertFalse(result.convertsToHorizontal)
-        XCTAssertEqual(result.forwardedFlags, .maskCommand)
+        XCTAssertTrue(result.zoomActive)
     }
 
     func testPrecisionWinsWhenPrecisionAndFasterUseTheSameKey() {
@@ -73,7 +73,7 @@ final class ScrollModifierResolverTests: XCTestCase {
         )
 
         XCTAssertTrue(result.convertsToHorizontal)
-        XCTAssertEqual(result.forwardedFlags, [])
+        XCTAssertFalse(result.zoomActive)
     }
 
     func testHorizontalAssignmentDoesNotSuppressZoomWhenConversionDoesNotApply() {
@@ -88,7 +88,7 @@ final class ScrollModifierResolverTests: XCTestCase {
         )
 
         XCTAssertFalse(result.convertsToHorizontal)
-        XCTAssertEqual(result.forwardedFlags, .maskCommand)
+        XCTAssertTrue(result.zoomActive)
     }
 
     func testPrecisionSuppressesZoomEvenWhenSeparateKeysAreHeld() {
@@ -98,7 +98,7 @@ final class ScrollModifierResolverTests: XCTestCase {
         )
 
         XCTAssertEqual(result.speedAction, .precise)
-        XCTAssertEqual(result.forwardedFlags, [])
+        XCTAssertFalse(result.zoomActive)
     }
 
     func testFasterSuppressesZoomEvenWhenSeparateKeysAreHeld() {
@@ -108,7 +108,7 @@ final class ScrollModifierResolverTests: XCTestCase {
         )
 
         XCTAssertEqual(result.speedAction, .faster)
-        XCTAssertEqual(result.forwardedFlags, [])
+        XCTAssertFalse(result.zoomActive)
     }
 
     func testNoneAssignmentsNeverActivate() {
@@ -124,7 +124,7 @@ final class ScrollModifierResolverTests: XCTestCase {
 
         XCTAssertFalse(result.convertsToHorizontal)
         XCTAssertEqual(result.speedAction, .standard)
-        XCTAssertEqual(result.forwardedFlags, [])
+        XCTAssertFalse(result.zoomActive)
     }
 
     private func resolve(
@@ -152,6 +152,7 @@ final class ScrollModifierResolverTests: XCTestCase {
             speed: .medium,
             minimumStepEnabled: true,
             minimumStepDistance: ScrollStep.defaultValue,
+            minimumStepMultiplier: .standard,
             feel: .balanced,
             reverseDirection: false,
             adaptivePrecision: false,
@@ -159,6 +160,7 @@ final class ScrollModifierResolverTests: XCTestCase {
             axisLockEnabled: true,
             horizontalModifier: horizontalModifier,
             zoomModifier: zoomModifier,
+            zoomBehavior: .pinch,
             swiftModifier: swiftModifier,
             preciseModifier: preciseModifier
         )

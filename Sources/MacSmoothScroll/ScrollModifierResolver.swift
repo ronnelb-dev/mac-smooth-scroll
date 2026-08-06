@@ -25,7 +25,7 @@ enum ScrollSpeedModifierAction: Equatable {
 struct ScrollModifierResolution: Equatable {
     let convertsToHorizontal: Bool
     let speedAction: ScrollSpeedModifierAction
-    let forwardedFlags: CGEventFlags
+    let zoomActive: Bool
 }
 
 struct ScrollModifierResolver {
@@ -57,7 +57,7 @@ struct ScrollModifierResolver {
         return ScrollModifierResolution(
             convertsToHorizontal: convertsToHorizontal,
             speedAction: speedAction,
-            forwardedFlags: forwardsZoom ? configuration.zoomModifier.flag : []
+            zoomActive: forwardsZoom
         )
     }
 }
