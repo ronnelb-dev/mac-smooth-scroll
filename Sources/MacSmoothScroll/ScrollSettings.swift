@@ -152,6 +152,7 @@ final class ScrollSettings: ObservableObject {
         static let axisLockEnabled = "scroll.axisLockEnabled"
         static let horizontalModifier = "modifier.horizontal"
         static let zoomModifier = "modifier.zoom"
+        static let zoomBehavior = "modifier.zoomBehavior"
         static let swiftModifier = "modifier.swift"
         static let preciseModifier = "modifier.precise"
         static let bypassModifier = "modifier.bypass"
@@ -216,6 +217,9 @@ final class ScrollSettings: ObservableObject {
     }
     @Published var zoomModifier: ModifierKey {
         didSet { persist(Key.zoomModifier, zoomModifier.rawValue) }
+    }
+    @Published var zoomBehavior: ZoomBehavior {
+        didSet { persist(Key.zoomBehavior, zoomBehavior.rawValue) }
     }
     @Published var swiftModifier: ModifierKey {
         didSet { persist(Key.swiftModifier, swiftModifier.rawValue) }
@@ -293,6 +297,9 @@ final class ScrollSettings: ObservableObject {
             defaults.object(forKey: Key.axisLockEnabled) as? Bool ?? true
         horizontalModifier = ModifierKey(rawValue: defaults.string(forKey: Key.horizontalModifier) ?? "") ?? .shift
         zoomModifier = ModifierKey(rawValue: defaults.string(forKey: Key.zoomModifier) ?? "") ?? .command
+        zoomBehavior =
+            ZoomBehavior(rawValue: defaults.string(forKey: Key.zoomBehavior) ?? "")
+            ?? .pinch
         swiftModifier = ModifierKey(rawValue: defaults.string(forKey: Key.swiftModifier) ?? "") ?? .control
         preciseModifier = ModifierKey(rawValue: defaults.string(forKey: Key.preciseModifier) ?? "") ?? .option
         bypassModifier =
@@ -452,6 +459,7 @@ final class ScrollSettings: ObservableObject {
         axisLockEnabled = true
         horizontalModifier = .shift
         zoomModifier = .command
+        zoomBehavior = .pinch
         swiftModifier = .control
         preciseModifier = .option
         bypassModifier = .none

@@ -83,7 +83,7 @@ Use a long document or webpage with enough content to make changes obvious.
 | C6 | Set **Minimum wheel step** near its minimum, default, and maximum, then turn it off and on again; test diagonal input when available. | Enabled input respects the configured minimum without changing diagonal direction; when disabled, its controls remain visible but unavailable and input does not enforce it; the saved value returns unchanged when re-enabled. | |
 | C7 | Enable **Reverse scrolling** and test the external mouse, then the native input. | External-wheel direction reverses; trackpad or Magic Mouse direction does not change. | |
 | C8 | Enable **Adaptive precision**, pause, then move one notch and follow with rapid notches. | The first movement is precise and subsequent rapid movement ramps smoothly. | |
-| C9 | Compare rapid wheel movement with **Scroll acceleration** off and on using each available external mouse. | Off preserves normal transformed distance; On adds a consistent speed boost without a sudden jump on mice that emit many small events. | |
+| C9 | Compare short and sustained rapid wheel movement with **Scroll acceleration** off and on using each available external mouse and a long page. Pause, reverse, change axes, and hold Precision after reaching maximum speed. | Off preserves normal transformed distance. On keeps short movements familiar, begins a smooth long-distance ramp after 0.4 seconds, reaches maximum boost near 1.0 second, and resets immediately for every listed interruption without a speed jump. | |
 | C10 | With **Automatic axis lock** enabled, introduce one perpendicular wheel event, then two consecutive strongly perpendicular events; repeat with it disabled. | One event is suppressed without a wrong-direction nudge; two deliberate events switch the axis; disabled input preserves both axes. | |
 | C11 | Reverse wheel direction while momentum remains. | Existing momentum brakes immediately rather than sliding far in the old direction. | |
 | C12 | Enable **Trackpad-like gestures** and test a compatible horizontal-navigation view. | Gesture phases begin, change, and end cleanly; navigation does not remain stuck. | |
@@ -97,20 +97,21 @@ Use the assignments shown in **Modifier Keys** and consult
 | ID | Test | Expected result | Result |
 | --- | --- | --- | --- |
 | D1 | Hold **Horizontal scrolling** and move a vertical-dominant wheel. | Vertical input becomes horizontal scrolling. | |
-| D2 | Hold **Zoom** in an app that supports modifier-scroll zoom. | The selected modifier is forwarded and the app zooms; Mac Smooth Scroll does not implement its own zoom command. | |
-| D3 | Hold **Faster scrolling**. | Movement is temporarily faster. | |
-| D4 | Hold **Precision scrolling**. | Movement is temporarily smaller and more precise. | |
-| D5 | Assign the same key to Precision and Faster. | Precision wins. | |
-| D6 | Assign the same key to Horizontal and Precision. | Horizontal conversion and precision speed both apply. | |
-| D7 | Assign the same key to Horizontal and Faster. | Horizontal conversion and faster speed both apply. | |
-| D8 | Hold Zoom together with any active transform key. | The transform applies and Zoom is suppressed. | |
-| D9 | Press or release a modifier during an existing wheel burst. | The current animated tail keeps the modifiers captured at the burst start. | |
-| D10 | Assign **None** to an action. | That action no longer activates. | |
-| D11 | Assign **Bypass smooth scrolling**, begin a smooth tail, then hold the key and scroll. | The existing tail stops and subsequent physical wheel events pass through natively. | |
-| D12 | Assign Bypass to the same key as another action. | Bypass wins and no transform, zoom, or synthetic gesture event is produced. | |
+| D2 | Select **Pinch-style**, hold **Zoom**, and scroll over a normal Chrome page, Chrome PDF, and Safari page. Repeat with Trackpad-like gestures off. | Content zooms smoothly around the pointer; Chrome responds on the first movement; a complete magnification gesture ends after motion stops regardless of Trackpad-like gestures. | |
+| D3 | Select **Page zoom**, hold **Zoom**, and scroll in Chrome. Test individual notches and a free-spinning wheel when available. | Each accepted notch changes the frontmost tab by one Command-plus/minus level, repeats no faster than ten times per second, and produces no extra zoom after the wheel stops. | |
+| D4 | Hold **Faster scrolling**. | Movement is temporarily faster. | |
+| D5 | Hold **Precision scrolling**. | Movement is temporarily smaller and more precise. | |
+| D6 | Assign the same key to Precision and Faster. | Precision wins. | |
+| D7 | Assign the same key to Horizontal and Precision. | Horizontal conversion and precision speed both apply. | |
+| D8 | Assign the same key to Horizontal and Faster. | Horizontal conversion and faster speed both apply. | |
+| D9 | Hold Zoom together with any active transform key. | The transform applies and Zoom is suppressed. | |
+| D10 | Press or release a modifier during an existing wheel burst. | The current animated tail keeps the modifiers captured at the burst start. | |
+| D11 | Assign **None** to an action. | That action no longer activates. | |
+| D12 | Assign **Bypass smooth scrolling**, begin a smooth tail, then hold the key and scroll. | The existing tail stops and subsequent physical wheel events pass through natively. | |
+| D13 | Assign Bypass to the same key as another action. | Bypass wins and no transform, zoom, or synthetic gesture event is produced. | |
 
-Record the foreground app used for D2 because modifier-scroll zoom support is
-application-specific.
+Record the app and version used for D2–D3 because magnification and shortcut
+support remain application-specific.
 
 ## E. Native scrolling exclusions
 

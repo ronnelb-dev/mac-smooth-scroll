@@ -139,8 +139,8 @@ final class ScrollInputTransformerTests: XCTestCase {
             using: config
         )
 
-        XCTAssertEqual(first.outputFlags, .maskCommand)
-        XCTAssertEqual(continued.outputFlags, .maskCommand)
+        XCTAssertEqual(first.output, .pinchZoom)
+        XCTAssertEqual(continued.output, .pinchZoom)
         XCTAssertFalse(continued.beginsNewBurst)
     }
 
@@ -157,8 +157,51 @@ final class ScrollInputTransformerTests: XCTestCase {
             using: config
         )
 
-        XCTAssertEqual(unassigned.outputFlags, [])
-        XCTAssertEqual(zoom.outputFlags, .maskCommand)
+        XCTAssertEqual(unassigned.output, .scroll(flags: []))
+        XCTAssertEqual(zoom.output, .pinchZoom)
+    }
+
+    func testPageZoomProducesDirectActionWithoutScrollImpulse() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointY: 18, flags: .maskCommand),
+            using: configuration(zoomBehavior: .page)
+        )
+
+        XCTAssertEqual(result.output, .pageZoom(direction: .zoomIn))
+        XCTAssertEqual(result.impulse, ScrollImpulse(x: 0, y: 0))
+        XCTAssertEqual(result.velocityLimitMultiplier, 1)
+    }
+
+    func testPageZoomHonorsReverseDirection() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointY: 18, flags: .maskCommand),
+            using: configuration(
+                reverseDirection: true,
+                zoomBehavior: .page
+            )
+        )
+
+        XCTAssertEqual(result.output, .pageZoom(direction: .zoomOut))
+        XCTAssertEqual(result.impulse, ScrollImpulse(x: 0, y: 0))
+    }
+
+    func testPinchZoomHonorsReverseDirection() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointY: 18, flags: .maskCommand),
+            using: configuration(
+                smoothness: .low,
+                minimumStepEnabled: false,
+                reverseDirection: true,
+                accelerationEnabled: false,
+                zoomBehavior: .pinch
+            )
+        )
+
+        XCTAssertEqual(result.output, .pinchZoom)
+        XCTAssertLessThan(result.impulse.y, 0)
     }
 
     func testTransformActionTakesPriorityOverZoomConflict() {
@@ -175,7 +218,7 @@ final class ScrollInputTransformerTests: XCTestCase {
 
         XCTAssertNotEqual(result.impulse.x, 0)
         XCTAssertEqual(result.impulse.y, 0)
-        XCTAssertEqual(result.outputFlags, [])
+        XCTAssertEqual(result.output, .scroll(flags: []))
     }
 
     func testDominantAxisLockSuppressesCrossAxisNoiseForBurst() {
@@ -392,6 +435,134 @@ final class ScrollInputTransformerTests: XCTestCase {
         )
     }
 
+    func testLongDistanceAccelerationStartsAfterFourTenthsOfASecond() {
+        var transformer = ScrollInputTransformer()
+        let config = longDistanceConfiguration()
+
+        let results = stride(from: 0, through: 4, by: 1).map { index in
+            transformer.transform(
+                sample(pointY: 18, timestamp: 1 + (Double(index) * 0.1)),
+                using: config
+            )
+        }
+
+        XCTAssertTrue(results.allSatisfy { result in
+            abs(result.velocityLimitMultiplier - 1) < 0.0001
+        })
+    }
+
+    func testLongDistanceAccelerationUsesSmoothstepAndReachesThreeTimes() {
+        var transformer = ScrollInputTransformer()
+        let config = longDistanceConfiguration()
+        var midpoint: ScrollTransformResult?
+        var full: ScrollTransformResult?
+
+        for index in 0...10 {
+            let result = transformer.transform(
+                sample(pointY: 18, timestamp: 1 + (Double(index) * 0.1)),
+                using: config
+            )
+            if index == 7 { midpoint = result }
+            if index == 10 { full = result }
+        }
+
+        XCTAssertEqual(midpoint?.velocityLimitMultiplier ?? 0, 2, accuracy: 0.0001)
+        XCTAssertEqual(full?.velocityLimitMultiplier ?? 0, 3, accuracy: 0.0001)
+        XCTAssertEqual(full?.impulse.y ?? 0, 13.176, accuracy: 0.0001)
+    }
+
+    func testLongDistanceAccelerationIsIndependentOfEventFragmentation() {
+        var unsplit = ScrollInputTransformer()
+        var split = ScrollInputTransformer()
+        let config = longDistanceConfiguration()
+        var unsplitResult: ScrollTransformResult?
+        var splitResult: ScrollTransformResult?
+
+        for index in 0...10 {
+            unsplitResult = unsplit.transform(
+                sample(pointY: 18, timestamp: 1 + (Double(index) * 0.1)),
+                using: config
+            )
+        }
+        for index in 0...20 {
+            splitResult = split.transform(
+                sample(pointY: 9, timestamp: 1 + (Double(index) * 0.05)),
+                using: config
+            )
+        }
+
+        XCTAssertEqual(
+            unsplitResult?.velocityLimitMultiplier ?? 0,
+            splitResult?.velocityLimitMultiplier ?? 0,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(splitResult?.velocityLimitMultiplier ?? 0, 3, accuracy: 0.0001)
+    }
+
+    func testLongDistanceAccelerationResetsForGapDirectionAndAxisChanges() {
+        let config = longDistanceConfiguration(axisLockEnabled: false)
+
+        var afterGap = acceleratedTransformer(using: config)
+        let gapResult = afterGap.transform(
+            sample(pointY: 18, timestamp: 2.17),
+            using: config
+        )
+
+        var afterReversal = acceleratedTransformer(using: config)
+        let reversalResult = afterReversal.transform(
+            sample(pointY: -18, timestamp: 2.1),
+            using: config
+        )
+
+        var afterAxisChange = acceleratedTransformer(using: config)
+        let axisResult = afterAxisChange.transform(
+            sample(pointX: 18, timestamp: 2.1),
+            using: config
+        )
+
+        XCTAssertEqual(gapResult.velocityLimitMultiplier, 1, accuracy: 0.0001)
+        XCTAssertEqual(reversalResult.velocityLimitMultiplier, 1, accuracy: 0.0001)
+        XCTAssertEqual(axisResult.velocityLimitMultiplier, 1, accuracy: 0.0001)
+    }
+
+    func testPrecisionAndDisabledAccelerationResetLongDistanceRamp() {
+        let enabled = longDistanceConfiguration()
+        var precisionTransformer = ScrollInputTransformer()
+        var precision: ScrollTransformResult?
+        for index in 0...10 {
+            precision = precisionTransformer.transform(
+                sample(
+                    pointY: 18,
+                    flags: .maskAlternate,
+                    timestamp: 1 + (Double(index) * 0.1)
+                ),
+                using: enabled
+            )
+        }
+
+        var disabledTransformer = acceleratedTransformer(using: enabled)
+        let disabled = disabledTransformer.transform(
+            sample(pointY: 18, timestamp: 2.1),
+            using: longDistanceConfiguration(accelerationEnabled: false)
+        )
+
+        XCTAssertEqual(precision?.velocityLimitMultiplier ?? 0, 1, accuracy: 0.0001)
+        XCTAssertEqual(disabled.velocityLimitMultiplier, 1, accuracy: 0.0001)
+    }
+
+    func testTransformerResetClearsLongDistanceRamp() {
+        let config = longDistanceConfiguration()
+        var transformer = acceleratedTransformer(using: config)
+
+        transformer.reset()
+        let result = transformer.transform(
+            sample(pointY: 18, timestamp: 3),
+            using: config
+        )
+
+        XCTAssertEqual(result.velocityLimitMultiplier, 1, accuracy: 0.0001)
+    }
+
     func testStepLeavesLargeAndZeroDeltasUnchanged() {
         var transformer = ScrollInputTransformer()
         let result = transformer.transform(
@@ -479,6 +650,7 @@ final class ScrollInputTransformerTests: XCTestCase {
         axisLockEnabled: Bool = true,
         horizontalModifier: ModifierKey = .shift,
         zoomModifier: ModifierKey = .command,
+        zoomBehavior: ZoomBehavior = .pinch,
         swiftModifier: ModifierKey = .control,
         preciseModifier: ModifierKey = .option
     ) -> ScrollTransformConfiguration {
@@ -494,8 +666,36 @@ final class ScrollInputTransformerTests: XCTestCase {
             axisLockEnabled: axisLockEnabled,
             horizontalModifier: horizontalModifier,
             zoomModifier: zoomModifier,
+            zoomBehavior: zoomBehavior,
             swiftModifier: swiftModifier,
             preciseModifier: preciseModifier
         )
+    }
+
+    private func longDistanceConfiguration(
+        accelerationEnabled: Bool = true,
+        axisLockEnabled: Bool = true
+    ) -> ScrollTransformConfiguration {
+        configuration(
+            smoothness: .low,
+            minimumStepEnabled: false,
+            adaptivePrecision: false,
+            accelerationEnabled: accelerationEnabled,
+            axisLockEnabled: axisLockEnabled,
+            horizontalModifier: .none
+        )
+    }
+
+    private func acceleratedTransformer(
+        using configuration: ScrollTransformConfiguration
+    ) -> ScrollInputTransformer {
+        var transformer = ScrollInputTransformer()
+        for index in 0...10 {
+            _ = transformer.transform(
+                sample(pointY: 18, timestamp: 1 + (Double(index) * 0.1)),
+                using: configuration
+            )
+        }
+        return transformer
     }
 }

@@ -376,7 +376,7 @@ struct SettingsView: View {
             Toggle(isOn: $settings.accelerationEnabled) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Scroll acceleration")
-                    Text("Increase movement when the wheel is turned rapidly.")
+                    Text("Accelerate progressively during sustained rapid wheel movement.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -504,9 +504,30 @@ struct SettingsView: View {
             )
             modifierRow(
                 title: "Zoom",
-                detail: "Pass the modifier only when no transform action is active.",
+                detail: "Zoom when no higher-priority transform action is active.",
                 selection: $settings.zoomModifier
             )
+            LabeledContent {
+                Picker("Zoom behavior", selection: $settings.zoomBehavior) {
+                    ForEach(ZoomBehavior.allCases) { behavior in
+                        Text(behavior.title).tag(behavior)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 250)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Zoom behavior")
+                    Text(
+                        settings.zoomBehavior == .pinch
+                            ? "Smoothly magnify content around the pointer."
+                            : "Change the frontmost app one zoom level per notch."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
             modifierRow(
                 title: "Faster scrolling",
                 detail: "Temporarily increase speed unless Precision is active.",

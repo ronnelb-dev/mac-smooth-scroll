@@ -15,12 +15,13 @@ so it can stop a tail immediately.
 3. **Precision scrolling** wins when Precision and Faster are both active,
    including when both actions use the same key.
 4. **Faster scrolling** applies when its key is active and Precision is not.
-5. **Zoom** is forwarded only when Horizontal, Faster, and Precision are all
-   inactive. Other modifier flags are not forwarded.
+5. **Zoom** generates the selected Pinch-style or Page zoom action only when
+   Horizontal, Faster, and Precision are all inactive. Other modifier flags
+   are not forwarded.
 
 Horizontal is considered active only when it actually converts
 vertical-dominant input. If the physical input is already horizontal-dominant,
-an overlapping Zoom assignment can still be forwarded.
+an overlapping Zoom assignment can still be activated.
 
 ## Shared assignments
 
@@ -34,7 +35,9 @@ an overlapping Zoom assignment can still be forwarded.
 | Faster + Zoom | Faster |
 | Bypass + any assignment | Native wheel event; no transformation |
 
-Zoom relies on the foreground application supporting modifier-scroll zoom.
-Mac Smooth Scroll does not install a global keyboard hook or implement its own
-application-specific zoom command. Bypass is evaluated on each physical wheel
+Pinch-style Zoom generates magnification begin/change/end events and adds an
+initial responsiveness adjustment for Chrome and related Chromium browsers.
+Page zoom sends Command-plus or Command-minus to the frontmost app, with no
+inertial tail and a maximum of ten steps per second. The receiving application
+must support the selected behavior. Bypass is evaluated on each physical wheel
 event.

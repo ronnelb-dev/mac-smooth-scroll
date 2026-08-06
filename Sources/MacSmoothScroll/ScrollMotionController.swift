@@ -22,22 +22,33 @@ struct ScrollMotionController {
 
     mutating func add(
         _ impulse: ScrollImpulse,
-        feel: ScrollFeel
+        feel: ScrollFeel,
+        maximumVelocityMultiplier: Double = 1
     ) -> Bool {
         let reversedX = brakesForDirectionChange(current: velocityX, incoming: impulse.x)
         let reversedY = brakesForDirectionChange(current: velocityY, incoming: impulse.y)
 
         if reversedX {
             velocityX *= feel.directionChangeRetention
+            discardRetainedVelocityIfItOverpowers(
+                velocity: &velocityX,
+                incoming: impulse.x
+            )
             remainderX = 0
         }
         if reversedY {
             velocityY *= feel.directionChangeRetention
+            discardRetainedVelocityIfItOverpowers(
+                velocity: &velocityY,
+                incoming: impulse.y
+            )
             remainderY = 0
         }
 
-        velocityX = (velocityX + impulse.x).clamped(to: -feel.maximumVelocity...feel.maximumVelocity)
-        velocityY = (velocityY + impulse.y).clamped(to: -feel.maximumVelocity...feel.maximumVelocity)
+        let velocityLimit = feel.maximumVelocity * maximumVelocityMultiplier
+            .clamped(to: 1...3)
+        velocityX = (velocityX + impulse.x).clamped(to: -velocityLimit...velocityLimit)
+        velocityY = (velocityY + impulse.y).clamped(to: -velocityLimit...velocityLimit)
         return reversedX || reversedY
     }
 
@@ -98,6 +109,16 @@ struct ScrollMotionController {
         abs(current) > Self.stopVelocity &&
             abs(incoming) > Self.stopVelocity &&
             current.sign != incoming.sign
+    }
+
+    private func discardRetainedVelocityIfItOverpowers(
+        velocity: inout Double,
+        incoming: Double
+    ) {
+        if velocity.sign != incoming.sign,
+           abs(velocity) >= abs(incoming) {
+            velocity = 0
+        }
     }
 
     private func boundedOutput(from value: Double) -> Int32 {

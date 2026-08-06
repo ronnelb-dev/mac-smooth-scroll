@@ -24,7 +24,7 @@ trackpad and Magic Mouse events untouched.
 - Adaptive first-notch precision with optional movement-based acceleration
 - Immediate braking on direction changes and bounded maximum velocity
 - Dominant-axis locking that filters diagonal wheel noise
-- Configurable horizontal, zoom, swift, and precision modifier keys
+- Configurable horizontal, pinch-style/page zoom, swift, and precision modifier keys
 - Menu-bar control
 - Hide-to-menu-bar mode that removes the settings window and Dock icon
 - Background-only launch at login with a dedicated helper
@@ -153,8 +153,13 @@ reopened.
 - Enable **Adaptive precision** to make the first wheel step after idle precise,
   then ramp smoothly as the wheel is moved faster.
 - Enable **Scroll acceleration** to increase movement during rapid wheel input.
-  Acceleration uses total wheel distance and elapsed time so mice that divide
-  the same movement into different numbers of events behave consistently.
+  Short bursts keep the existing distance-based response. Sustained movement
+  in one direction begins an additional smooth long-distance ramp after `0.4`
+  seconds and reaches its maximum near `1.0` second, making long pages faster
+  to cross without changing normal reading movements. Pausing, reversing,
+  changing axes, or using Precision resets the ramp. Acceleration uses physical
+  distance and elapsed time so mice that divide the same movement into
+  different numbers of events behave consistently.
 - Enable **Automatic axis lock** to suppress small diagonal wheel noise. A
   deliberate perpendicular movement switches the active axis after two
   strongly dominant events; the first candidate event is suppressed to avoid
@@ -162,11 +167,17 @@ reopened.
 - Enable **Trackpad-like gestures** to add gesture phases used by natural
   scrolling and horizontal navigation.
 - In **Modifier Keys**, assign keys for horizontal scrolling, zoom, faster
-  scrolling, precision scrolling, or temporary native-event bypass. Bypass
-  defaults to **None** and takes priority over every other assignment while
-  held. See
+  scrolling, precision scrolling, or temporary native-event bypass. Choose
+  **Pinch-style** Zoom for smooth, cursor-centered magnification in Chrome,
+  Safari, and other compatible apps. Choose **Page zoom** for discrete
+  Command-plus/minus zoom levels in the frontmost app; rapid input is capped
+  at ten steps per second. Bypass defaults to **None** and takes priority over
+  every other assignment while held. See
   [Modifier Key Behavior](docs/MODIFIER_BEHAVIOR.md) for the exact conflict and
   priority rules.
+
+![Mac Smooth Scroll modifier keys](docs/modifier-keys.png)
+
 - Under **Native Scrolling**, add applications that should always receive
   unmodified wheel events. Exclusions are matched using the foreground
   application’s bundle identifier and can be removed at any time.
@@ -175,10 +186,11 @@ reopened.
   status. When attention is required, use the recovery button shown on the
   affected row.
 
-Trackpad and Magic Mouse events are passed through unchanged. The selected zoom
-modifier is forwarded for the complete wheel burst only when no higher-priority
-transform action is active. Zoom behavior still depends on whether the active
-app supports modifier-scroll zooming.
+Trackpad and Magic Mouse events are passed through unchanged. The selected Zoom
+modifier is frozen for each wheel burst and only applies when no higher-priority
+transform action is active. Pinch-style Zoom produces a native magnification
+gesture; Page zoom sends the standard macOS zoom shortcuts and does not retain
+a smoothing tail.
 
 ## Menu-bar mode
 

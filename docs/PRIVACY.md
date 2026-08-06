@@ -24,7 +24,7 @@ The following choices are stored locally with macOS `UserDefaults`:
 - Trackpad-like gestures, reverse scrolling, adaptive precision, and scroll
   acceleration
 - Whether automatic axis locking is enabled
-- Modifier assignments, including temporary smooth-scrolling bypass
+- Modifier assignments, Zoom behavior, and temporary smooth-scrolling bypass
 - Names and bundle identifiers of applications the user excludes from smooth
   scrolling
 - Menu-bar visibility

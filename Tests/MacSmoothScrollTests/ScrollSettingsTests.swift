@@ -35,6 +35,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.axisLockEnabled)
         XCTAssertEqual(settings.horizontalModifier, .shift)
         XCTAssertEqual(settings.zoomModifier, .command)
+        XCTAssertEqual(settings.zoomBehavior, .pinch)
         XCTAssertEqual(settings.swiftModifier, .control)
         XCTAssertEqual(settings.preciseModifier, .option)
         XCTAssertEqual(settings.bypassModifier, .none)
@@ -62,6 +63,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.axisLockEnabled = false
         settings.horizontalModifier = .control
         settings.zoomModifier = .option
+        settings.zoomBehavior = .page
         settings.swiftModifier = .shift
         settings.preciseModifier = .command
         settings.bypassModifier = .shift
@@ -89,6 +91,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertFalse(reloaded.axisLockEnabled)
         XCTAssertEqual(reloaded.horizontalModifier, .control)
         XCTAssertEqual(reloaded.zoomModifier, .option)
+        XCTAssertEqual(reloaded.zoomBehavior, .page)
         XCTAssertEqual(reloaded.swiftModifier, .shift)
         XCTAssertEqual(reloaded.preciseModifier, .command)
         XCTAssertEqual(reloaded.bypassModifier, .shift)
@@ -121,6 +124,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.axisLockEnabled = false
         settings.horizontalModifier = .none
         settings.zoomModifier = .none
+        settings.zoomBehavior = .page
         settings.swiftModifier = .none
         settings.preciseModifier = .none
         settings.bypassModifier = .command
@@ -148,6 +152,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.axisLockEnabled)
         XCTAssertEqual(settings.horizontalModifier, .shift)
         XCTAssertEqual(settings.zoomModifier, .command)
+        XCTAssertEqual(settings.zoomBehavior, .pinch)
         XCTAssertEqual(settings.swiftModifier, .control)
         XCTAssertEqual(settings.preciseModifier, .option)
         XCTAssertEqual(settings.bypassModifier, .none)
@@ -230,6 +235,12 @@ final class ScrollSettingsTests: XCTestCase {
         defaults.set(ScrollSpeed.fast.rawValue, forKey: "scroll.speed")
 
         XCTAssertTrue(makeSettings().axisLockEnabled)
+    }
+
+    func testInvalidZoomBehaviorFallsBackToPinchStyle() {
+        defaults.set("unsupported", forKey: "modifier.zoomBehavior")
+
+        XCTAssertEqual(makeSettings().zoomBehavior, .pinch)
     }
 
     func testDisabledMinimumStepRetainsItsValueAcrossInstances() {
