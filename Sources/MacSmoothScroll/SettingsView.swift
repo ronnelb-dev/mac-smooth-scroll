@@ -457,6 +457,33 @@ struct SettingsView: View {
             }
             .disabled(!settings.minimumStepEnabled)
 
+            LabeledContent {
+                Picker(
+                    "Step multiplier",
+                    selection: $settings.minimumStepMultiplier
+                ) {
+                    ForEach(MinimumStepMultiplier.allCases) { multiplier in
+                        Text(multiplier.title).tag(multiplier)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 250)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Step multiplier")
+                    Text(
+                        "Effective minimum: \(ScrollStep.formattedEffectiveMinimum(distance: settings.minimumStepDistance, multiplier: settings.minimumStepMultiplier)) pt"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .disabled(!settings.minimumStepEnabled)
+            .accessibilityHint(
+                "Multiplies the saved minimum wheel step without scaling larger movements."
+            )
+
             HStack(spacing: 8) {
                 Text(
                     settings.minimumStepEnabled
@@ -485,10 +512,11 @@ struct SettingsView: View {
                 .controlSize(.small)
                 .disabled(
                     settings.minimumStepEnabled &&
-                        settings.minimumStepDistance == ScrollStep.defaultValue
+                        settings.minimumStepDistance == ScrollStep.defaultValue &&
+                        settings.minimumStepMultiplier == .standard
                 )
                 .accessibilityLabel(
-                    "Enable minimum wheel step and reset it to 18 points"
+                    "Enable minimum wheel step and reset it to 18 points with the standard multiplier"
                 )
             }
         }

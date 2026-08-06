@@ -15,6 +15,7 @@ struct ScrollTransformConfiguration {
     let speed: ScrollSpeed
     let minimumStepEnabled: Bool
     let minimumStepDistance: Double
+    let minimumStepMultiplier: MinimumStepMultiplier
     let feel: ScrollFeel
     let reverseDirection: Bool
     let adaptivePrecision: Bool
@@ -177,7 +178,10 @@ struct ScrollInputTransformer {
             applyMinimumStep(
                 x: &x,
                 y: &y,
-                minimum: configuration.minimumStepDistance
+                minimum: ScrollStep.effectiveMinimum(
+                    distance: configuration.minimumStepDistance,
+                    multiplier: configuration.minimumStepMultiplier
+                )
             )
         }
 
@@ -401,6 +405,7 @@ extension ScrollSettings {
             speed: speed,
             minimumStepEnabled: minimumStepEnabled,
             minimumStepDistance: minimumStepDistance,
+            minimumStepMultiplier: minimumStepMultiplier,
             feel: feel,
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,

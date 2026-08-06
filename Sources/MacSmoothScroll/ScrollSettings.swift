@@ -57,6 +57,53 @@ enum ScrollStep {
     static func formatted(_ value: Double) -> String {
         String(format: "%.2f", sanitized(value))
     }
+
+    static func effectiveMinimum(
+        distance: Double,
+        multiplier: MinimumStepMultiplier
+    ) -> Double {
+        sanitized(distance) * multiplier.value
+    }
+
+    static func formattedEffectiveMinimum(
+        distance: Double,
+        multiplier: MinimumStepMultiplier
+    ) -> String {
+        String(
+            format: "%.2f",
+            effectiveMinimum(distance: distance, multiplier: multiplier)
+        )
+    }
+}
+
+enum MinimumStepMultiplier: String, CaseIterable, Identifiable {
+    case half = "half"
+    case standard = "standard"
+    case oneAndHalf = "oneAndHalf"
+    case double = "double"
+    case triple = "triple"
+
+    var id: String { rawValue }
+
+    var value: Double {
+        switch self {
+        case .half: 0.5
+        case .standard: 1
+        case .oneAndHalf: 1.5
+        case .double: 2
+        case .triple: 3
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .half: "0.5×"
+        case .standard: "1×"
+        case .oneAndHalf: "1.5×"
+        case .double: "2×"
+        case .triple: "3×"
+        }
+    }
 }
 
 enum ScrollFeel: String, CaseIterable, Identifiable {
@@ -144,6 +191,7 @@ final class ScrollSettings: ObservableObject {
         static let speed = "scroll.speed"
         static let minimumStepEnabled = "scroll.minimumStepEnabled"
         static let minimumStepDistance = "scroll.step"
+        static let minimumStepMultiplier = "scroll.minimumStepMultiplier"
         static let feel = "scroll.feel"
         static let trackpadSimulation = "scroll.trackpadSimulation"
         static let reverseDirection = "scroll.reverseDirection"
@@ -192,6 +240,11 @@ final class ScrollSettings: ObservableObject {
                 return
             }
             persist(Key.minimumStepDistance, minimumStepDistance)
+        }
+    }
+    @Published var minimumStepMultiplier: MinimumStepMultiplier {
+        didSet {
+            persist(Key.minimumStepMultiplier, minimumStepMultiplier.rawValue)
         }
     }
     @Published var feel: ScrollFeel {
@@ -287,6 +340,10 @@ final class ScrollSettings: ObservableObject {
             defaults.object(forKey: Key.minimumStepEnabled) as? Bool ?? true
         let storedStep = (defaults.object(forKey: Key.minimumStepDistance) as? NSNumber)?.doubleValue
         minimumStepDistance = ScrollStep.sanitized(storedStep ?? ScrollStep.defaultValue)
+        minimumStepMultiplier =
+            MinimumStepMultiplier(
+                rawValue: defaults.string(forKey: Key.minimumStepMultiplier) ?? ""
+            ) ?? .standard
         feel = ScrollFeel(rawValue: defaults.string(forKey: Key.feel) ?? "") ?? .balanced
         trackpadSimulation = defaults.object(forKey: Key.trackpadSimulation) as? Bool ?? true
         reverseDirection = defaults.object(forKey: Key.reverseDirection) as? Bool ?? false
@@ -451,6 +508,7 @@ final class ScrollSettings: ObservableObject {
         speed = .medium
         minimumStepEnabled = true
         minimumStepDistance = ScrollStep.defaultValue
+        minimumStepMultiplier = .standard
         feel = .balanced
         trackpadSimulation = true
         reverseDirection = false
@@ -469,6 +527,7 @@ final class ScrollSettings: ObservableObject {
     func resetMinimumStepDistance() {
         minimumStepEnabled = true
         minimumStepDistance = ScrollStep.defaultValue
+        minimumStepMultiplier = .standard
     }
 
     func addExcludedApplication(at url: URL) throws {

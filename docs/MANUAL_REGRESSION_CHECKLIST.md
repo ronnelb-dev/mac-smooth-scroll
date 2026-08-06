@@ -80,7 +80,7 @@ Use a long document or webpage with enough content to make changes obvious.
 | C3 | Compare **Feel**: Responsive, Balanced, and Glide. | Each preset changes responsiveness, acceleration, and direction-change behavior in the expected order. | |
 | C4 | Compare **Speed**: Slow, Medium, and Fast. | Distance increases consistently from Slow to Fast. | |
 | C5 | Compare **Smoothness**: Low, Medium, and High. | The scroll tail becomes progressively longer; no preset sticks or runs indefinitely. | |
-| C6 | Set **Minimum wheel step** near its minimum, default, and maximum, then turn it off and on again; test diagonal input when available. | Enabled input respects the configured minimum without changing diagonal direction; when disabled, its controls remain visible but unavailable and input does not enforce it; the saved value returns unchanged when re-enabled. | |
+| C6 | Set **Minimum wheel step** near its minimum, default, and maximum; try every **Step multiplier** preset, then turn the feature off and on again; test diagonal input when available. | Enabled input respects `Step × multiplier` without scaling movements already above that threshold or changing diagonal direction; disabled controls retain both saved selections and do not enforce a minimum. | |
 | C7 | Enable **Reverse scrolling** and test the external mouse, then the native input. | External-wheel direction reverses; trackpad or Magic Mouse direction does not change. | |
 | C8 | Enable **Adaptive precision**, pause, then move one notch and follow with rapid notches. | The first movement is precise and subsequent rapid movement ramps smoothly. | |
 | C9 | Compare short and sustained rapid wheel movement with **Scroll acceleration** off and on using each available external mouse and a long page. Pause, reverse, change axes, and hold Precision after reaching maximum speed. | Off preserves normal transformed distance. On keeps short movements familiar, begins a smooth long-distance ramp after 0.4 seconds, reaches maximum boost near 1.0 second, and resets immediately for every listed interruption without a speed jump. | |
@@ -169,7 +169,7 @@ Mark unavailable third-party utilities **Not run**, not **Pass**.
 | I1 | Change scrolling presets, toggles, minimum step, modifier assignments, and exclusions, then select **Reset Scrolling Settings…** and cancel. | No setting changes. | |
 | I2 | Confirm **Reset Scrolling Settings…**. | Scrolling, modifiers, bypass, and application exclusions return to documented defaults. | |
 | I3 | Check **Show in menu bar**, **Launch at login**, setup completion, and the selected tab after reset. | App preferences remain unchanged. | |
-| I4 | Disable Minimum wheel step, change its saved value, then select its **Reset** action. | Minimum wheel step turns on and returns to `18.00 pt`; unrelated settings remain unchanged. | |
+| I4 | Disable Minimum wheel step, change its saved value and multiplier, then select its **Reset** action. | Minimum wheel step turns on and returns to `18.00 pt` at `1×`; unrelated settings remain unchanged. | |
 | I5 | Prepare to uninstall by disabling **Launch at login**, then quit from the menu bar. | The helper is unregistered and no app process or menu-bar item remains. | |
 | I6 | Review the README uninstall steps without attaching private system data. | The instructions cover app removal, Accessibility cleanup, and optional preference deletion. | |
 

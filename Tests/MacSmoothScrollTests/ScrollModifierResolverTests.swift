@@ -152,6 +152,7 @@ final class ScrollModifierResolverTests: XCTestCase {
             speed: .medium,
             minimumStepEnabled: true,
             minimumStepDistance: ScrollStep.defaultValue,
+            minimumStepMultiplier: .standard,
             feel: .balanced,
             reverseDirection: false,
             adaptivePrecision: false,

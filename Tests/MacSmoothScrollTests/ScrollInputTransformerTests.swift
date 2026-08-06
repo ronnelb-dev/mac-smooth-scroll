@@ -335,6 +335,7 @@ final class ScrollInputTransformerTests: XCTestCase {
         var transformer = ScrollInputTransformer()
         let config = configuration(
             minimumStepDistance: 20,
+            minimumStepMultiplier: .triple,
             horizontalModifier: .none
         )
 
@@ -343,7 +344,7 @@ final class ScrollInputTransformerTests: XCTestCase {
             using: config
         )
 
-        XCTAssertEqual(hypot(result.impulse.x, result.impulse.y), 1.4, accuracy: 0.0001)
+        XCTAssertEqual(hypot(result.impulse.x, result.impulse.y), 4.2, accuracy: 0.0001)
         XCTAssertEqual(
             result.impulse.x / result.impulse.y,
             -6.0 / 7.0,
@@ -574,6 +575,78 @@ final class ScrollInputTransformerTests: XCTestCase {
         XCTAssertEqual(result.impulse.y, 2.8, accuracy: 0.0001)
     }
 
+    func testStepMultiplierRaisesToEffectiveMinimumWithoutChangingSavedStep() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointY: 18),
+            using: configuration(
+                smoothness: .low,
+                minimumStepDistance: 18,
+                minimumStepMultiplier: .triple,
+                accelerationEnabled: false
+            )
+        )
+
+        XCTAssertEqual(result.impulse.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(result.impulse.y, 10.8, accuracy: 0.0001)
+    }
+
+    func testHalfStepMultiplierUsesHalfTheSavedThreshold() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointY: -4),
+            using: configuration(
+                smoothness: .low,
+                minimumStepDistance: 18,
+                minimumStepMultiplier: .half,
+                accelerationEnabled: false
+            )
+        )
+
+        XCTAssertEqual(result.impulse.y, -1.8, accuracy: 0.0001)
+    }
+
+    func testStepMultiplierLeavesMovementAboveEffectiveMinimumUnchanged() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointY: 60),
+            using: configuration(
+                smoothness: .low,
+                minimumStepDistance: 18,
+                minimumStepMultiplier: .triple,
+                accelerationEnabled: false
+            )
+        )
+
+        XCTAssertEqual(result.impulse.y, 12, accuracy: 0.0001)
+    }
+
+    func testDisabledStepIgnoresMultiplierAndPageZoomStillBypassesIt() {
+        var disabledTransformer = ScrollInputTransformer()
+        let disabled = disabledTransformer.transform(
+            sample(pointY: 4),
+            using: configuration(
+                smoothness: .low,
+                minimumStepEnabled: false,
+                minimumStepMultiplier: .triple,
+                accelerationEnabled: false
+            )
+        )
+
+        var pageZoomTransformer = ScrollInputTransformer()
+        let pageZoom = pageZoomTransformer.transform(
+            sample(pointY: 4, flags: .maskCommand),
+            using: configuration(
+                minimumStepMultiplier: .triple,
+                zoomBehavior: .page
+            )
+        )
+
+        XCTAssertEqual(disabled.impulse.y, 0.8, accuracy: 0.0001)
+        XCTAssertEqual(pageZoom.impulse, ScrollImpulse(x: 0, y: 0))
+        XCTAssertEqual(pageZoom.output, .pageZoom(direction: .zoomIn))
+    }
+
     func testStepIsAppliedAfterSpeedAndAdaptivePrecision() {
         var transformer = ScrollInputTransformer()
         let result = transformer.transform(
@@ -582,11 +655,12 @@ final class ScrollInputTransformerTests: XCTestCase {
                 smoothness: .low,
                 speed: .slow,
                 minimumStepDistance: 20,
+                minimumStepMultiplier: .triple,
                 adaptivePrecision: true
             )
         )
 
-        XCTAssertEqual(result.impulse.y, 4, accuracy: 0.0001)
+        XCTAssertEqual(result.impulse.y, 12, accuracy: 0.0001)
     }
 
     func testPrecisionModifierIntentionallyOverridesFinalStep() {
@@ -595,11 +669,27 @@ final class ScrollInputTransformerTests: XCTestCase {
             sample(pointY: 10, flags: .maskAlternate),
             using: configuration(
                 smoothness: .low,
-                minimumStepDistance: 20
+                minimumStepDistance: 20,
+                minimumStepMultiplier: .triple
             )
         )
 
-        XCTAssertEqual(result.impulse.y, 1.12, accuracy: 0.0001)
+        XCTAssertEqual(result.impulse.y, 3.36, accuracy: 0.0001)
+    }
+
+    func testFasterModifierScalesAfterEffectiveMinimumStep() {
+        var transformer = ScrollInputTransformer()
+        let result = transformer.transform(
+            sample(pointY: 10, flags: .maskControl),
+            using: configuration(
+                smoothness: .low,
+                minimumStepDistance: 20,
+                minimumStepMultiplier: .triple,
+                accelerationEnabled: false
+            )
+        )
+
+        XCTAssertEqual(result.impulse.y, 28.8, accuracy: 0.0001)
     }
 
     func testDominantAxisLockRunsBeforeMinimumStep() {
@@ -643,6 +733,7 @@ final class ScrollInputTransformerTests: XCTestCase {
         speed: ScrollSpeed = .medium,
         minimumStepEnabled: Bool = true,
         minimumStepDistance: Double = ScrollStep.defaultValue,
+        minimumStepMultiplier: MinimumStepMultiplier = .standard,
         feel: ScrollFeel = .balanced,
         reverseDirection: Bool = false,
         adaptivePrecision: Bool = false,
@@ -659,6 +750,7 @@ final class ScrollInputTransformerTests: XCTestCase {
             speed: speed,
             minimumStepEnabled: minimumStepEnabled,
             minimumStepDistance: minimumStepDistance,
+            minimumStepMultiplier: minimumStepMultiplier,
             feel: feel,
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,
