@@ -441,6 +441,10 @@ final class ScrollSettings: ObservableObject {
     }
 
     func retryEngine() {
+        recheckRuntime()
+    }
+
+    func recheckRuntime() {
         onRefreshRuntime?()
     }
 

@@ -65,6 +65,7 @@ those sections during work you cannot safely interrupt.
 | B4 | Re-enable Accessibility and return to the app. | The event tap restarts and System Health returns to **Active**. | |
 | B5 | If a rebuilt ad-hoc copy leaves a stale approval, remove the old Accessibility entry, quit the app, reopen the `/Applications` copy, and request permission again. | The current build can be approved and becomes **Active**. | |
 | B6 | With permission granted, select **Retry** after any reproducible start failure. | The engine rechecks runtime state and either becomes **Active** or keeps an actionable failure status. | |
+| B7 | Return from Accessibility Settings, then select **Recheck** while both windows remain open. | Permission refreshes immediately and the engine becomes **Active** without waiting for the periodic timer. | |
 
 Never attach the contents of the macOS Transparency, Consent, and Control
 database to a bug report.

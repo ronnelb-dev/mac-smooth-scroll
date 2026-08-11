@@ -14,6 +14,10 @@
 The Accessibility row under **System Health** remains visible after permission
 is granted and changes to **Ready**.
 
+Mac Smooth Scroll rechecks Accessibility as soon as it becomes active after
+returning from System Settings. Select **Recheck** in the Accessibility row if
+both windows remain open or the displayed status appears stale.
+
 Ad-hoc signatures change when the app is rebuilt. macOS may treat a rebuilt or
 moved app as a different application, even when its name and bundle identifier
 are unchanged. Remove the stale Accessibility entry and approve the current
@@ -108,8 +112,9 @@ events from a trackpad or Magic Mouse are passed through unchanged.
 
 ## Collecting useful information for a bug report
 
-Select **Copy Diagnostics** under **System Health** and include the result.
-It contains only app, macOS, architecture, and health-state information.
+Select **Copy Diagnostics** under **System Health** and include the result. It
+identifies the app bundle and whether it is running from Applications, but does
+not include the actual filesystem path.
 
 Include:
 
