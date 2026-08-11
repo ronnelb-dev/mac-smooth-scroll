@@ -182,6 +182,27 @@ enum ModifierKey: String, CaseIterable, Identifiable {
     }
 }
 
+enum SettingsChangeScope: Equatable {
+    case scrollConfiguration
+    case engineLifecycle
+    case menuBarPresentation
+    case menuBarVisibility
+    case applicationPreference
+
+    var refreshesScrollEngine: Bool {
+        self == .engineLifecycle
+    }
+
+    var refreshesMenuBar: Bool {
+        switch self {
+        case .engineLifecycle, .menuBarPresentation, .menuBarVisibility:
+            true
+        case .scrollConfiguration, .applicationPreference:
+            false
+        }
+    }
+}
+
 final class ScrollSettings: ObservableObject {
     static let launcherBundleIdentifier = "com.ronnel.mac-smooth-scroll.launcher"
 
@@ -214,20 +235,20 @@ final class ScrollSettings: ObservableObject {
 
     private let defaults: UserDefaults
     private let managesLaunchAtLogin: Bool
-    var onChange: (() -> Void)?
+    var onChange: ((SettingsChangeScope) -> Void)?
     var onOpenSettings: (() -> Void)?
     var onHideApp: (() -> Void)?
     var onRefreshRuntime: (() -> Void)?
     var onQuitCompetingDriver: (() -> Void)?
 
     @Published var isEnabled: Bool {
-        didSet { persist(Key.enabled, isEnabled) }
+        didSet { persist(Key.enabled, isEnabled, scope: .engineLifecycle) }
     }
     @Published var smoothness: Smoothness {
         didSet { persist(Key.smoothness, smoothness.rawValue) }
     }
     @Published var speed: ScrollSpeed {
-        didSet { persist(Key.speed, speed.rawValue) }
+        didSet { persist(Key.speed, speed.rawValue, scope: .menuBarPresentation) }
     }
     @Published var minimumStepEnabled: Bool {
         didSet { persist(Key.minimumStepEnabled, minimumStepEnabled) }
@@ -248,7 +269,7 @@ final class ScrollSettings: ObservableObject {
         }
     }
     @Published var feel: ScrollFeel {
-        didSet { persist(Key.feel, feel.rawValue) }
+        didSet { persist(Key.feel, feel.rawValue, scope: .menuBarPresentation) }
     }
     @Published var trackpadSimulation: Bool {
         didSet { persist(Key.trackpadSimulation, trackpadSimulation) }
@@ -290,11 +311,11 @@ final class ScrollSettings: ObservableObject {
         }
     }
     @Published var showInMenuBar: Bool {
-        didSet { persist(Key.showInMenuBar, showInMenuBar) }
+        didSet { persist(Key.showInMenuBar, showInMenuBar, scope: .menuBarVisibility) }
     }
     @Published var launchAtLogin: Bool {
         didSet {
-            persist(Key.launchAtLogin, launchAtLogin)
+            persist(Key.launchAtLogin, launchAtLogin, scope: .applicationPreference)
             if managesLaunchAtLogin {
                 updateLaunchAtLogin()
             }
@@ -557,9 +578,13 @@ final class ScrollSettings: ObservableObject {
         Set(excludedApplications.map(\.bundleIdentifier))
     }
 
-    private func persist(_ key: String, _ value: Any) {
+    private func persist(
+        _ key: String,
+        _ value: Any,
+        scope: SettingsChangeScope = .scrollConfiguration
+    ) {
         defaults.set(value, forKey: key)
-        onChange?()
+        onChange?(scope)
     }
 
     private func updateLaunchAtLogin() {
