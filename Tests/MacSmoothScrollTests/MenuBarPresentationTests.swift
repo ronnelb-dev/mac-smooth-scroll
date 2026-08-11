@@ -10,7 +10,8 @@ final class MenuBarPresentationTests: XCTestCase {
             .disabled,
             .permissionBlocked,
             .driverConflict,
-            .startFailed
+            .startFailed,
+            .outputFailed
         ]
 
         let presentations = statuses.map {
@@ -61,6 +62,13 @@ final class MenuBarPresentationTests: XCTestCase {
             MenuBarPresentation.make(
                 isEnabled: true,
                 engineStatus: .startFailed
+            ).recoveryAction,
+            .retryEngine
+        )
+        XCTAssertEqual(
+            MenuBarPresentation.make(
+                isEnabled: true,
+                engineStatus: .outputFailed
             ).recoveryAction,
             .retryEngine
         )

@@ -240,6 +240,7 @@ final class ScrollSettings: ObservableObject {
     var onHideApp: (() -> Void)?
     var onRefreshRuntime: (() -> Void)?
     var onQuitCompetingDriver: (() -> Void)?
+    var onEngineStatusChange: (() -> Void)?
 
     @Published var isEnabled: Bool {
         didSet { persist(Key.enabled, isEnabled, scope: .engineLifecycle) }
@@ -323,7 +324,13 @@ final class ScrollSettings: ObservableObject {
     }
     @Published var permissionGranted = false
     @Published var competingDriverRunning = false
-    @Published var engineStatus = ScrollEngineStatus.waiting
+    @Published var engineStatus = ScrollEngineStatus.waiting {
+        didSet {
+            if engineStatus != oldValue {
+                onEngineStatusChange?()
+            }
+        }
+    }
     @Published var launchAtLoginHealthStatus = LaunchAtLoginHealthStatus.unavailable
     @Published var launchAtLoginDetail = "Checking login item status…"
     @Published var competingDriverRecoveryMessage: String?

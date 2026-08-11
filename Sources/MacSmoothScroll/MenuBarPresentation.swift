@@ -65,6 +65,10 @@ struct MenuBarPresentation: Equatable {
             symbol = "xmark.circle.fill"
             statusItemSymbol = "exclamationmark.triangle.fill"
             recovery = .retryEngine
+        case .outputFailed:
+            symbol = "exclamationmark.circle.fill"
+            statusItemSymbol = "exclamationmark.triangle.fill"
+            recovery = .retryEngine
         }
 
         let statusTitle = engineStatus.message

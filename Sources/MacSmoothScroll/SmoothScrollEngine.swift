@@ -3,6 +3,22 @@ import AppKit
 import CoreGraphics
 import Foundation
 
+struct ScrollOutputGate {
+    private(set) var isAvailable = true
+
+    @discardableResult
+    mutating func record(_ succeeded: Bool) -> Bool {
+        if !succeeded {
+            isAvailable = false
+        }
+        return succeeded
+    }
+
+    mutating func restore() {
+        isAvailable = true
+    }
+}
+
 final class SmoothScrollEngine {
     private let settings: ScrollSettings
     private var eventTap: CFMachPort?
@@ -22,6 +38,7 @@ final class SmoothScrollEngine {
     private var pageZoomController = PageZoomController()
     private let chromiumClassifier = ChromiumBundleClassifier()
     private var activeOutput: ScrollTransformOutput?
+    private var outputGate = ScrollOutputGate()
 
     init(settings: ScrollSettings) {
         self.settings = settings
@@ -49,6 +66,7 @@ final class SmoothScrollEngine {
     func start() {
         if let eventTap {
             if CGEvent.tapIsEnabled(tap: eventTap) {
+                outputGate.restore()
                 settings.engineStatus = .active
             } else {
                 scheduleEventTapRebuild()
@@ -84,6 +102,7 @@ final class SmoothScrollEngine {
         runLoopSource = source
         if CGEvent.tapIsEnabled(tap: tap) {
             recoveryPolicy.reset()
+            outputGate.restore()
             settings.engineStatus = .active
         } else {
             tearDownEventTap()
@@ -117,12 +136,29 @@ final class SmoothScrollEngine {
         tearDownEventTap()
     }
 
-    private func resetMotion() {
+    @discardableResult
+    private func resetMotion() -> Bool {
         displayLink.stop()
         motion.reset()
         inputTransformer.reset()
         pageZoomController.reset()
-        finishActiveOutputIfNeeded()
+        return finishActiveOutputIfNeeded()
+    }
+
+    private func abandonTransformedOutput() {
+        displayLink.stop()
+        motion.reset()
+        inputTransformer.reset()
+        pageZoomController.reset()
+        gestureLifecycle.reset()
+        magnificationLifecycle.reset()
+        activeOutput = nil
+    }
+
+    private func failOpen() {
+        outputGate.record(false)
+        abandonTransformedOutput()
+        settings.engineStatus = .outputFailed
     }
 
     private func tearDownEventTap() {
@@ -156,6 +192,10 @@ final class SmoothScrollEngine {
             return Unmanaged.passUnretained(event)
         }
 
+        guard outputGate.isAvailable else {
+            return Unmanaged.passUnretained(event)
+        }
+
         if bypassPolicy.shouldBypass(
             flags: event.flags,
             modifier: settings.bypassModifier,
@@ -164,12 +204,13 @@ final class SmoothScrollEngine {
             excludedBundleIdentifiers:
                 settings.excludedApplicationBundleIdentifiers
         ) {
-            resetMotion()
+            if !resetMotion() {
+                failOpen()
+            }
             return Unmanaged.passUnretained(event)
         }
 
-        ingest(event)
-        return nil
+        return ingest(event) ? nil : Unmanaged.passUnretained(event)
     }
 
     private func recoverEventTap(after reason: EventTapDisableReason) {
@@ -219,7 +260,7 @@ final class SmoothScrollEngine {
         }
     }
 
-    private func ingest(_ event: CGEvent) {
+    private func ingest(_ event: CGEvent) -> Bool {
         let lineY = Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis1))
         let lineX = Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis2))
         let pointY = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1))
@@ -239,21 +280,30 @@ final class SmoothScrollEngine {
         )
 
         if result.beginsNewBurst {
-            finishActiveOutputIfNeeded()
+            guard finishActiveOutputIfNeeded() else {
+                failOpen()
+                return false
+            }
             prepareActiveOutput(result.output)
         }
 
         if case let .pageZoom(direction) = result.output {
             displayLink.stop()
             motion.reset()
-            finishActiveOutputIfNeeded()
+            guard finishActiveOutputIfNeeded() else {
+                failOpen()
+                return false
+            }
             if let command = pageZoomController.command(
                 for: direction,
                 at: timestamp
             ) {
-                postPageZoom(command)
+                guard outputGate.record(postPageZoom(command)) else {
+                    failOpen()
+                    return false
+                }
             }
-            return
+            return true
         }
 
         if activeOutput == nil {
@@ -264,10 +314,17 @@ final class SmoothScrollEngine {
             feel: settings.feel,
             maximumVelocityMultiplier: result.velocityLimitMultiplier
         ) {
-            finishActiveOutputIfNeeded()
+            guard finishActiveOutputIfNeeded() else {
+                failOpen()
+                return false
+            }
             prepareActiveOutput(result.output)
         }
-        displayLink.start()
+        guard outputGate.record(displayLink.start()) else {
+            failOpen()
+            return false
+        }
+        return true
     }
 
     private func animateFrame(elapsedTime: TimeInterval) {
@@ -276,23 +333,31 @@ final class SmoothScrollEngine {
             decay: settings.smoothness.decay
         )
         if output.x != 0 || output.y != 0 {
+            let emitted: Bool
             switch activeOutput {
             case .pinchZoom:
-                postMagnification(x: output.x, y: output.y)
+                emitted = postMagnification(x: output.x, y: output.y)
             case .scroll:
-                postScroll(x: output.x, y: output.y)
+                emitted = postScroll(x: output.x, y: output.y)
             case .pageZoom, nil:
-                break
+                emitted = true
+            }
+            guard outputGate.record(emitted) else {
+                failOpen()
+                return
             }
         }
 
         if output.finished {
             displayLink.stop()
-            finishActiveOutputIfNeeded()
+            guard finishActiveOutputIfNeeded() else {
+                failOpen()
+                return
+            }
         }
     }
 
-    private func postScroll(x: Int32, y: Int32) {
+    private func postScroll(x: Int32, y: Int32) -> Bool {
         guard let event = CGEvent(
             scrollWheelEvent2Source: nil,
             units: .pixel,
@@ -300,7 +365,7 @@ final class SmoothScrollEngine {
             wheel1: y,
             wheel2: x,
             wheel3: 0
-        ) else { return }
+        ) else { return false }
 
         event.setIntegerValueField(
             .eventSourceUserData,
@@ -321,6 +386,7 @@ final class SmoothScrollEngine {
             event.flags = gestureLifecycle.outputFlags
         }
         event.post(tap: .cgSessionEventTap)
+        return true
     }
 
     private func prepareActiveOutput(_ output: ScrollTransformOutput) {
@@ -340,21 +406,22 @@ final class SmoothScrollEngine {
         }
     }
 
-    private func finishActiveOutputIfNeeded() {
+    @discardableResult
+    private func finishActiveOutputIfNeeded() -> Bool {
         defer { activeOutput = nil }
         switch activeOutput {
         case .scroll:
-            guard let emission = gestureLifecycle.finish() else { return }
-            postScrollEnd(emission)
+            guard let emission = gestureLifecycle.finish() else { return true }
+            return postScrollEnd(emission)
         case .pinchZoom:
-            guard let descriptor = magnificationLifecycle.finish() else { return }
-            postMagnification(descriptor)
+            guard let descriptor = magnificationLifecycle.finish() else { return true }
+            return postMagnification(descriptor)
         case .pageZoom, nil:
-            break
+            return true
         }
     }
 
-    private func postScrollEnd(_ emission: ScrollGestureEmission) {
+    private func postScrollEnd(_ emission: ScrollGestureEmission) -> Bool {
         guard let event = CGEvent(
             scrollWheelEvent2Source: nil,
             units: .pixel,
@@ -362,7 +429,7 @@ final class SmoothScrollEngine {
             wheel1: 0,
             wheel2: 0,
             wheel3: 0
-        ) else { return }
+        ) else { return false }
 
         event.setIntegerValueField(
             .eventSourceUserData,
@@ -375,16 +442,18 @@ final class SmoothScrollEngine {
         )
         event.flags = emission.flags
         event.post(tap: .cgSessionEventTap)
+        return true
     }
 
-    private func postMagnification(x: Int32, y: Int32) {
+    private func postMagnification(x: Int32, y: Int32) -> Bool {
         for descriptor in magnificationLifecycle.events(x: x, y: y) {
-            postMagnification(descriptor)
+            guard postMagnification(descriptor) else { return false }
         }
+        return true
     }
 
-    private func postMagnification(_ descriptor: MagnificationEventDescriptor) {
-        guard let event = CGEvent(source: nil) else { return }
+    private func postMagnification(_ descriptor: MagnificationEventDescriptor) -> Bool {
+        guard let event = CGEvent(source: nil) else { return false }
         event.type = CGEventType(rawValue: 29)!
         event.setIntegerValueField(
             CGEventField(rawValue: 110)!,
@@ -399,9 +468,10 @@ final class SmoothScrollEngine {
             value: descriptor.magnification
         )
         event.post(tap: .cghidEventTap)
+        return true
     }
 
-    private func postPageZoom(_ descriptor: PageZoomCommandDescriptor) {
+    private func postPageZoom(_ descriptor: PageZoomCommandDescriptor) -> Bool {
         guard let keyDown = CGEvent(
             keyboardEventSource: nil,
             virtualKey: descriptor.keyCode,
@@ -410,12 +480,13 @@ final class SmoothScrollEngine {
             keyboardEventSource: nil,
             virtualKey: descriptor.keyCode,
             keyDown: false
-        ) else { return }
+        ) else { return false }
 
         keyDown.flags = descriptor.flags
         keyUp.flags = descriptor.flags
         keyDown.post(tap: .cghidEventTap)
         keyUp.post(tap: .cghidEventTap)
+        return true
     }
 
     private func cgPhase(for phase: ScrollGesturePhase) -> CGScrollPhase {

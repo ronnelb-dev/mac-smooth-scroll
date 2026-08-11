@@ -37,7 +37,8 @@ final class SystemHealthTests: XCTestCase {
             .disabled,
             .permissionBlocked,
             .driverConflict,
-            .startFailed
+            .startFailed,
+            .outputFailed
         ]
 
         XCTAssertEqual(Set(statuses.map(\.message)).count, statuses.count)
@@ -52,6 +53,28 @@ final class SystemHealthTests: XCTestCase {
         XCTAssertFalse(
             ScrollEngineStatus.startFailed.message.contains("Input Monitoring")
         )
+    }
+
+    func testOutputFailureExplainsNativeFallback() {
+        XCTAssertEqual(
+            ScrollEngineStatus.outputFailed.message,
+            "Native scrolling is active. Retry smooth scrolling."
+        )
+    }
+
+    func testEngineStatusChangeNotifiesOnlyWhenTheStatusChanges() {
+        let suiteName = "SystemHealthTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = ScrollSettings(defaults: defaults, managesLaunchAtLogin: false)
+        var notifications = 0
+        settings.onEngineStatusChange = { notifications += 1 }
+
+        settings.engineStatus = .outputFailed
+        settings.engineStatus = .outputFailed
+        settings.engineStatus = .active
+
+        XCTAssertEqual(notifications, 2)
     }
 
     func testDisabledLaunchAtLoginIsAnExplicitNeutralStatus() {

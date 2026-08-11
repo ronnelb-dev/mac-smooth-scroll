@@ -13,6 +13,7 @@ enum ScrollEngineStatus: String, Equatable {
     case permissionBlocked = "Permission blocked"
     case driverConflict = "Driver conflict"
     case startFailed = "Could not start"
+    case outputFailed = "Output unavailable"
 
     var message: String {
         switch self {
@@ -30,6 +31,8 @@ enum ScrollEngineStatus: String, Equatable {
             "Paused while Mac Mouse Fix is running"
         case .startFailed:
             "Could not start. Verify Accessibility, then retry."
+        case .outputFailed:
+            "Native scrolling is active. Retry smooth scrolling."
         }
     }
 }

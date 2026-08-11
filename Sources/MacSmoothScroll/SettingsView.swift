@@ -228,7 +228,7 @@ struct SettingsView: View {
                     settings.isEnabled = true
                 }
                 .buttonStyle(.borderedProminent)
-            case .startFailed:
+            case .startFailed, .outputFailed:
                 Button("Retry") {
                     settings.retryEngine()
                 }
@@ -719,7 +719,9 @@ struct SettingsView: View {
 
     private var statusColor: Color {
         if !settings.isEnabled { return .secondary }
-        if settings.engineStatus == .startFailed { return .red }
+        if settings.engineStatus == .startFailed || settings.engineStatus == .outputFailed {
+            return .red
+        }
         return settings.engineStatus == .active ? .green : .orange
     }
 
@@ -749,6 +751,8 @@ struct SettingsView: View {
             "The engine is paused until Mac Mouse Fix quits."
         case .startFailed:
             "The event tap could not be created. Check permission, then retry."
+        case .outputFailed:
+            "Smooth output could not continue. Physical wheel events are passing through unchanged."
         }
     }
 
@@ -761,6 +765,7 @@ struct SettingsView: View {
         case .permissionBlocked: "lock.fill"
         case .driverConflict: "exclamationmark.triangle.fill"
         case .startFailed: "xmark.octagon.fill"
+        case .outputFailed: "exclamationmark.circle.fill"
         }
     }
 
@@ -769,7 +774,7 @@ struct SettingsView: View {
         case .active: .ready
         case .waiting, .recovering, .disabled: .neutral
         case .permissionBlocked, .driverConflict: .warning
-        case .startFailed: .error
+        case .startFailed, .outputFailed: .error
         }
     }
 
