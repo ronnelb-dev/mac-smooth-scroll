@@ -411,7 +411,7 @@ struct SettingsView: View {
             Toggle(isOn: $settings.minimumStepEnabled) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Minimum wheel step")
-                    Text("Minimum final distance after speed and adaptive precision.")
+                    Text("Raise small transformed movements before modifiers and smoothing.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -487,7 +487,7 @@ struct SettingsView: View {
             HStack(spacing: 8) {
                 Text(
                     settings.minimumStepEnabled
-                        ? "Modifier keys can intentionally reduce or increase this distance."
+                        ? "Speed, Adaptive precision, and burst acceleration apply before Step; modifiers and sustained boost apply afterward."
                         : "The saved value will be used again when this feature is enabled."
                 )
                     .font(.caption)

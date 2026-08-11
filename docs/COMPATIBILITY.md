@@ -1,8 +1,8 @@
 # Compatibility Matrix
 
-- Matrix version: **1**
-- Last updated: **2026-07-30**
-- Runtime baseline: **Mac Smooth Scroll 0.4.0 (6)** at commit [`c70d2ed`](https://github.com/ronnelb-dev/mac-smooth-scroll/commit/c70d2edf6bb7c2948dabf06794a0d6b73d1cfb4f)
+- Matrix version: **2**
+- Last updated: **2026-08-11**
+- Runtime baseline: **Mac Smooth Scroll 0.4.1 (8)** at commit [`0c7aaac`](https://github.com/ronnelb-dev/mac-smooth-scroll/commit/0c7aaac031aa344bcec276654e782a0b10b83709)
 
 Mac Smooth Scroll supports Apple Silicon and has a deployment target of macOS
 13 or later. A supported target is not automatically a verified hardware
@@ -30,6 +30,7 @@ behavior on a specific Mac.
 
 | Date | macOS | Apple Silicon | App commit | Evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| 2026-08-11 | macOS 26.5.1 (25F80) | M4 | `0c7aaac` | Local `swift test --arch arm64`: 130 tests; app/DMG build, nested signature validation, checksum, manifest, and mounted-DMG validation | **Build verified** |
 | 2026-07-30 | macOS 15, GitHub-hosted runner | arm64; generation not reported | `c70d2ed` | [Apple Silicon CI run 30540381466](https://github.com/ronnelb-dev/mac-smooth-scroll/actions/runs/30540381466): 81 tests, app/DMG build, preview validation | **Build verified** |
 | 2026-07-30 | macOS 26.5.1 (25F80) | M4 | `c70d2ed` | Local `swift test --arch arm64`, app/DMG build, nested signature validation, checksum, and mounted-DMG validation | **Build verified** |
 
@@ -44,7 +45,7 @@ for an M1, M2, M3, M4, or later hardware row.
 | Ventura 13 | Untested | Untested | Untested | **Untested** |
 | Sonoma 14 | Untested | Untested | Untested | **Untested** |
 | Sequoia 15 | Verified on hosted arm64 runner | Untested | Untested | **Build verified** |
-| Tahoe 26 | Verified locally on 26.5.1/M4 | Untested | Untested | **Build verified** |
+| Tahoe 26 | Verified locally on 26.5.1/M4 at `0c7aaac` | Untested | Untested | **Build verified** |
 
 ## Apple Silicon matrix
 
@@ -53,7 +54,7 @@ for an M1, M2, M3, M4, or later hardware row.
 | M1 | Untested | Untested | None | **Untested** |
 | M2 | Untested | Untested | None | **Untested** |
 | M3 | Untested | Untested | None | **Untested** |
-| M4 | Verified on macOS 26.5.1 | Untested | 2026-07-30, `c70d2ed` | **Build verified** |
+| M4 | Verified on macOS 26.5.1 | Untested | 2026-08-11, `0c7aaac` | **Build verified** |
 | M5 or later | Untested | Untested | None | **Untested** |
 
 ## Input-device matrix

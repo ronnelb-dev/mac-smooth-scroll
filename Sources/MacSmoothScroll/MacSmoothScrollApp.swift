@@ -35,8 +35,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        settings.onChange = { [weak self] in
-            self?.settingsDidChange()
+        settings.onChange = { [weak self] scope in
+            self?.settingsDidChange(scope)
         }
         settings.onOpenSettings = { [weak self] in
             self?.showSettings()
@@ -106,9 +106,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         return false
     }
 
-    private func settingsDidChange() {
-        scrollEngine.refresh()
-        configureStatusItem()
+    private func settingsDidChange(_ scope: SettingsChangeScope) {
+        // Scroll configuration is read for each physical event. App-only
+        // preferences manage their own lifecycle and need no engine work.
+        if scope.refreshesScrollEngine {
+            scrollEngine.refresh()
+        }
+        if scope.refreshesMenuBar {
+            configureStatusItem()
+        }
     }
 
     private func updateRuntimeState(forceEngineRefresh: Bool = false) {

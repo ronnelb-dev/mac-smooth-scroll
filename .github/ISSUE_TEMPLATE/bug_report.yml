@@ -75,10 +75,14 @@ body:
     id: configuration
     attributes:
       label: Relevant configuration
-      description: Include the selected smoothness, speed, modifiers, Accessibility status, and whether another mouse utility is running.
+      description: Include the tuning values, modifiers, Zoom behavior, Accessibility status, and whether another mouse utility is running.
       placeholder: |
+        Feel:
         Smoothness:
         Speed:
+        Minimum wheel step and multiplier:
+        Adaptive precision / acceleration / axis lock:
+        Modifier assignments and Zoom behavior:
         Accessibility approved:
         Other mouse utilities:
     validations:

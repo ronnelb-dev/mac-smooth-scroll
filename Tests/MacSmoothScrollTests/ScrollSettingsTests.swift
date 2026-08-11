@@ -166,22 +166,48 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(settings.launchAtLogin)
     }
 
-    func testPersistentChangeInvokesChangeCallback() {
+    func testPersistentChangeReportsItsScope() {
         let settings = makeSettings()
-        var changeCount = 0
-        settings.onChange = {
-            changeCount += 1
+        var scopes: [SettingsChangeScope] = []
+        settings.onChange = { scope in
+            scopes.append(scope)
         }
 
+        settings.smoothness = .low
         settings.speed = .slow
+        settings.isEnabled = false
+        settings.showInMenuBar = false
+        settings.launchAtLogin = true
 
-        XCTAssertEqual(changeCount, 1)
+        XCTAssertEqual(
+            scopes,
+            [
+                .scrollConfiguration,
+                .menuBarPresentation,
+                .engineLifecycle,
+                .menuBarVisibility,
+                .applicationPreference
+            ]
+        )
+    }
+
+    func testChangeScopesRequestOnlyTheirRequiredRuntimeWork() {
+        XCTAssertFalse(SettingsChangeScope.scrollConfiguration.refreshesScrollEngine)
+        XCTAssertFalse(SettingsChangeScope.scrollConfiguration.refreshesMenuBar)
+        XCTAssertTrue(SettingsChangeScope.engineLifecycle.refreshesScrollEngine)
+        XCTAssertTrue(SettingsChangeScope.engineLifecycle.refreshesMenuBar)
+        XCTAssertFalse(SettingsChangeScope.menuBarPresentation.refreshesScrollEngine)
+        XCTAssertTrue(SettingsChangeScope.menuBarPresentation.refreshesMenuBar)
+        XCTAssertFalse(SettingsChangeScope.menuBarVisibility.refreshesScrollEngine)
+        XCTAssertTrue(SettingsChangeScope.menuBarVisibility.refreshesMenuBar)
+        XCTAssertFalse(SettingsChangeScope.applicationPreference.refreshesScrollEngine)
+        XCTAssertFalse(SettingsChangeScope.applicationPreference.refreshesMenuBar)
     }
 
     func testTabSelectionPersistsWithoutRefreshingTheScrollEngine() {
         let settings = makeSettings()
         var changeCount = 0
-        settings.onChange = {
+        settings.onChange = { _ in
             changeCount += 1
         }
 
