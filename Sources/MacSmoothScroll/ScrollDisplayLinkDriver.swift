@@ -2,6 +2,48 @@ import AppKit
 import CoreVideo
 import QuartzCore
 
+struct DisplayFrameSample: Equatable {
+    let timestamp: TimeInterval
+    let fallbackDuration: TimeInterval
+}
+
+struct DisplayFrameCoalescer {
+    private(set) var generation: UInt64 = 0
+    private(set) var pendingFrame: DisplayFrameSample?
+    private(set) var deliveryScheduled = false
+    private(set) var isActive = false
+
+    mutating func beginSession() {
+        generation &+= 1
+        pendingFrame = nil
+        deliveryScheduled = false
+        isActive = true
+    }
+
+    mutating func endSession() {
+        generation &+= 1
+        pendingFrame = nil
+        deliveryScheduled = false
+        isActive = false
+    }
+
+    mutating func enqueue(_ frame: DisplayFrameSample) -> UInt64? {
+        guard isActive else { return nil }
+        pendingFrame = frame
+        guard !deliveryScheduled else { return nil }
+        deliveryScheduled = true
+        return generation
+    }
+
+    mutating func takePending(for generation: UInt64) -> DisplayFrameSample? {
+        guard isActive, self.generation == generation else { return nil }
+        let frame = pendingFrame
+        pendingFrame = nil
+        deliveryScheduled = false
+        return frame
+    }
+}
+
 final class ScrollDisplayLinkDriver: NSObject {
     private let callback: (TimeInterval) -> Void
     private var lastTimestamp: TimeInterval?
@@ -9,6 +51,8 @@ final class ScrollDisplayLinkDriver: NSObject {
     // while using CADisplayLink on macOS 14 and newer.
     private var modernDisplayLink: AnyObject?
     private var legacyDisplayLink: CVDisplayLink?
+    private let legacyFrameLock = NSLock()
+    private var legacyFrameCoalescer = DisplayFrameCoalescer()
 
     init(callback: @escaping (TimeInterval) -> Void) {
         self.callback = callback
@@ -18,8 +62,9 @@ final class ScrollDisplayLinkDriver: NSObject {
         modernDisplayLink != nil || legacyDisplayLink != nil
     }
 
-    func start() {
-        guard !isRunning else { return }
+    @discardableResult
+    func start() -> Bool {
+        guard !isRunning else { return true }
         lastTimestamp = nil
 
         if #available(macOS 14.0, *),
@@ -30,10 +75,10 @@ final class ScrollDisplayLinkDriver: NSObject {
             )
             displayLink.add(to: .main, forMode: .common)
             modernDisplayLink = displayLink
-            return
+            return true
         }
 
-        startLegacyDisplayLink()
+        return startLegacyDisplayLink()
     }
 
     func stop() {
@@ -43,6 +88,9 @@ final class ScrollDisplayLinkDriver: NSObject {
         }
         modernDisplayLink = nil
 
+        legacyFrameLock.lock()
+        legacyFrameCoalescer.endSession()
+        legacyFrameLock.unlock()
         if let legacyDisplayLink {
             CVDisplayLinkStop(legacyDisplayLink)
         }
@@ -59,15 +107,15 @@ final class ScrollDisplayLinkDriver: NSObject {
         )
     }
 
-    private func startLegacyDisplayLink() {
+    private func startLegacyDisplayLink() -> Bool {
         var displayLink: CVDisplayLink?
         guard CVDisplayLinkCreateWithActiveCGDisplays(&displayLink) == kCVReturnSuccess,
               let displayLink else {
-            return
+            return false
         }
 
         let context = Unmanaged.passUnretained(self).toOpaque()
-        CVDisplayLinkSetOutputCallback(
+        guard CVDisplayLinkSetOutputCallback(
             displayLink,
             { _, _, outputTime, _, _, context in
                 guard let context else { return kCVReturnError }
@@ -75,18 +123,48 @@ final class ScrollDisplayLinkDriver: NSObject {
                     .fromOpaque(context)
                     .takeUnretainedValue()
                 let timestamp = Double(outputTime.pointee.hostTime) / CVGetHostClockFrequency()
-                DispatchQueue.main.async {
-                    driver.deliverFrame(timestamp: timestamp, fallbackDuration: 1.0 / 60.0)
-                }
+                driver.enqueueLegacyFrame(timestamp: timestamp)
                 return kCVReturnSuccess
             },
             context
-        )
+        ) == kCVReturnSuccess else {
+            return false
+        }
 
         guard CVDisplayLinkStart(displayLink) == kCVReturnSuccess else {
-            return
+            return false
         }
         legacyDisplayLink = displayLink
+        legacyFrameLock.lock()
+        legacyFrameCoalescer.beginSession()
+        legacyFrameLock.unlock()
+        return true
+    }
+
+    private func enqueueLegacyFrame(timestamp: TimeInterval) {
+        let frame = DisplayFrameSample(
+            timestamp: timestamp,
+            fallbackDuration: 1.0 / 60.0
+        )
+        legacyFrameLock.lock()
+        let generation = legacyFrameCoalescer.enqueue(frame)
+        legacyFrameLock.unlock()
+
+        guard let generation else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.deliverPendingLegacyFrame(for: generation)
+        }
+    }
+
+    private func deliverPendingLegacyFrame(for generation: UInt64) {
+        legacyFrameLock.lock()
+        let frame = legacyFrameCoalescer.takePending(for: generation)
+        legacyFrameLock.unlock()
+        guard let frame else { return }
+        deliverFrame(
+            timestamp: frame.timestamp,
+            fallbackDuration: frame.fallbackDuration
+        )
     }
 
     private var screenUnderPointer: NSScreen? {

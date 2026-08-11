@@ -50,6 +50,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         settings.onQuitCompetingDriver = { [weak self] in
             self?.quitCompetingDriver()
         }
+        settings.onEngineStatusChange = { [weak self] in
+            self?.updateStatusItemAppearance()
+        }
 
         updateRuntimeState()
         scrollEngine.refresh()
