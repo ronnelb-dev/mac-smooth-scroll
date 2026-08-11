@@ -32,7 +32,7 @@ final class ScrollMotionControllerTests: XCTestCase {
         XCTAssertEqual(distanceAt144Hz, distanceAt120Hz, accuracy: 1)
     }
 
-    func testLongFrameDelayCapsOutputWithoutLosingDistance() {
+    func testLongFrameDelayBoundsRetainedDistanceAndCatchUpTail() {
         let normalDistance = integratedDistance(
             frameRate: 120,
             impulse: 30
@@ -48,6 +48,7 @@ final class ScrollMotionControllerTests: XCTestCase {
             decay: Smoothness.high.decay
         )
         var delayedDistance = Double(delayedFrame.y)
+        var emittedCatchUpFrames = 0
 
         for _ in 0..<1_000 {
             let output = delayedMotion.step(
@@ -55,12 +56,51 @@ final class ScrollMotionControllerTests: XCTestCase {
                 decay: Smoothness.high.decay
             )
             delayedDistance += Double(output.y)
+            if output.x != 0 || output.y != 0 {
+                emittedCatchUpFrames += 1
+            }
             if output.finished { break }
         }
 
         XCTAssertEqual(delayedFrame.y, 120)
-        XCTAssertEqual(delayedDistance, normalDistance, accuracy: 1)
+        XCTAssertLessThan(delayedDistance, normalDistance / 2)
+        XCTAssertLessThanOrEqual(emittedCatchUpFrames, 8)
         XCTAssertFalse(delayedMotion.isActive)
+    }
+
+    func testRetainedIntervalBoundaryPreservesNormalIntegratedDistance() {
+        let normalDistance = integratedDistance(
+            frameRate: 120,
+            impulse: 30
+        )
+        let boundaryDistance = integratedDistance(
+            initialDelay: ScrollMotionController.maximumRetainedElapsedTime,
+            impulse: 30
+        )
+
+        XCTAssertEqual(boundaryDistance, normalDistance, accuracy: 1)
+    }
+
+    func testIncreasingAbnormalDelayDoesNotIncreaseRetainedDebt() {
+        let shortStallDistance = integratedDistance(
+            initialDelay: 0.25,
+            impulse: 30
+        )
+        let longStallDistance = integratedDistance(
+            initialDelay: 1.0,
+            impulse: 30
+        )
+
+        XCTAssertLessThanOrEqual(longStallDistance, shortStallDistance)
+        XCTAssertLessThan(shortStallDistance, 200)
+    }
+
+    func testElevatedVelocityStillHasBoundedStallDebt() {
+        let shorterStallDistance = elevatedVelocityDistance(initialDelay: 0.25)
+        let longerStallDistance = elevatedVelocityDistance(initialDelay: 1.0)
+
+        XCTAssertLessThanOrEqual(longerStallDistance, shorterStallDistance)
+        XCTAssertLessThan(shorterStallDistance, 600)
     }
 
     func testVelocityIsCappedByFeelPreset() {
@@ -198,6 +238,62 @@ final class ScrollMotionControllerTests: XCTestCase {
         for _ in 0..<1_000 {
             let output = motion.step(
                 elapsedTime: 1 / frameRate,
+                decay: Smoothness.high.decay
+            )
+            distance += Double(output.y)
+            if output.finished { break }
+        }
+        return distance
+    }
+
+    private func integratedDistance(
+        initialDelay: TimeInterval,
+        impulse: Double
+    ) -> Double {
+        var motion = ScrollMotionController()
+        _ = motion.add(
+            ScrollImpulse(x: 0, y: impulse),
+            feel: .glide
+        )
+        var distance = Double(
+            motion.step(
+                elapsedTime: initialDelay,
+                decay: Smoothness.high.decay
+            ).y
+        )
+
+        for _ in 0..<1_000 {
+            let output = motion.step(
+                elapsedTime: 1.0 / 120.0,
+                decay: Smoothness.high.decay
+            )
+            distance += Double(output.y)
+            if output.finished { break }
+        }
+        return distance
+    }
+
+    private func elevatedVelocityDistance(
+        initialDelay: TimeInterval
+    ) -> Double {
+        var motion = ScrollMotionController()
+        for _ in 0..<30 {
+            _ = motion.add(
+                ScrollImpulse(x: 0, y: 20),
+                feel: .glide,
+                maximumVelocityMultiplier: 3
+            )
+        }
+        var distance = Double(
+            motion.step(
+                elapsedTime: initialDelay,
+                decay: Smoothness.high.decay
+            ).y
+        )
+
+        for _ in 0..<1_000 {
+            let output = motion.step(
+                elapsedTime: 1.0 / 120.0,
                 decay: Smoothness.high.decay
             )
             distance += Double(output.y)

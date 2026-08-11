@@ -10,6 +10,9 @@ struct ScrollMotionController {
     private static let referenceFrameRate = 120.0
     private static let stopVelocity = 0.025
     private static let maximumOutputPerFrame: Int32 = 120
+    // Retain movement for ordinary dropped frames, but do not replay an
+    // arbitrarily long interval after the main thread becomes responsive.
+    static let maximumRetainedElapsedTime: TimeInterval = 0.05
 
     private(set) var velocityX = 0.0
     private(set) var velocityY = 0.0
@@ -60,17 +63,23 @@ struct ScrollMotionController {
             return ScrollMotionOutput(x: 0, y: 0, finished: true)
         }
 
-        // Integrate the complete elapsed interval so a delayed display-link
-        // callback does not discard distance. Large accumulated output remains
-        // in the fractional remainder and drains over bounded frames.
+        // Decay momentum across the complete elapsed interval, while retaining
+        // at most a short amount of unrendered travel. This keeps normal frame
+        // pacing refresh-rate independent without replaying a long catch-up
+        // tail after an abnormal main-thread or display-link stall.
         let elapsedFrames = elapsedTime.isFinite
             ? elapsedTime * Self.referenceFrameRate
             : 0.25
         let referenceFrames = max(elapsedFrames, 0.25)
         let effectiveDecay = pow(decay, referenceFrames)
+        let retainedFrames = min(
+            referenceFrames,
+            Self.maximumRetainedElapsedTime * Self.referenceFrameRate
+        )
+        let retainedDecay = pow(decay, retainedFrames)
         let integrationScale = decay == 1
-            ? referenceFrames
-            : (1 - effectiveDecay) / (1 - decay)
+            ? retainedFrames
+            : (1 - retainedDecay) / (1 - decay)
 
         remainderX += velocityX * integrationScale
         remainderY += velocityY * integrationScale
