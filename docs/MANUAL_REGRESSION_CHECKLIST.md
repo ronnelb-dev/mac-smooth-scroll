@@ -87,8 +87,9 @@ Use a long document or webpage with enough content to make changes obvious.
 | C9 | Compare short and sustained rapid wheel movement with **Scroll acceleration** off and on using each available external mouse and a long page. Pause, reverse, change axes, and hold Precision after reaching maximum speed. | Off preserves normal transformed distance. On keeps short movements familiar, begins a smooth long-distance ramp after 0.4 seconds, reaches maximum boost near 1.0 second, and resets immediately for every listed interruption without a speed jump. | |
 | C10 | With **Automatic axis lock** enabled, introduce one perpendicular wheel event, then two consecutive strongly perpendicular events; repeat with it disabled. | One event is suppressed without a wrong-direction nudge; two deliberate events switch the axis; disabled input preserves both axes. | |
 | C11 | Reverse wheel direction while momentum remains. | Existing momentum brakes immediately rather than sliding far in the old direction. | |
-| C12 | Enable **Trackpad-like gestures** and test a compatible horizontal-navigation view. | Gesture phases begin, change, and end cleanly; navigation does not remain stuck. | |
-| C13 | Test on each available 60 Hz and high-refresh-rate display, including a short period of system load. | Perceived distance remains comparable and animation stays display-synchronized; a delayed frame catches up through bounded output instead of losing distance or producing one large jump. | |
+| C12 | Scroll during a brief system or browser stall, then let the page recover. | Scrolling resumes without replaying an extended catch-up tail. | |
+| C13 | Enable **Trackpad-like gestures** and test a compatible horizontal-navigation view. | Gesture phases begin, change, and end cleanly; navigation does not remain stuck. | |
+| C14 | Test on each available 60 Hz and high-refresh-rate display, including a short period of system load. | Perceived distance remains comparable and animation stays display-synchronized; an abnormal delayed frame sheds excess catch-up debt without producing one large jump or extended tail. | |
 
 ## D. Modifier keys
 
