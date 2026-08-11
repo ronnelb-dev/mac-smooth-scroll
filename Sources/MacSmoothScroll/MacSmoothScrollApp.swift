@@ -84,6 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
+        updateRuntimeState(forceEngineRefresh: true)
         settings.refreshLaunchAtLoginStatus()
     }
 

@@ -117,6 +117,10 @@ struct FirstRunSetupView: View {
                 }
                 .disabled(settings.permissionGranted)
 
+                Button("Recheck") {
+                    settings.recheckRuntime()
+                }
+
                 Button("Open Accessibility Settings") {
                     settings.openPrivacySettings()
                 }

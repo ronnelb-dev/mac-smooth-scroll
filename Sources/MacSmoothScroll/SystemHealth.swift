@@ -92,6 +92,8 @@ struct SystemHealthSnapshot: Equatable {
 struct SystemDiagnostics: Equatable {
     let appVersion: String
     let appBuild: String
+    let appBundleIdentifier: String
+    let installedInApplications: Bool
     let macOSVersion: String
     let architecture: String
     let smoothScrollingEnabled: Bool
@@ -103,9 +105,14 @@ struct SystemDiagnostics: Equatable {
     let launchAtLogin: LaunchAtLoginHealthStatus
 
     var report: String {
-        [
+        let applicationLocation = installedInApplications
+            ? "Applications"
+            : "Other location"
+        return [
             "Mac Smooth Scroll Diagnostics",
             "App: \(appVersion) (\(appBuild))",
+            "Bundle identifier: \(appBundleIdentifier)",
+            "Application location: \(applicationLocation)",
             "macOS: \(macOSVersion)",
             "Architecture: \(architecture)",
             "Smooth scrolling: \(onOff(smoothScrollingEnabled))",

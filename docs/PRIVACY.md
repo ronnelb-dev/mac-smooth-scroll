@@ -48,6 +48,10 @@ Application exclusions store only the displayed application name and bundle
 identifier. Mac Smooth Scroll does not store application paths, usage history,
 window titles, or the applications where scrolling occurred.
 
+**Copy Diagnostics** includes the app bundle identifier and reports its
+location only as **Applications** or **Other location**. It does not copy the
+filesystem path.
+
 ## Permissions
 
 Accessibility permission allows the app to intercept and replace mouse-wheel

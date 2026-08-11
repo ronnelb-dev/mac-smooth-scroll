@@ -126,6 +126,9 @@ In the Accessibility step, select **Request Permission**, enable
 **Mac Smooth Scroll** in **System Settings → Privacy & Security →
 Accessibility**, then return to the app. Its status should change to
 **Smooth scrolling is active**.
+Returning to Mac Smooth Scroll rechecks permission immediately. Select
+**Recheck** if System Settings remains open beside the app or the displayed
+status appears stale.
 
 Input Monitoring is not normally required by the app's permission check. If
 Accessibility is already enabled but the app still reports that permission is
@@ -243,9 +246,10 @@ Preferences are stored locally with macOS `UserDefaults`. The app checks only
 whether Mac Mouse Fix is running, by bundle identifier, so it can pause and
 avoid duplicate mouse processing. See the complete [privacy statement](docs/PRIVACY.md).
 
-**Copy Diagnostics** copies app version, macOS version, architecture, and the
-current System Health states. It does not include usernames, paths, mouse
-activity, certificates, device identifiers, or wheel-event contents.
+**Copy Diagnostics** copies app version, bundle identifier, whether the running
+copy is in Applications, macOS version, architecture, and the current System
+Health states. It does not include usernames, paths, mouse activity,
+certificates, device identifiers, or wheel-event contents.
 
 ## Troubleshooting
 

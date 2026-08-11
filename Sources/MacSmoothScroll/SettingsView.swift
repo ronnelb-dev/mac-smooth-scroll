@@ -202,6 +202,10 @@ struct SettingsView: View {
                     settings.requestPermissions()
                 }
                 .buttonStyle(.borderedProminent)
+                Button("Recheck") {
+                    settings.recheckRuntime()
+                }
+                .help("Recheck Accessibility Permission")
                 Button("Open Settings") {
                     settings.openPrivacySettings()
                 }
@@ -834,6 +838,8 @@ struct SettingsView: View {
         let diagnostics = SystemDiagnostics(
             appVersion: appVersion,
             appBuild: appBuild,
+            appBundleIdentifier: Bundle.main.bundleIdentifier ?? "Unknown",
+            installedInApplications: settings.isInstalledInApplications,
             macOSVersion: ProcessInfo.processInfo.operatingSystemVersionString,
             architecture: SystemDiagnostics.currentArchitecture,
             smoothScrollingEnabled: settings.isEnabled,

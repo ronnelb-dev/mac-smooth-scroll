@@ -71,6 +71,8 @@ final class SystemHealthTests: XCTestCase {
         let diagnostics = SystemDiagnostics(
             appVersion: "0.3.1",
             appBuild: "4",
+            appBundleIdentifier: "com.ronnel.mac-smooth-scroll",
+            installedInApplications: true,
             macOSVersion: "Version 15.5 (Build 24F74)",
             architecture: "arm64",
             smoothScrollingEnabled: true,
@@ -87,6 +89,8 @@ final class SystemHealthTests: XCTestCase {
             """
             Mac Smooth Scroll Diagnostics
             App: 0.3.1 (4)
+            Bundle identifier: com.ronnel.mac-smooth-scroll
+            Application location: Applications
             macOS: Version 15.5 (Build 24F74)
             Architecture: arm64
             Smooth scrolling: On
@@ -115,10 +119,35 @@ final class SystemHealthTests: XCTestCase {
         settings.competingDriverRecoveryMessage = "Old error"
 
         settings.retryEngine()
+        settings.recheckRuntime()
         settings.quitCompetingDriver()
 
-        XCTAssertEqual(refreshCount, 1)
+        XCTAssertEqual(refreshCount, 2)
         XCTAssertEqual(quitCount, 1)
         XCTAssertNil(settings.competingDriverRecoveryMessage)
+    }
+
+    func testDiagnosticsDescribeNonApplicationsLocationWithoutExposingAPath() {
+        let diagnostics = SystemDiagnostics(
+            appVersion: "0.4.1",
+            appBuild: "8",
+            appBundleIdentifier: "com.ronnel.mac-smooth-scroll",
+            installedInApplications: false,
+            macOSVersion: "Version 26.5.1",
+            architecture: "arm64",
+            smoothScrollingEnabled: true,
+            accessibility: .permissionRequired,
+            engine: .permissionBlocked,
+            competingDriver: .clear,
+            showInMenuBar: true,
+            launchAtLoginEnabled: false,
+            launchAtLogin: .disabled
+        )
+
+        XCTAssertTrue(
+            diagnostics.report.contains("Application location: Other location")
+        )
+        XCTAssertFalse(diagnostics.report.contains("/Applications/"))
+        XCTAssertFalse(diagnostics.report.contains("/Users/"))
     }
 }
