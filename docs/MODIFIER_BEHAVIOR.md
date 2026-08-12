@@ -25,6 +25,12 @@ an overlapping Zoom assignment can still be activated.
 
 ## Shared assignments
 
+The **Assignment Guidance** section in Settings updates immediately when two or
+more actions share a modifier. It labels compatible combinations separately
+from priority rules and states the resulting behavior in text, so the meaning
+does not depend on color. Assignments remain unchanged until the user edits a
+picker.
+
 | Assignments using the same key | Result |
 | --- | --- |
 | Horizontal + Precision | Horizontal conversion with precision speed |

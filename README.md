@@ -35,6 +35,7 @@ trackpad and Magic Mouse events untouched.
 - Bounded event-tap recovery with native pass-through and manual Retry
 - Persistent System Health checks with guided recovery and privacy-safe diagnostics
 - Native tabbed Settings that remember the last selected section
+- Keyboard navigation with Command-number tab shortcuts and live modifier-assignment guidance
 
 ## Requirements
 
@@ -207,6 +208,12 @@ transform action is active. Pinch-style Zoom produces a native magnification
 gesture; Page zoom sends the standard macOS zoom shortcuts and does not retain
 a smoothing tail. Keyboard-layout lookup and pinch capability checks occur
 locally and do not record typed keys.
+
+Use `⌘1` for **Scrolling**, `⌘2` for **Modifier Keys**, and `⌘3` for **App**.
+When a tab has keyboard focus, arrow keys move between tabs and wrap at either
+end. The Modifier Keys tab lists every shared assignment as either a compatible
+combination or a priority rule, including the exact action that wins. These
+messages are guidance only and never change the saved assignments.
 
 ## Menu-bar mode
 

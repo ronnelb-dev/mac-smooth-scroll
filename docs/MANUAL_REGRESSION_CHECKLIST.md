@@ -111,6 +111,8 @@ Use the assignments shown in **Modifier Keys** and consult
 | D11 | Assign **None** to an action. | That action no longer activates. | |
 | D12 | Assign **Bypass smooth scrolling**, begin a smooth tail, then hold the key and scroll. | The existing tail stops and subsequent physical wheel events pass through natively. | |
 | D13 | Assign Bypass to the same key as another action. | Bypass wins and no transform, zoom, or synthetic gesture event is produced. | |
+| D14 | Assign distinct modifiers, then create each shared assignment described in Modifier Key Behavior. | Assignment Guidance changes from the distinct-assignment confirmation to one row per shared key; each row says **Compatible combination** or **Priority rule applies** and accurately explains the result without changing a picker. | |
+| D15 | Turn on Full Keyboard Access. Use `⌘1`, `⌘2`, and `⌘3`, then Tab to the settings tab bar and press arrow keys at both ends. | Command shortcuts open Scrolling, Modifier Keys, and App; arrow navigation follows tab order, wraps at both ends, retains visible focus, and announces selected state in VoiceOver. | |
 
 Record the app and version used for D2–D3 because magnification and shortcut
 support remain application-specific.
