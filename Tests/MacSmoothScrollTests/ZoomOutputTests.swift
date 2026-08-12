@@ -1,3 +1,4 @@
+import Carbon.HIToolbox
 import CoreGraphics
 import XCTest
 @testable import MacSmoothScroll
@@ -88,6 +89,97 @@ final class ZoomOutputTests: XCTestCase {
         XCTAssertEqual(zoomOut?.keyCode, PageZoomShortcutSet.fallback.zoomOut.keyCode)
         XCTAssertEqual(zoomOut?.flags, .maskCommand)
         XCTAssertEqual(zoomOut?.characters, "-")
+    }
+
+    func testPageZoomSynthesizesOnlyMissingModifierTransitions() {
+        let command = PageZoomCommandDescriptor(
+            direction: .zoomIn,
+            keyCode: CGKeyCode(kVK_ANSI_Equal),
+            flags: [.maskCommand, .maskShift],
+            characters: "+"
+        )
+
+        let events = PageZoomKeyEventSequence().events(
+            for: command,
+            physicalFlags: .maskCommand
+        )
+
+        XCTAssertEqual(
+            events,
+            [
+                PageZoomKeyEventDescriptor(
+                    keyCode: CGKeyCode(kVK_Shift),
+                    keyDown: true,
+                    flags: [.maskCommand, .maskShift]
+                ),
+                PageZoomKeyEventDescriptor(
+                    keyCode: CGKeyCode(kVK_ANSI_Equal),
+                    keyDown: true,
+                    flags: [.maskCommand, .maskShift]
+                ),
+                PageZoomKeyEventDescriptor(
+                    keyCode: CGKeyCode(kVK_ANSI_Equal),
+                    keyDown: false,
+                    flags: [.maskCommand, .maskShift]
+                ),
+                PageZoomKeyEventDescriptor(
+                    keyCode: CGKeyCode(kVK_Shift),
+                    keyDown: false,
+                    flags: .maskCommand
+                )
+            ]
+        )
+    }
+
+    func testPageZoomDoesNotReleasePhysicallyHeldCommand() {
+        let command = PageZoomCommandDescriptor(
+            direction: .zoomOut,
+            keyCode: CGKeyCode(kVK_ANSI_Minus),
+            flags: .maskCommand,
+            characters: "-"
+        )
+
+        let events = PageZoomKeyEventSequence().events(
+            for: command,
+            physicalFlags: .maskCommand
+        )
+
+        XCTAssertEqual(
+            events,
+            [
+                PageZoomKeyEventDescriptor(
+                    keyCode: CGKeyCode(kVK_ANSI_Minus),
+                    keyDown: true,
+                    flags: .maskCommand
+                ),
+                PageZoomKeyEventDescriptor(
+                    keyCode: CGKeyCode(kVK_ANSI_Minus),
+                    keyDown: false,
+                    flags: .maskCommand
+                )
+            ]
+        )
+        XCTAssertFalse(events.contains { $0.keyCode == CGKeyCode(kVK_Command) })
+    }
+
+    func testPageZoomSynthesizesCommandForNonCommandActivationModifier() {
+        let command = PageZoomCommandDescriptor(
+            direction: .zoomOut,
+            keyCode: CGKeyCode(kVK_ANSI_Minus),
+            flags: .maskCommand,
+            characters: "-"
+        )
+
+        let events = PageZoomKeyEventSequence().events(
+            for: command,
+            physicalFlags: .maskAlternate
+        )
+
+        XCTAssertEqual(events.first?.keyCode, CGKeyCode(kVK_Command))
+        XCTAssertEqual(events.first?.keyDown, true)
+        XCTAssertEqual(events.last?.keyCode, CGKeyCode(kVK_Command))
+        XCTAssertEqual(events.last?.keyDown, false)
+        XCTAssertFalse(events.contains { $0.flags.contains(.maskAlternate) })
     }
 
     func testPageZoomResolvesCurrentLayoutCandidates() {

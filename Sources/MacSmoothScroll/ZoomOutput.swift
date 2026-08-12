@@ -242,6 +242,78 @@ struct PageZoomCommandDescriptor: Equatable {
     let characters: String
 }
 
+struct PageZoomKeyEventDescriptor: Equatable {
+    let keyCode: CGKeyCode
+    let keyDown: Bool
+    let flags: CGEventFlags
+}
+
+struct PageZoomKeyEventSequence {
+    private struct ModifierKey {
+        let flag: CGEventFlags
+        let keyCode: CGKeyCode
+    }
+
+    private static let supportedModifiers = [
+        ModifierKey(flag: .maskCommand, keyCode: CGKeyCode(kVK_Command)),
+        ModifierKey(flag: .maskShift, keyCode: CGKeyCode(kVK_Shift)),
+        ModifierKey(flag: .maskAlternate, keyCode: CGKeyCode(kVK_Option))
+    ]
+
+    func events(
+        for command: PageZoomCommandDescriptor,
+        physicalFlags: CGEventFlags
+    ) -> [PageZoomKeyEventDescriptor] {
+        let targetFlags = command.flags.intersection(
+            [.maskCommand, .maskShift, .maskAlternate]
+        )
+        let modifiersToPress = Self.supportedModifiers.filter {
+            targetFlags.contains($0.flag) && !physicalFlags.contains($0.flag)
+        }
+        var activeFlags = targetFlags.intersection(physicalFlags)
+        var events: [PageZoomKeyEventDescriptor] = []
+
+        for modifier in modifiersToPress {
+            activeFlags.insert(modifier.flag)
+            events.append(
+                PageZoomKeyEventDescriptor(
+                    keyCode: modifier.keyCode,
+                    keyDown: true,
+                    flags: activeFlags
+                )
+            )
+        }
+
+        events.append(
+            PageZoomKeyEventDescriptor(
+                keyCode: command.keyCode,
+                keyDown: true,
+                flags: targetFlags
+            )
+        )
+        events.append(
+            PageZoomKeyEventDescriptor(
+                keyCode: command.keyCode,
+                keyDown: false,
+                flags: targetFlags
+            )
+        )
+
+        for modifier in modifiersToPress.reversed() {
+            activeFlags.remove(modifier.flag)
+            events.append(
+                PageZoomKeyEventDescriptor(
+                    keyCode: modifier.keyCode,
+                    keyDown: false,
+                    flags: activeFlags
+                )
+            )
+        }
+
+        return events
+    }
+}
+
 struct PageZoomShortcut: Equatable {
     let keyCode: CGKeyCode
     let flags: CGEventFlags
