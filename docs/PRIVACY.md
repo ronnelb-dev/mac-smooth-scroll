@@ -21,8 +21,8 @@ The following choices are stored locally with macOS `UserDefaults`:
 - Whether smooth scrolling is enabled
 - Smoothness, speed, scroll feel, and whether Minimum wheel step is enabled,
   including its saved distance and multiplier preset
-- Trackpad-like gestures, reverse scrolling, adaptive precision, and scroll
-  acceleration
+- Trackpad-like gestures, reverse scrolling, adaptive precision, short-burst
+  scroll acceleration, and long-distance boost
 - Whether automatic axis locking is enabled
 - Modifier assignments, Zoom behavior, and temporary smooth-scrolling bypass
 - Names and bundle identifiers of applications the user excludes from smooth

@@ -218,6 +218,7 @@ final class ScrollSettings: ObservableObject {
         static let reverseDirection = "scroll.reverseDirection"
         static let adaptivePrecision = "scroll.adaptivePrecision"
         static let accelerationEnabled = "scroll.accelerationEnabled"
+        static let longDistanceBoostEnabled = "scroll.longDistanceBoostEnabled"
         static let axisLockEnabled = "scroll.axisLockEnabled"
         static let horizontalModifier = "modifier.horizontal"
         static let zoomModifier = "modifier.zoom"
@@ -283,6 +284,11 @@ final class ScrollSettings: ObservableObject {
     }
     @Published var accelerationEnabled: Bool {
         didSet { persist(Key.accelerationEnabled, accelerationEnabled) }
+    }
+    @Published var longDistanceBoostEnabled: Bool {
+        didSet {
+            persist(Key.longDistanceBoostEnabled, longDistanceBoostEnabled)
+        }
     }
     @Published var axisLockEnabled: Bool {
         didSet { persist(Key.axisLockEnabled, axisLockEnabled) }
@@ -376,8 +382,19 @@ final class ScrollSettings: ObservableObject {
         trackpadSimulation = defaults.object(forKey: Key.trackpadSimulation) as? Bool ?? true
         reverseDirection = defaults.object(forKey: Key.reverseDirection) as? Bool ?? false
         adaptivePrecision = defaults.object(forKey: Key.adaptivePrecision) as? Bool ?? true
-        accelerationEnabled =
+        let storedAcceleration =
             defaults.object(forKey: Key.accelerationEnabled) as? Bool ?? true
+        accelerationEnabled = storedAcceleration
+        if let storedLongDistanceBoost =
+            defaults.object(forKey: Key.longDistanceBoostEnabled) as? Bool {
+            longDistanceBoostEnabled = storedLongDistanceBoost
+        } else {
+            // Before this preference existed, long-distance boosting followed
+            // Scroll acceleration. Persist that state once, then let both
+            // controls evolve independently.
+            longDistanceBoostEnabled = storedAcceleration
+            defaults.set(storedAcceleration, forKey: Key.longDistanceBoostEnabled)
+        }
         axisLockEnabled =
             defaults.object(forKey: Key.axisLockEnabled) as? Bool ?? true
         horizontalModifier = ModifierKey(rawValue: defaults.string(forKey: Key.horizontalModifier) ?? "") ?? .shift
@@ -546,6 +563,7 @@ final class ScrollSettings: ObservableObject {
         reverseDirection = false
         adaptivePrecision = true
         accelerationEnabled = true
+        longDistanceBoostEnabled = true
         axisLockEnabled = true
         horizontalModifier = .shift
         zoomModifier = .command

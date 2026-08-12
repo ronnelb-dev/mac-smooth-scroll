@@ -472,6 +472,61 @@ final class ScrollInputTransformerTests: XCTestCase {
         XCTAssertEqual(full?.impulse.y ?? 0, 13.176, accuracy: 0.0001)
     }
 
+    func testLongDistanceBoostWorksWithoutShortBurstAcceleration() {
+        var transformer = ScrollInputTransformer()
+        let config = longDistanceConfiguration(
+            accelerationEnabled: false,
+            longDistanceBoostEnabled: true
+        )
+        var full: ScrollTransformResult?
+
+        for index in 0...10 {
+            full = transformer.transform(
+                sample(pointY: 18, timestamp: 1 + (Double(index) * 0.1)),
+                using: config
+            )
+        }
+
+        XCTAssertEqual(full?.velocityLimitMultiplier ?? 0, 3, accuracy: 0.0001)
+        XCTAssertEqual(full?.impulse.y ?? 0, 10.8, accuracy: 0.0001)
+    }
+
+    func testShortBurstAccelerationWorksWithoutLongDistanceBoost() {
+        var transformer = ScrollInputTransformer()
+        let config = longDistanceConfiguration(
+            accelerationEnabled: true,
+            longDistanceBoostEnabled: false
+        )
+        var full: ScrollTransformResult?
+
+        for index in 0...10 {
+            full = transformer.transform(
+                sample(pointY: 18, timestamp: 1 + (Double(index) * 0.1)),
+                using: config
+            )
+        }
+
+        XCTAssertEqual(full?.velocityLimitMultiplier ?? 0, 1, accuracy: 0.0001)
+        XCTAssertEqual(full?.impulse.y ?? 0, 4.392, accuracy: 0.0001)
+    }
+
+    func testDisablingLongDistanceBoostClearsItsRampIndependently() {
+        let enabled = longDistanceConfiguration()
+        var transformer = acceleratedTransformer(using: enabled)
+
+        _ = transformer.transform(
+            sample(pointY: 18, timestamp: 2.1),
+            using: longDistanceConfiguration(longDistanceBoostEnabled: false)
+        )
+        let restored = transformer.transform(
+            sample(pointY: 18, timestamp: 2.2),
+            using: enabled
+        )
+
+        XCTAssertEqual(restored.velocityLimitMultiplier, 1, accuracy: 0.0001)
+        XCTAssertGreaterThan(restored.impulse.y, 3.6)
+    }
+
     func testLongDistanceAccelerationIsIndependentOfEventFragmentation() {
         var unsplit = ScrollInputTransformer()
         var split = ScrollInputTransformer()
@@ -738,6 +793,7 @@ final class ScrollInputTransformerTests: XCTestCase {
         reverseDirection: Bool = false,
         adaptivePrecision: Bool = false,
         accelerationEnabled: Bool = true,
+        longDistanceBoostEnabled: Bool? = nil,
         axisLockEnabled: Bool = true,
         horizontalModifier: ModifierKey = .shift,
         zoomModifier: ModifierKey = .command,
@@ -755,6 +811,8 @@ final class ScrollInputTransformerTests: XCTestCase {
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,
             accelerationEnabled: accelerationEnabled,
+            longDistanceBoostEnabled:
+                longDistanceBoostEnabled ?? accelerationEnabled,
             axisLockEnabled: axisLockEnabled,
             horizontalModifier: horizontalModifier,
             zoomModifier: zoomModifier,
@@ -766,6 +824,7 @@ final class ScrollInputTransformerTests: XCTestCase {
 
     private func longDistanceConfiguration(
         accelerationEnabled: Bool = true,
+        longDistanceBoostEnabled: Bool? = nil,
         axisLockEnabled: Bool = true
     ) -> ScrollTransformConfiguration {
         configuration(
@@ -773,6 +832,8 @@ final class ScrollInputTransformerTests: XCTestCase {
             minimumStepEnabled: false,
             adaptivePrecision: false,
             accelerationEnabled: accelerationEnabled,
+            longDistanceBoostEnabled:
+                longDistanceBoostEnabled ?? accelerationEnabled,
             axisLockEnabled: axisLockEnabled,
             horizontalModifier: .none
         )

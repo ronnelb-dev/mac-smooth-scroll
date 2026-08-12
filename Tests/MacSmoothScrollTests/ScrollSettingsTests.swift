@@ -33,6 +33,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertFalse(settings.reverseDirection)
         XCTAssertTrue(settings.adaptivePrecision)
         XCTAssertTrue(settings.accelerationEnabled)
+        XCTAssertTrue(settings.longDistanceBoostEnabled)
         XCTAssertTrue(settings.axisLockEnabled)
         XCTAssertEqual(settings.horizontalModifier, .shift)
         XCTAssertEqual(settings.zoomModifier, .command)
@@ -62,6 +63,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.reverseDirection = true
         settings.adaptivePrecision = false
         settings.accelerationEnabled = false
+        settings.longDistanceBoostEnabled = false
         settings.axisLockEnabled = false
         settings.horizontalModifier = .control
         settings.zoomModifier = .option
@@ -91,6 +93,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertTrue(reloaded.reverseDirection)
         XCTAssertFalse(reloaded.adaptivePrecision)
         XCTAssertFalse(reloaded.accelerationEnabled)
+        XCTAssertFalse(reloaded.longDistanceBoostEnabled)
         XCTAssertFalse(reloaded.axisLockEnabled)
         XCTAssertEqual(reloaded.horizontalModifier, .control)
         XCTAssertEqual(reloaded.zoomModifier, .option)
@@ -125,6 +128,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.reverseDirection = true
         settings.adaptivePrecision = false
         settings.accelerationEnabled = false
+        settings.longDistanceBoostEnabled = false
         settings.axisLockEnabled = false
         settings.horizontalModifier = .none
         settings.zoomModifier = .none
@@ -154,6 +158,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertFalse(settings.reverseDirection)
         XCTAssertTrue(settings.adaptivePrecision)
         XCTAssertTrue(settings.accelerationEnabled)
+        XCTAssertTrue(settings.longDistanceBoostEnabled)
         XCTAssertTrue(settings.axisLockEnabled)
         XCTAssertEqual(settings.horizontalModifier, .shift)
         XCTAssertEqual(settings.zoomModifier, .command)
@@ -266,7 +271,43 @@ final class ScrollSettingsTests: XCTestCase {
     func testLegacySettingsEnableAccelerationByDefault() {
         defaults.set(ScrollFeel.glide.rawValue, forKey: "scroll.feel")
 
-        XCTAssertTrue(makeSettings().accelerationEnabled)
+        let settings = makeSettings()
+
+        XCTAssertTrue(settings.accelerationEnabled)
+        XCTAssertTrue(settings.longDistanceBoostEnabled)
+        XCTAssertTrue(defaults.bool(forKey: "scroll.longDistanceBoostEnabled"))
+    }
+
+    func testLegacyDisabledAccelerationMigratesLongDistanceBoostOff() {
+        defaults.set(false, forKey: "scroll.accelerationEnabled")
+
+        let settings = makeSettings()
+
+        XCTAssertFalse(settings.accelerationEnabled)
+        XCTAssertFalse(settings.longDistanceBoostEnabled)
+        XCTAssertNotNil(defaults.object(forKey: "scroll.longDistanceBoostEnabled"))
+        XCTAssertFalse(defaults.bool(forKey: "scroll.longDistanceBoostEnabled"))
+    }
+
+    func testExplicitLongDistanceBoostRemainsIndependent() {
+        defaults.set(false, forKey: "scroll.accelerationEnabled")
+        defaults.set(true, forKey: "scroll.longDistanceBoostEnabled")
+
+        let settings = makeSettings()
+
+        XCTAssertFalse(settings.accelerationEnabled)
+        XCTAssertTrue(settings.longDistanceBoostEnabled)
+    }
+
+    func testAccelerationControlsPersistIndependently() {
+        let settings = makeSettings()
+        settings.accelerationEnabled = false
+        settings.longDistanceBoostEnabled = true
+
+        let reloaded = makeSettings()
+
+        XCTAssertFalse(reloaded.accelerationEnabled)
+        XCTAssertTrue(reloaded.longDistanceBoostEnabled)
     }
 
     func testLegacySettingsEnableAxisLockByDefault() {
