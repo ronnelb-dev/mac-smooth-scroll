@@ -380,7 +380,16 @@ struct SettingsView: View {
             Toggle(isOn: $settings.accelerationEnabled) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Scroll acceleration")
-                    Text("Accelerate progressively during sustained rapid wheel movement.")
+                    Text("Boost short bursts of rapid wheel movement.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Toggle(isOn: $settings.longDistanceBoostEnabled) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Long-distance boost")
+                    Text("Speed up sustained scrolling after 0.4 seconds.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

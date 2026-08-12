@@ -20,6 +20,7 @@ struct ScrollTransformConfiguration {
     let reverseDirection: Bool
     let adaptivePrecision: Bool
     let accelerationEnabled: Bool
+    let longDistanceBoostEnabled: Bool
     let axisLockEnabled: Bool
     let horizontalModifier: ModifierKey
     let zoomModifier: ModifierKey
@@ -158,12 +159,15 @@ struct ScrollInputTransformer {
 
         let longDistanceMultiplier: Double
         if modifierResolution.speedAction.allowsRapidInputAcceleration,
-           configuration.accelerationEnabled {
+           (configuration.accelerationEnabled ||
+            configuration.longDistanceBoostEnabled) {
             let acceleration = accelerationMultipliers(
                 interval: interval,
                 inputDistance: max(abs(x), abs(y)),
                 direction: accelerationDirection,
-                maximumRapidInputBoost: configuration.feel.rapidInputBoost
+                maximumRapidInputBoost: configuration.feel.rapidInputBoost,
+                rapidInputEnabled: configuration.accelerationEnabled,
+                longDistanceEnabled: configuration.longDistanceBoostEnabled
             )
             baseMultiplier *= acceleration.rapidInput
             longDistanceMultiplier = acceleration.longDistance
@@ -332,7 +336,9 @@ struct ScrollInputTransformer {
         interval: TimeInterval?,
         inputDistance: Double,
         direction: TravelDirection?,
-        maximumRapidInputBoost: Double
+        maximumRapidInputBoost: Double,
+        rapidInputEnabled: Bool,
+        longDistanceEnabled: Bool
     ) -> (rapidInput: Double, longDistance: Double) {
         guard inputDistance > 0, let direction else {
             resetAccelerationState()
@@ -355,11 +361,22 @@ struct ScrollInputTransformer {
             lastAccelerationDirection = direction
         }
 
-        let rapidInput = rapidInputMultiplier(
-            interval: interval,
-            inputDistance: inputDistance,
-            maximumBoost: maximumRapidInputBoost
-        )
+        let rapidInput: Double
+        if rapidInputEnabled {
+            rapidInput = rapidInputMultiplier(
+                interval: interval,
+                inputDistance: inputDistance,
+                maximumBoost: maximumRapidInputBoost
+            )
+        } else {
+            rapidInputLevel = 0
+            rapidInput = 1
+        }
+
+        guard longDistanceEnabled else {
+            sustainedRapidDuration = 0
+            return (rapidInput, 1)
+        }
         let rampRange =
             Self.longDistanceRampEnd - Self.longDistanceRampStart
         let linearProgress = (
@@ -410,6 +427,7 @@ extension ScrollSettings {
             reverseDirection: reverseDirection,
             adaptivePrecision: adaptivePrecision,
             accelerationEnabled: accelerationEnabled,
+            longDistanceBoostEnabled: longDistanceBoostEnabled,
             axisLockEnabled: axisLockEnabled,
             horizontalModifier: horizontalModifier,
             zoomModifier: zoomModifier,

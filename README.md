@@ -21,7 +21,8 @@ trackpad and Magic Mouse events untouched.
 - Display-synchronized motion on 60 Hz and high-refresh-rate screens
 - Optional trackpad-like gesture phases
 - External-mouse-only reverse direction
-- Adaptive first-notch precision with optional movement-based acceleration
+- Adaptive first-notch precision with independent short-burst acceleration
+  and sustained long-distance boost
 - Immediate braking on direction changes and bounded maximum velocity
 - Dominant-axis locking that filters diagonal wheel noise
 - Configurable horizontal, pinch-style/page zoom, swift, and precision modifier keys
@@ -160,14 +161,15 @@ reopened.
   changing its direction.
 - Enable **Adaptive precision** to make the first wheel step after idle precise,
   then ramp smoothly as the wheel is moved faster.
-- Enable **Scroll acceleration** to increase movement during rapid wheel input.
-  Short bursts keep the existing distance-based response. Sustained movement
-  in one direction begins an additional smooth long-distance ramp after `0.4`
-  seconds and reaches its maximum near `1.0` second, making long pages faster
-  to cross without changing normal reading movements. Pausing, reversing,
-  changing axes, or using Precision resets the ramp. Acceleration uses physical
-  distance and elapsed time so mice that divide the same movement into
-  different numbers of events behave consistently.
+- Enable **Scroll acceleration** to boost short bursts of rapid wheel input
+  using physical distance and elapsed time. Mice that divide the same movement
+  into different numbers of events therefore behave consistently.
+- Enable **Long-distance boost** to add a separate sustained-travel ramp. It
+  begins after `0.4` seconds in one direction and reaches up to `3×` near `1.0`
+  second, making long pages faster to cross without changing normal reading
+  movements. Pausing, reversing, changing axes, or using Precision resets the
+  ramp. Existing installations migrate this setting to their previous Scroll
+  acceleration state, after which both controls are independent.
 - Enable **Automatic axis lock** to suppress small diagonal wheel noise. A
   deliberate perpendicular movement switches the active axis after two
   strongly dominant events; the first candidate event is suppressed to avoid
