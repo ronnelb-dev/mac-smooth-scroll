@@ -31,6 +31,7 @@ final class SmoothScrollEngine {
     private var recoveryPolicy = EventTapRecoveryPolicy()
     private var recoveryGeneration = 0
     private var recoveryScheduled = false
+    private var automaticRecoveryPaused = false
     private let eventFilter = ScrollEventFilter()
     private let bypassPolicy = ScrollBypassPolicy()
     private var gestureLifecycle = ScrollGestureLifecycle()
@@ -48,6 +49,16 @@ final class SmoothScrollEngine {
     }
 
     func refresh() {
+        refresh(isAutomaticRecovery: false)
+    }
+
+    func retry() {
+        automaticRecoveryPaused = false
+        recoveryPolicy.reset()
+        refresh()
+    }
+
+    private func refresh(isAutomaticRecovery: Bool) {
         guard settings.isEnabled else {
             stop()
             settings.engineStatus = .disabled
@@ -63,10 +74,14 @@ final class SmoothScrollEngine {
             settings.engineStatus = .permissionBlocked
             return
         }
-        start()
+        guard !automaticRecoveryPaused else {
+            settings.engineStatus = .recoveryPaused
+            return
+        }
+        start(isAutomaticRecovery: isAutomaticRecovery)
     }
 
-    func start() {
+    private func start(isAutomaticRecovery: Bool) {
         if let eventTap {
             if CGEvent.tapIsEnabled(tap: eventTap) {
                 outputGate.restore()
@@ -94,7 +109,7 @@ final class SmoothScrollEngine {
             callback: callback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            settings.engineStatus = .startFailed
+            handleStartFailure(isAutomaticRecovery: isAutomaticRecovery)
             return
         }
 
@@ -104,11 +119,24 @@ final class SmoothScrollEngine {
         eventTap = tap
         runLoopSource = source
         if CGEvent.tapIsEnabled(tap: tap) {
-            recoveryPolicy.reset()
+            if isAutomaticRecovery {
+                recoveryPolicy.didCompleteRebuild()
+            } else {
+                recoveryPolicy.reset()
+            }
             outputGate.restore()
             settings.engineStatus = .active
         } else {
             tearDownEventTap()
+            handleStartFailure(isAutomaticRecovery: isAutomaticRecovery)
+        }
+    }
+
+    private func handleStartFailure(isAutomaticRecovery: Bool) {
+        if isAutomaticRecovery {
+            automaticRecoveryPaused = true
+            settings.engineStatus = .recoveryPaused
+        } else {
             settings.engineStatus = .startFailed
         }
     }
@@ -134,6 +162,7 @@ final class SmoothScrollEngine {
     func stop() {
         recoveryGeneration &+= 1
         recoveryScheduled = false
+        automaticRecoveryPaused = false
         recoveryPolicy.reset()
         resetMotion()
         tearDownEventTap()
@@ -217,6 +246,7 @@ final class SmoothScrollEngine {
     }
 
     private func recoverEventTap(after reason: EventTapDisableReason) {
+        guard !recoveryScheduled, !automaticRecoveryPaused else { return }
         settings.engineStatus = .recovering
         let action = recoveryPolicy.action(
             for: reason,
@@ -226,18 +256,29 @@ final class SmoothScrollEngine {
         switch action {
         case .reenable:
             guard let eventTap else {
-                scheduleEventTapRebuild()
+                recoverEventTap(after: .healthCheck)
                 return
             }
             CGEvent.tapEnable(tap: eventTap, enable: true)
             if CGEvent.tapIsEnabled(tap: eventTap) {
                 settings.engineStatus = .active
             } else {
-                scheduleEventTapRebuild()
+                recoverEventTap(after: .healthCheck)
             }
         case .rebuild:
             scheduleEventTapRebuild()
+        case .stop:
+            pauseAutomaticRecovery()
         }
+    }
+
+    private func pauseAutomaticRecovery() {
+        recoveryGeneration &+= 1
+        recoveryScheduled = false
+        automaticRecoveryPaused = true
+        resetMotion()
+        tearDownEventTap()
+        settings.engineStatus = .recoveryPaused
     }
 
     private func scheduleEventTapRebuild() {
@@ -258,8 +299,7 @@ final class SmoothScrollEngine {
             self.recoveryScheduled = false
             self.resetMotion()
             self.tearDownEventTap()
-            self.recoveryPolicy.reset()
-            self.refresh()
+            self.refresh(isAutomaticRecovery: true)
         }
     }
 

@@ -100,7 +100,8 @@ those tests do not identify a real device or exercise its driver.
 | None | Mac Smooth Scroll owns discrete-wheel transformation. | None | **Untested** |
 | Mac Mouse Fix | Mac Smooth Scroll detects the app/helper, pauses, and resumes after it quits. | None | **Untested** |
 | Logitech Options or Options+ | No automatic detection; record duplication, distortion, or blocking. | None | **Untested** |
-| LinearMouse | No automatic detection; record duplication, distortion, or blocking. | None | **Untested** |
+| LinearMouse | Detected by known bundle identifier; advisory only, with no automatic pause or quit. | None | **Untested** |
+| Mos | Detected by known bundle identifier; advisory only, with no automatic pause or quit. | None | **Untested** |
 | SteerMouse | No automatic detection; record duplication, distortion, or blocking. | None | **Untested** |
 | Other | Record the exact utility and version. | None | **Untested** |
 

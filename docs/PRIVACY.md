@@ -66,10 +66,12 @@ read, store, or transmit typed characters or keyboard activity.
 
 ## Other applications
 
-Mac Smooth Scroll checks whether processes with the Mac Mouse Fix application
-or helper bundle identifiers are running. It uses only that running/not-running
-state to pause its scroll engine and prevent two mouse drivers from processing
-the same wheel input.
+Mac Smooth Scroll compares the bundle identifiers of currently running
+applications with a small built-in list for Mac Mouse Fix, LinearMouse, and
+Mos. It uses Mac Mouse Fix's running/not-running state to pause its scroll
+engine. LinearMouse and Mos produce advisory guidance only. The app does not
+retain running-application history, store paths, inspect application content,
+or include detected utility names in Copy Diagnostics.
 
 ## Network activity
 

@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     private lazy var scrollEngine = SmoothScrollEngine(settings: settings)
     private var statusItem: NSStatusItem?
     private var permissionTimer: Timer?
+    private let mouseUtilityDetector = MouseUtilityDetector()
     private var isHiddenToMenuBar = false
     private var isTerminating = false
     private let launchMode = AppLaunchMode(arguments: ProcessInfo.processInfo.arguments)
@@ -46,6 +47,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         }
         settings.onRefreshRuntime = { [weak self] in
             self?.updateRuntimeState(forceEngineRefresh: true)
+        }
+        settings.onRetryEngine = { [weak self] in
+            self?.retryScrollEngine()
         }
         settings.onQuitCompetingDriver = { [weak self] in
             self?.quitCompetingDriver()
@@ -128,9 +132,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         // Input Monitoring preflight API is for listen-only monitoring and
         // should not block this app after Accessibility has been granted.
         settings.permissionGranted = AXIsProcessTrusted()
-        settings.competingDriverRunning =
-            !NSRunningApplication.runningApplications(withBundleIdentifier: "com.nuebling.mac-mouse-fix").isEmpty ||
-            !NSRunningApplication.runningApplications(withBundleIdentifier: "com.nuebling.mac-mouse-fix.helper").isEmpty
+        let mouseUtilities = mouseUtilityDetector.detect(
+            bundleIdentifiers: NSWorkspace.shared.runningApplications.compactMap(
+                \.bundleIdentifier
+            )
+        )
+        settings.competingDriverRunning = mouseUtilities.blockingDriverRunning
+        if settings.advisoryMouseDriverNames != mouseUtilities.advisoryNames {
+            settings.advisoryMouseDriverNames = mouseUtilities.advisoryNames
+        }
         if !settings.competingDriverRunning {
             settings.competingDriverRecoveryMessage = nil
         }
@@ -147,6 +157,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
                 updateStatusItemAppearance()
             }
         }
+    }
+
+    private func retryScrollEngine() {
+        updateRuntimeState()
+        scrollEngine.retry()
+        updateStatusItemAppearance()
     }
 
     private func quitCompetingDriver() {

@@ -11,6 +11,7 @@ final class MenuBarPresentationTests: XCTestCase {
             .permissionBlocked,
             .driverConflict,
             .startFailed,
+            .recoveryPaused,
             .outputFailed
         ]
 
@@ -69,6 +70,13 @@ final class MenuBarPresentationTests: XCTestCase {
             MenuBarPresentation.make(
                 isEnabled: true,
                 engineStatus: .outputFailed
+            ).recoveryAction,
+            .retryEngine
+        )
+        XCTAssertEqual(
+            MenuBarPresentation.make(
+                isEnabled: true,
+                engineStatus: .recoveryPaused
             ).recoveryAction,
             .retryEngine
         )

@@ -65,6 +65,10 @@ struct MenuBarPresentation: Equatable {
             symbol = "xmark.circle.fill"
             statusItemSymbol = "exclamationmark.triangle.fill"
             recovery = .retryEngine
+        case .recoveryPaused:
+            symbol = "arrow.clockwise.circle.fill"
+            statusItemSymbol = "exclamationmark.triangle.fill"
+            recovery = .retryEngine
         case .outputFailed:
             symbol = "exclamationmark.circle.fill"
             statusItemSymbol = "exclamationmark.triangle.fill"

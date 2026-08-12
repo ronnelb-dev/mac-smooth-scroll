@@ -31,6 +31,8 @@ trackpad and Magic Mouse events untouched.
 - Background-only launch at login with a dedicated helper
 - Native Accessibility permission onboarding
 - Automatic pause while Mac Mouse Fix is running to prevent conflicting input
+- Advisory detection for LinearMouse and Mos without disabling smooth scrolling
+- Bounded event-tap recovery with native pass-through and manual Retry
 - Persistent System Health checks with guided recovery and privacy-safe diagnostics
 - Native tabbed Settings that remember the last selected section
 
@@ -248,9 +250,10 @@ no networking, analytics, telemetry, advertising, account, cloud-sync, or
 automatic-update code. It does not save or transmit raw wheel events or
 keyboard input.
 
-Preferences are stored locally with macOS `UserDefaults`. The app checks only
-whether Mac Mouse Fix is running, by bundle identifier, so it can pause and
-avoid duplicate mouse processing. See the complete [privacy statement](docs/PRIVACY.md).
+Preferences are stored locally with macOS `UserDefaults`. The app checks known
+bundle identifiers for Mac Mouse Fix, LinearMouse, and Mos. Mac Mouse Fix
+pauses the engine to prevent duplicate processing; the other detections are
+advisory only. See the complete [privacy statement](docs/PRIVACY.md).
 
 **Copy Diagnostics** copies app version, bundle identifier, whether the running
 copy is in Applications, macOS version, architecture, and the current System
@@ -289,7 +292,8 @@ See [Troubleshooting Mac Smooth Scroll](docs/TROUBLESHOOTING.md) for help with:
   **Open Anyway** before the app can launch.
 - Settings are global; per-app and per-mouse profiles are not implemented.
 - Other mouse drivers can duplicate or distort wheel input. Mac Mouse Fix is
-  detected automatically, but other utilities may need to be quit manually.
+  detected and blocks the engine; LinearMouse and Mos produce advisory health
+  guidance. Other utilities may still need to be identified manually.
 - Ad-hoc rebuilds can require Accessibility permission to be approved again.
 
 ## Build and signing

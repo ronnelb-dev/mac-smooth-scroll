@@ -13,6 +13,7 @@ enum ScrollEngineStatus: String, Equatable {
     case permissionBlocked = "Permission blocked"
     case driverConflict = "Driver conflict"
     case startFailed = "Could not start"
+    case recoveryPaused = "Recovery paused"
     case outputFailed = "Output unavailable"
 
     var message: String {
@@ -31,6 +32,8 @@ enum ScrollEngineStatus: String, Equatable {
             "Paused while Mac Mouse Fix is running"
         case .startFailed:
             "Could not start. Verify Accessibility, then retry."
+        case .recoveryPaused:
+            "Automatic recovery paused. Retry the scroll engine."
         case .outputFailed:
             "Native scrolling is active. Retry smooth scrolling."
         }
@@ -39,6 +42,7 @@ enum ScrollEngineStatus: String, Equatable {
 
 enum CompetingDriverHealthStatus: String, Equatable {
     case clear = "No conflict"
+    case advisory = "Review recommended"
     case detected = "Mac Mouse Fix detected"
 }
 
@@ -81,12 +85,15 @@ struct SystemHealthSnapshot: Equatable {
         permissionGranted: Bool,
         engine: ScrollEngineStatus,
         competingDriverRunning: Bool,
+        advisoryMouseDriversDetected: Bool = false,
         launchAtLogin: LaunchAtLoginHealthStatus
     ) -> SystemHealthSnapshot {
         SystemHealthSnapshot(
             accessibility: permissionGranted ? .ready : .permissionRequired,
             engine: engine,
-            competingDriver: competingDriverRunning ? .detected : .clear,
+            competingDriver: competingDriverRunning
+                ? .detected
+                : advisoryMouseDriversDetected ? .advisory : .clear,
             launchAtLogin: launchAtLogin
         )
     }
