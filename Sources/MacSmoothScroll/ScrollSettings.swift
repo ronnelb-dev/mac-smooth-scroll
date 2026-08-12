@@ -240,6 +240,7 @@ final class ScrollSettings: ObservableObject {
     var onOpenSettings: (() -> Void)?
     var onHideApp: (() -> Void)?
     var onRefreshRuntime: (() -> Void)?
+    var onRetryEngine: (() -> Void)?
     var onQuitCompetingDriver: (() -> Void)?
     var onEngineStatusChange: (() -> Void)?
 
@@ -330,6 +331,7 @@ final class ScrollSettings: ObservableObject {
     }
     @Published var permissionGranted = false
     @Published var competingDriverRunning = false
+    @Published var advisoryMouseDriverNames: [String] = []
     @Published var engineStatus = ScrollEngineStatus.waiting {
         didSet {
             if engineStatus != oldValue {
@@ -357,6 +359,7 @@ final class ScrollSettings: ObservableObject {
             permissionGranted: permissionGranted,
             engine: engineStatus,
             competingDriverRunning: competingDriverRunning,
+            advisoryMouseDriversDetected: !advisoryMouseDriverNames.isEmpty,
             launchAtLogin: launchAtLoginHealthStatus
         )
     }
@@ -465,7 +468,11 @@ final class ScrollSettings: ObservableObject {
     }
 
     func retryEngine() {
-        recheckRuntime()
+        if let onRetryEngine {
+            onRetryEngine()
+        } else {
+            recheckRuntime()
+        }
     }
 
     func recheckRuntime() {

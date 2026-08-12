@@ -159,8 +159,10 @@ Run these cases with the app installed in `/Applications`.
 | H1 | Start Mac Mouse Fix while Mac Smooth Scroll is active. | Mac Smooth Scroll pauses, reports **Driver conflict**, and avoids duplicate transformation. | |
 | H2 | Select **Quit Mac Mouse Fix** from System Health. | A graceful quit is requested; Mac Smooth Scroll resumes when the conflict clears. | |
 | H3 | If graceful termination is declined or fails, quit Mac Mouse Fix manually. | The warning remains actionable until the process exits, then the engine resumes. | |
-| H4 | If the event tap is interrupted during testing, observe System Health. | **Recovering** returns to **Active** automatically, or changes to **Could not start** with **Retry**. | |
-| H5 | Test alongside any other installed mouse utility. | Record whether scrolling is clear, doubled, distorted, or blocked; no automatic detection is expected for utilities other than Mac Mouse Fix. | |
+| H4 | Repeatedly interrupt or disable the event tap more than three times within 30 seconds. | Isolated failures re-enable or rebuild automatically; after the third rebuild, System Health reports **Recovery paused**, native wheel events pass through, and no further automatic rebuild occurs. | |
+| H5 | Select **Retry** after recovery pauses. | The recovery budget resets, one new start is attempted, and status becomes **Active** or returns to an actionable failure without looping. | |
+| H6 | Start LinearMouse or Mos while Mac Smooth Scroll is active. | Mouse drivers reports **Review recommended** with the detected utility name, while the scroll engine remains active and no quit is attempted. | |
+| H7 | Test alongside another mouse utility such as Logitech Options or SteerMouse. | Record whether scrolling is clear, doubled, distorted, or blocked; unlisted utilities do not change engine state. | |
 
 Mark unavailable third-party utilities **Not run**, not **Pass**.
 

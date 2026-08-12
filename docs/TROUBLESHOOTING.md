@@ -43,12 +43,15 @@ check. Accessibility is the primary permission for its modifying event tap.
 macOS can temporarily disable an event tap after a timeout or certain user
 input. Mac Smooth Scroll first tries to re-enable an isolated interruption. If
 interruptions repeat, or the periodic health check finds a disabled tap, the
-app rebuilds the tap automatically.
+app rebuilds the tap automatically. Automatic recovery is limited to three
+rebuilds within 30 seconds so a persistently failing tap cannot loop forever.
 
 **Recovering** should normally return to **Active** without any action. If it
-changes to **Could not start**, verify Accessibility and use **Retry**. If
-recovery happens repeatedly, quit other mouse utilities and include
-**Copy Diagnostics** output in a bug report.
+changes to **Recovery paused**, physical wheel events continue natively. Quit
+other mouse utilities, verify Accessibility, and use **Retry** to reset the
+recovery budget and try once more. If a rebuilt tap cannot be created, the same
+manual recovery path is used. Include **Copy Diagnostics** output in a bug
+report if the problem returns.
 
 ## Mac Mouse Fix is running
 
@@ -57,9 +60,12 @@ running. Select **Quit Mac Mouse Fix** on the Mouse drivers health row to
 request a normal quit, or quit Mac Mouse Fix from its own menu. Mac Smooth
 Scroll should resume automatically. The app never force-quits another driver.
 
-Other mouse utilities are not detected automatically. If scrolling is doubled,
-distorted, or unusually fast, quit Logitech Options, SteerMouse, LinearMouse,
-or other software that transforms wheel events and test again.
+LinearMouse and Mos are detected as advisory utilities. Mac Smooth Scroll keeps
+its engine active and shows **Review recommended** because either utility may
+be installed without transforming the wheel. If scrolling is doubled,
+distorted, or unusually fast, disable scrolling in one utility and test again.
+Logitech Options, SteerMouse, and other utilities are not detected yet and may
+still need to be identified manually.
 
 ## Smooth scrolling is off
 

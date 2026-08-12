@@ -228,7 +228,7 @@ struct SettingsView: View {
                     settings.isEnabled = true
                 }
                 .buttonStyle(.borderedProminent)
-            case .startFailed, .outputFailed:
+            case .startFailed, .recoveryPaused, .outputFailed:
                 Button("Retry") {
                     settings.retryEngine()
                 }
@@ -243,14 +243,10 @@ struct SettingsView: View {
     private var competingDriverHealthRow: some View {
         healthRow(
             title: "Mouse drivers",
-            detail: settings.competingDriverRunning
-                ? "Another wheel driver can duplicate or distort scrolling."
-                : "No known conflicting mouse driver is running.",
+            detail: mouseDriverHealthDetail,
             status: settings.systemHealth.competingDriver.rawValue,
-            symbol: settings.competingDriverRunning
-                ? "exclamationmark.triangle.fill"
-                : "checkmark.circle.fill",
-            tone: settings.competingDriverRunning ? .warning : .ready
+            symbol: mouseDriverHealthSymbol,
+            tone: mouseDriverHealthTone
         ) {
             if settings.competingDriverRunning {
                 Button("Quit Mac Mouse Fix") {
@@ -266,6 +262,27 @@ struct SettingsView: View {
                 .foregroundStyle(.red)
                 .accessibilityLabel("Mouse driver recovery failed. \(message)")
         }
+    }
+
+    private var mouseDriverHealthDetail: String {
+        if settings.competingDriverRunning {
+            return "Mac Mouse Fix can duplicate wheel transformation, so smooth scrolling is paused."
+        }
+        if !settings.advisoryMouseDriverNames.isEmpty {
+            let names = settings.advisoryMouseDriverNames.joined(separator: ", ")
+            return "Also running: \(names). Smooth scrolling remains active; disable one utility if input feels duplicated or distorted."
+        }
+        return "No known conflicting mouse driver is running."
+    }
+
+    private var mouseDriverHealthSymbol: String {
+        settings.systemHealth.competingDriver == .clear
+            ? "checkmark.circle.fill"
+            : "exclamationmark.triangle.fill"
+    }
+
+    private var mouseDriverHealthTone: HealthTone {
+        settings.systemHealth.competingDriver == .clear ? .ready : .warning
     }
 
     private var launchAtLoginHealthRow: some View {
@@ -728,7 +745,9 @@ struct SettingsView: View {
 
     private var statusColor: Color {
         if !settings.isEnabled { return .secondary }
-        if settings.engineStatus == .startFailed || settings.engineStatus == .outputFailed {
+        if settings.engineStatus == .startFailed ||
+            settings.engineStatus == .recoveryPaused ||
+            settings.engineStatus == .outputFailed {
             return .red
         }
         return settings.engineStatus == .active ? .green : .orange
@@ -760,6 +779,8 @@ struct SettingsView: View {
             "The engine is paused until Mac Mouse Fix quits."
         case .startFailed:
             "The event tap could not be created. Check permission, then retry."
+        case .recoveryPaused:
+            "Repeated interruptions exhausted automatic recovery. Physical wheel events are passing through unchanged."
         case .outputFailed:
             "Smooth output could not continue. Physical wheel events are passing through unchanged."
         }
@@ -774,6 +795,7 @@ struct SettingsView: View {
         case .permissionBlocked: "lock.fill"
         case .driverConflict: "exclamationmark.triangle.fill"
         case .startFailed: "xmark.octagon.fill"
+        case .recoveryPaused: "arrow.clockwise.circle.fill"
         case .outputFailed: "exclamationmark.circle.fill"
         }
     }
@@ -783,7 +805,7 @@ struct SettingsView: View {
         case .active: .ready
         case .waiting, .recovering, .disabled: .neutral
         case .permissionBlocked, .driverConflict: .warning
-        case .startFailed, .outputFailed: .error
+        case .startFailed, .recoveryPaused, .outputFailed: .error
         }
     }
 

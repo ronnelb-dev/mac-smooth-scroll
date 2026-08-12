@@ -38,6 +38,7 @@ final class SystemHealthTests: XCTestCase {
             .permissionBlocked,
             .driverConflict,
             .startFailed,
+            .recoveryPaused,
             .outputFailed
         ]
 
@@ -60,6 +61,38 @@ final class SystemHealthTests: XCTestCase {
             ScrollEngineStatus.outputFailed.message,
             "Native scrolling is active. Retry smooth scrolling."
         )
+    }
+
+    func testRecoveryFailureExplainsManualRetry() {
+        XCTAssertEqual(
+            ScrollEngineStatus.recoveryPaused.message,
+            "Automatic recovery paused. Retry the scroll engine."
+        )
+    }
+
+    func testAdvisoryMouseUtilityDoesNotBecomeBlockingConflict() {
+        let snapshot = SystemHealthSnapshot.make(
+            permissionGranted: true,
+            engine: .active,
+            competingDriverRunning: false,
+            advisoryMouseDriversDetected: true,
+            launchAtLogin: .disabled
+        )
+
+        XCTAssertEqual(snapshot.engine, .active)
+        XCTAssertEqual(snapshot.competingDriver, .advisory)
+    }
+
+    func testBlockingMouseUtilityTakesPriorityOverAdvisory() {
+        let snapshot = SystemHealthSnapshot.make(
+            permissionGranted: true,
+            engine: .driverConflict,
+            competingDriverRunning: true,
+            advisoryMouseDriversDetected: true,
+            launchAtLogin: .disabled
+        )
+
+        XCTAssertEqual(snapshot.competingDriver, .detected)
     }
 
     func testEngineStatusChangeNotifiesOnlyWhenTheStatusChanges() {
@@ -136,8 +169,10 @@ final class SystemHealthTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let settings = ScrollSettings(defaults: defaults, managesLaunchAtLogin: false)
         var refreshCount = 0
+        var retryCount = 0
         var quitCount = 0
         settings.onRefreshRuntime = { refreshCount += 1 }
+        settings.onRetryEngine = { retryCount += 1 }
         settings.onQuitCompetingDriver = { quitCount += 1 }
         settings.competingDriverRecoveryMessage = "Old error"
 
@@ -145,7 +180,8 @@ final class SystemHealthTests: XCTestCase {
         settings.recheckRuntime()
         settings.quitCompetingDriver()
 
-        XCTAssertEqual(refreshCount, 2)
+        XCTAssertEqual(refreshCount, 1)
+        XCTAssertEqual(retryCount, 1)
         XCTAssertEqual(quitCount, 1)
         XCTAssertNil(settings.competingDriverRecoveryMessage)
     }
@@ -172,5 +208,31 @@ final class SystemHealthTests: XCTestCase {
         )
         XCTAssertFalse(diagnostics.report.contains("/Applications/"))
         XCTAssertFalse(diagnostics.report.contains("/Users/"))
+    }
+
+    func testDiagnosticsReportAdvisoryWithoutUtilityNames() {
+        let diagnostics = SystemDiagnostics(
+            appVersion: "0.4.1",
+            appBuild: "8",
+            appBundleIdentifier: "com.ronnel.mac-smooth-scroll",
+            installedInApplications: true,
+            macOSVersion: "Version 26.5.1",
+            architecture: "arm64",
+            smoothScrollingEnabled: true,
+            accessibility: .ready,
+            engine: .active,
+            competingDriver: .advisory,
+            showInMenuBar: true,
+            launchAtLoginEnabled: false,
+            launchAtLogin: .disabled
+        )
+
+        XCTAssertTrue(
+            diagnostics.report.contains(
+                "Mouse driver conflict: Review recommended"
+            )
+        )
+        XCTAssertFalse(diagnostics.report.contains("LinearMouse"))
+        XCTAssertFalse(diagnostics.report.contains("Mos"))
     }
 }
