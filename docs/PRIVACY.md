@@ -14,6 +14,15 @@ This processing happens in memory. Mac Smooth Scroll does not save or transmit
 raw wheel events, keyboard input, browsing activity, application content, or
 mouse usage history.
 
+When the user explicitly starts Mouse Calibration, the app temporarily keeps
+up to 24 physical wheel samples in memory. It uses only event timing,
+continuous/discrete classification, axis dominance, and wheel-distance
+magnitudes to recommend existing Minimum wheel step settings. The samples are
+discarded when calibration finishes or is cancelled. The result, raw samples,
+device identity, and mouse model are not written to `UserDefaults` or included
+in Copy Diagnostics. Settings change only if the user selects **Apply
+Recommendation**.
+
 ## Local preferences
 
 The following choices are stored locally with macOS `UserDefaults`:

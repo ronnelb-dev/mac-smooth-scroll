@@ -36,6 +36,7 @@ trackpad and Magic Mouse events untouched.
 - Persistent System Health checks with guided recovery and privacy-safe diagnostics
 - Native tabbed Settings that remember the last selected section
 - Keyboard navigation with Command-number tab shortcuts and live modifier-assignment guidance
+- Privacy-safe mouse calibration with recommendations for notched and free-spinning wheels
 
 ## Requirements
 
@@ -179,6 +180,12 @@ reopened.
   a wrong-direction nudge. Turn it off to preserve both axes unchanged.
 - Enable **Trackpad-like gestures** to add gesture phases used by natural
   scrolling and horizontal navigation.
+- Under **Mouse Calibration**, select **Start Calibration…**, then move one
+  external mouse wheel normally until analysis finishes. The result identifies
+  notched, high-resolution/free-spinning, mixed, or native continuous input and
+  recommends existing Minimum wheel step settings. Nothing changes until you
+  select **Apply Recommendation**. Samples stay in memory only and are discarded
+  when calibration ends; no device identifier or raw wheel history is saved.
 - In **Modifier Keys**, assign keys for horizontal scrolling, zoom, faster
   scrolling, precision scrolling, or temporary native-event bypass. Choose
   **Pinch-style** Zoom for smooth, cursor-centered magnification in Chrome,
@@ -257,6 +264,11 @@ no networking, analytics, telemetry, advertising, account, cloud-sync, or
 automatic-update code. It does not save or transmit raw wheel events or
 keyboard input.
 
+Mouse Calibration temporarily retains up to 24 physical wheel samples in
+memory while its progress is visible. It stores no calibration samples,
+device identifiers, or mouse profile; only an explicitly applied recommendation
+changes the existing Minimum wheel step preferences.
+
 Preferences are stored locally with macOS `UserDefaults`. The app checks known
 bundle identifiers for Mac Mouse Fix, LinearMouse, and Mos. Mac Mouse Fix
 pauses the engine to prevent duplicate processing; the other detections are
@@ -329,7 +341,8 @@ swift test --arch arm64
 
 The tests cover launch-mode parsing, settings defaults and persistence,
 modifier behavior, burst and axis rules, direction-change braking, velocity
-limits, and refresh-rate-independent motion. GitHub Actions runs the suite
+limits, wheel-calibration classification, and refresh-rate-independent motion.
+GitHub Actions runs the suite
 before packaging every pull request and `main` update.
 
 Hardware, Accessibility, menu-bar, and login-session behavior must also be

@@ -33,6 +33,11 @@ input device. Submit successful manual results as focused pull requests. Open
 a focused bug report for failures and link it from the matrix instead of
 placing investigation logs in the documentation.
 
+Use the repository's **Compatibility result** issue form to capture one
+physical hardware combination without raw event data or device identifiers.
+The in-app calibration result is supporting context, not proof that the full
+manual checklist passed.
+
 ## Before opening a pull request
 
 Run:

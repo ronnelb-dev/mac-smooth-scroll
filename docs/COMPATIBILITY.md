@@ -1,8 +1,8 @@
 # Compatibility Matrix
 
-- Matrix version: **2**
-- Last updated: **2026-08-11**
-- Runtime baseline: **Mac Smooth Scroll 0.4.1 (8)** at commit [`0c7aaac`](https://github.com/ronnelb-dev/mac-smooth-scroll/commit/0c7aaac031aa344bcec276654e782a0b10b83709)
+- Matrix version: **3**
+- Last updated: **2026-08-12**
+- Runtime baseline: **Mac Smooth Scroll 0.4.1 (8)** on current `main`
 
 Mac Smooth Scroll supports Apple Silicon and has a deployment target of macOS
 13 or later. A supported target is not automatically a verified hardware
@@ -25,6 +25,15 @@ sequence covered here. Apple also identifies
 Unit tests and successful packaging do not prove wheel feel, device
 classification, native pass-through, Accessibility behavior, or login-session
 behavior on a specific Mac.
+
+## Calibration evidence boundary
+
+The in-app Mouse Calibration tool classifies a short, session-only sample as a
+notched, high-resolution/free-spinning, mixed, or native continuous stream. It
+can recommend existing Minimum wheel step settings, but it cannot identify the
+mouse model or prove full compatibility. It stores no raw samples, result, or
+device identifier. A matrix cell becomes **Manual verified** only after the
+relevant physical checklist passes and a reproducible result is submitted.
 
 ## Zoom compatibility
 
@@ -136,7 +145,9 @@ When a test fails:
 
 ## Submitting a successful result
 
-Open a focused pull request that adds one manual verification row and updates
+Start with the repository's
+[Compatibility result form](https://github.com/ronnelb-dev/mac-smooth-scroll/issues/new?template=compatibility_report.yml),
+then open a focused pull request that adds one manual verification row and updates
 only the cells supported by that row. Include:
 
 - Test date
@@ -148,6 +159,7 @@ only the cells supported by that row. Include:
 - Notched, free-spinning, or continuous input type
 - Display refresh rate
 - Other running mouse utilities
+- In-app calibration result, if run
 - Checklist sections run
 - Pass, Fail, Blocked, or Not run result
 
