@@ -35,7 +35,10 @@ final class SmoothScrollEngine {
     private let bypassPolicy = ScrollBypassPolicy()
     private var gestureLifecycle = ScrollGestureLifecycle()
     private var magnificationLifecycle = MagnificationLifecycle()
+    private var magnificationEventFactory = MagnificationEventFactory()
     private var pageZoomController = PageZoomController()
+    private let pageZoomShortcutResolver = PageZoomShortcutResolver()
+    private let zoomOutputCapabilityResolver = ZoomOutputCapabilityResolver()
     private let chromiumClassifier = ChromiumBundleClassifier()
     private var activeOutput: ScrollTransformOutput?
     private var outputGate = ScrollOutputGate()
@@ -267,6 +270,13 @@ final class SmoothScrollEngine {
         let pointX = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2))
 
         let timestamp = ProcessInfo.processInfo.systemUptime
+        let requestedConfiguration = settings.scrollTransformConfiguration
+        let configuration = requestedConfiguration.replacingZoomBehavior(
+            with: zoomOutputCapabilityResolver.effectiveBehavior(
+                requested: requestedConfiguration.zoomBehavior,
+                pinchEventsAvailable: magnificationEventFactory.isAvailable()
+            )
+        )
         let result = inputTransformer.transform(
             ScrollInputSample(
                 lineX: lineX,
@@ -276,7 +286,7 @@ final class SmoothScrollEngine {
                 flags: event.flags,
                 timestamp: timestamp
             ),
-            using: settings.scrollTransformConfiguration
+            using: configuration
         )
 
         if result.beginsNewBurst {
@@ -296,7 +306,8 @@ final class SmoothScrollEngine {
             }
             if let command = pageZoomController.command(
                 for: direction,
-                at: timestamp
+                at: timestamp,
+                shortcuts: pageZoomShortcutResolver.resolveCurrentLayout()
             ) {
                 guard outputGate.record(postPageZoom(command)) else {
                     failOpen()
@@ -453,20 +464,9 @@ final class SmoothScrollEngine {
     }
 
     private func postMagnification(_ descriptor: MagnificationEventDescriptor) -> Bool {
-        guard let event = CGEvent(source: nil) else { return false }
-        event.type = CGEventType(rawValue: 29)!
-        event.setIntegerValueField(
-            CGEventField(rawValue: 110)!,
-            value: 8
-        )
-        event.setIntegerValueField(
-            CGEventField(rawValue: 132)!,
-            value: descriptor.phase.rawValue
-        )
-        event.setDoubleValueField(
-            CGEventField(rawValue: 113)!,
-            value: descriptor.magnification
-        )
+        guard let event = magnificationEventFactory.event(for: descriptor) else {
+            return false
+        }
         event.post(tap: .cghidEventTap)
         return true
     }
@@ -484,6 +484,17 @@ final class SmoothScrollEngine {
 
         keyDown.flags = descriptor.flags
         keyUp.flags = descriptor.flags
+        let characters = Array(descriptor.characters.utf16)
+        characters.withUnsafeBufferPointer { buffer in
+            keyDown.keyboardSetUnicodeString(
+                stringLength: buffer.count,
+                unicodeString: buffer.baseAddress
+            )
+            keyUp.keyboardSetUnicodeString(
+                stringLength: buffer.count,
+                unicodeString: buffer.baseAddress
+            )
+        }
         keyDown.post(tap: .cghidEventTap)
         keyUp.post(tap: .cghidEventTap)
         return true

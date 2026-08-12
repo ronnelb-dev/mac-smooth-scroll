@@ -82,10 +82,121 @@ final class ZoomOutputTests: XCTestCase {
         controller.reset()
         let zoomOut = controller.command(for: .zoomOut, at: 1)
 
-        XCTAssertEqual(zoomIn?.keyCode, PageZoomController.zoomInKeyCode)
+        XCTAssertEqual(zoomIn?.keyCode, PageZoomShortcutSet.fallback.zoomIn.keyCode)
         XCTAssertEqual(zoomIn?.flags, [.maskCommand, .maskShift])
-        XCTAssertEqual(zoomOut?.keyCode, PageZoomController.zoomOutKeyCode)
+        XCTAssertEqual(zoomIn?.characters, "+")
+        XCTAssertEqual(zoomOut?.keyCode, PageZoomShortcutSet.fallback.zoomOut.keyCode)
         XCTAssertEqual(zoomOut?.flags, .maskCommand)
+        XCTAssertEqual(zoomOut?.characters, "-")
+    }
+
+    func testPageZoomResolvesCurrentLayoutCandidates() {
+        let resolver = PageZoomShortcutResolver()
+        let shortcuts = resolver.resolve(candidates: [
+            KeyboardLayoutKeyCandidate(
+                keyCode: 42,
+                flags: .maskAlternate,
+                characters: "+"
+            ),
+            KeyboardLayoutKeyCandidate(
+                keyCode: 43,
+                flags: [.maskShift, .maskAlternate],
+                characters: "-"
+            )
+        ])
+        var controller = PageZoomController()
+        let zoomIn = controller.command(
+            for: .zoomIn,
+            at: 1,
+            shortcuts: shortcuts
+        )
+        controller.reset()
+        let zoomOut = controller.command(
+            for: .zoomOut,
+            at: 1,
+            shortcuts: shortcuts
+        )
+
+        XCTAssertEqual(zoomIn?.keyCode, 42)
+        XCTAssertEqual(zoomIn?.flags, [.maskCommand, .maskAlternate])
+        XCTAssertEqual(zoomOut?.keyCode, 43)
+        XCTAssertEqual(
+            zoomOut?.flags,
+            [.maskCommand, .maskShift, .maskAlternate]
+        )
+    }
+
+    func testPageZoomFallsBackPerMissingLayoutCharacter() {
+        let resolver = PageZoomShortcutResolver()
+        let shortcuts = resolver.resolve(candidates: [
+            KeyboardLayoutKeyCandidate(
+                keyCode: 50,
+                flags: [],
+                characters: "+"
+            )
+        ])
+
+        XCTAssertEqual(shortcuts.zoomIn.keyCode, 50)
+        XCTAssertEqual(shortcuts.zoomOut, PageZoomShortcutSet.fallback.zoomOut)
+    }
+
+    func testPageZoomPrefersTypingAreaOverNumericKeypad() {
+        let resolver = PageZoomShortcutResolver()
+        let shortcuts = resolver.resolve(candidates: [
+            KeyboardLayoutKeyCandidate(
+                keyCode: 69,
+                flags: [],
+                characters: "+"
+            ),
+            KeyboardLayoutKeyCandidate(
+                keyCode: 24,
+                flags: .maskShift,
+                characters: "+"
+            )
+        ])
+
+        XCTAssertEqual(shortcuts.zoomIn.keyCode, 24)
+        XCTAssertEqual(shortcuts.zoomIn.flags, .maskShift)
+    }
+
+    func testPinchCapabilityFallsBackToPageZoom() {
+        let resolver = ZoomOutputCapabilityResolver()
+
+        XCTAssertEqual(
+            resolver.effectiveBehavior(
+                requested: .pinch,
+                pinchEventsAvailable: false
+            ),
+            .page
+        )
+        XCTAssertEqual(
+            resolver.effectiveBehavior(
+                requested: .pinch,
+                pinchEventsAvailable: true
+            ),
+            .pinch
+        )
+        XCTAssertEqual(
+            resolver.effectiveBehavior(
+                requested: .page,
+                pinchEventsAvailable: false
+            ),
+            .page
+        )
+    }
+
+    func testMagnificationFactoryCanDisableUndocumentedEventPath() {
+        var factory = MagnificationEventFactory(allowsRuntimeEvents: false)
+
+        XCTAssertFalse(factory.isAvailable())
+        XCTAssertNil(
+            factory.event(
+                for: MagnificationEventDescriptor(
+                    magnification: 0.1,
+                    phase: .began
+                )
+            )
+        )
     }
 
     func testPageZoomIsCappedAtTenCommandsPerSecond() {

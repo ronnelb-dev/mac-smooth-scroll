@@ -27,6 +27,29 @@ struct ScrollTransformConfiguration {
     let zoomBehavior: ZoomBehavior
     let swiftModifier: ModifierKey
     let preciseModifier: ModifierKey
+
+    func replacingZoomBehavior(
+        with zoomBehavior: ZoomBehavior
+    ) -> ScrollTransformConfiguration {
+        ScrollTransformConfiguration(
+            smoothness: smoothness,
+            speed: speed,
+            minimumStepEnabled: minimumStepEnabled,
+            minimumStepDistance: minimumStepDistance,
+            minimumStepMultiplier: minimumStepMultiplier,
+            feel: feel,
+            reverseDirection: reverseDirection,
+            adaptivePrecision: adaptivePrecision,
+            accelerationEnabled: accelerationEnabled,
+            longDistanceBoostEnabled: longDistanceBoostEnabled,
+            axisLockEnabled: axisLockEnabled,
+            horizontalModifier: horizontalModifier,
+            zoomModifier: zoomModifier,
+            zoomBehavior: zoomBehavior,
+            swiftModifier: swiftModifier,
+            preciseModifier: preciseModifier
+        )
+    }
 }
 
 struct ScrollImpulse: Equatable {
