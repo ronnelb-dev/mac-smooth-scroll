@@ -39,6 +39,7 @@ final class SmoothScrollEngine {
     private var magnificationLifecycle = MagnificationLifecycle()
     private var magnificationEventFactory = MagnificationEventFactory()
     private var pageZoomController = PageZoomController()
+    private let pageZoomKeyEventSequence = PageZoomKeyEventSequence()
     private let pageZoomShortcutResolver = PageZoomShortcutResolver()
     private let zoomOutputCapabilityResolver = ZoomOutputCapabilityResolver()
     private let chromiumClassifier = ChromiumBundleClassifier()
@@ -377,7 +378,9 @@ final class SmoothScrollEngine {
                 at: timestamp,
                 shortcuts: pageZoomShortcutResolver.resolveCurrentLayout()
             ) {
-                guard outputGate.record(postPageZoom(command)) else {
+                guard outputGate.record(
+                    postPageZoom(command, physicalFlags: event.flags)
+                ) else {
                     failOpen()
                     return false
                 }
@@ -539,32 +542,22 @@ final class SmoothScrollEngine {
         return true
     }
 
-    private func postPageZoom(_ descriptor: PageZoomCommandDescriptor) -> Bool {
-        guard let keyDown = CGEvent(
-            keyboardEventSource: nil,
-            virtualKey: descriptor.keyCode,
-            keyDown: true
-        ), let keyUp = CGEvent(
-            keyboardEventSource: nil,
-            virtualKey: descriptor.keyCode,
-            keyDown: false
-        ) else { return false }
-
-        keyDown.flags = descriptor.flags
-        keyUp.flags = descriptor.flags
-        let characters = Array(descriptor.characters.utf16)
-        characters.withUnsafeBufferPointer { buffer in
-            keyDown.keyboardSetUnicodeString(
-                stringLength: buffer.count,
-                unicodeString: buffer.baseAddress
-            )
-            keyUp.keyboardSetUnicodeString(
-                stringLength: buffer.count,
-                unicodeString: buffer.baseAddress
-            )
+    private func postPageZoom(
+        _ descriptor: PageZoomCommandDescriptor,
+        physicalFlags: CGEventFlags
+    ) -> Bool {
+        for eventDescriptor in pageZoomKeyEventSequence.events(
+            for: descriptor,
+            physicalFlags: physicalFlags
+        ) {
+            guard let event = CGEvent(
+                keyboardEventSource: nil,
+                virtualKey: eventDescriptor.keyCode,
+                keyDown: eventDescriptor.keyDown
+            ) else { return false }
+            event.flags = eventDescriptor.flags
+            event.post(tap: .cgSessionEventTap)
         }
-        keyDown.post(tap: .cghidEventTap)
-        keyUp.post(tap: .cghidEventTap)
         return true
     }
 

@@ -2,7 +2,7 @@
 
 - Matrix version: **3**
 - Last updated: **2026-08-12**
-- Runtime baseline: **Mac Smooth Scroll 0.4.1 (8)** on current `main`
+- Runtime baseline: **Mac Smooth Scroll 0.5.0 (9)** on current `main`
 
 Mac Smooth Scroll supports Apple Silicon and has a deployment target of macOS
 13 or later. A supported target is not automatically a verified hardware
