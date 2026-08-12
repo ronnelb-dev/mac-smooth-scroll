@@ -48,9 +48,9 @@ using this path; when they are unavailable, Pinch-style falls back to Page
 zoom instead of consuming the wheel input.
 
 Page zoom resolves the virtual keys and required Shift/Option flags that
-produce `+` and `-` in the active macOS keyboard layout. It also attaches the
-matching Unicode character to each synthetic event, then uses a U.S. ANSI
-fallback only when the current layout cannot resolve one of those characters.
-Commands have no inertial tail and are capped at ten steps per second. The
-receiving application must support the selected behavior. Bypass is evaluated
-on each physical wheel event.
+produce `+` and `-` in the active macOS keyboard layout. It posts real
+modifier and virtual-key down/up transitions, synthesizing only modifiers that
+are not already held, then uses a U.S. ANSI fallback only when the current
+layout cannot resolve one of those characters. Commands have no inertial tail
+and are capped at ten steps per second. The receiving application must support
+the selected behavior. Bypass is evaluated on each physical wheel event.

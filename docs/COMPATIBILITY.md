@@ -1,6 +1,6 @@
 # Compatibility Matrix
 
-- Matrix version: **3**
+- Matrix version: **4**
 - Last updated: **2026-08-12**
 - Runtime baseline: **Mac Smooth Scroll 0.5.0 (9)** on current `main`
 
@@ -43,16 +43,30 @@ isolates and capability-checks that representation before using it, and falls
 back to Page zoom if the event cannot be constructed. This reduces failure
 risk but does not establish compatibility with every macOS or receiving app.
 
-Page zoom resolves `+` and `-` against the active macOS keyboard layout and
-adds the matching Unicode character to its Command-key events. A U.S. ANSI
-shortcut is retained only as a fallback when a layout cannot resolve one of
-those characters. Physical verification is still required for each keyboard
-layout and application combination.
+Page zoom resolves `+` and `-` against the active macOS keyboard layout, then
+posts the corresponding virtual key with real Command and Shift key
+transitions. It synthesizes only missing modifiers and does not release a
+modifier that the user is physically holding. A U.S. ANSI shortcut is retained
+only as a fallback when a layout cannot resolve one of those characters.
+Physical verification is still required for each keyboard-layout and
+application combination.
+
+### Zoom application evidence
+
+These results are scoped to the named application, surface, and zoom mode.
+They do not verify general scrolling behavior or every mouse using the same
+receiver.
+
+| Date | App version and commit | Application and surface | Environment | Scope | Status |
+| --- | --- | --- | --- | --- | --- |
+| 2026-08-12 | 0.5.0 (9), `6391573` | Google Chrome 151.0.7922.109, normal webpage | macOS 26.5.1 (25F80), M4, ABC keyboard layout, external mouse through USB 2.4G Receiver | Page zoom in and out with Command; installed executable matched the validated release build | **Manual verified** |
 
 ## Current automated evidence
 
 | Date | macOS | Apple Silicon | App commit | Evidence | Status |
 | --- | --- | --- | --- | --- | --- |
+| 2026-08-12 | macOS 15, GitHub-hosted runner | arm64; generation not reported | `6391573` | [Apple Silicon CI run 31576050619](https://github.com/ronnelb-dev/mac-smooth-scroll/actions/runs/31576050619): 188 tests, app/DMG build, preview validation, artifact upload, and clean-source verification | **Build verified** |
+| 2026-08-12 | macOS 26.5.1 (25F80) | M4 | `6391573` | Local `swift test --arch arm64`: 188 tests; app/DMG build, nested signature validation, checksum, manifest, mounted-DMG validation, and fresh GitHub-download verification | **Build verified** |
 | 2026-08-11 | macOS 26.5.1 (25F80) | M4 | `0c7aaac` | Local `swift test --arch arm64`: 130 tests; app/DMG build, nested signature validation, checksum, manifest, and mounted-DMG validation | **Build verified** |
 | 2026-07-30 | macOS 15, GitHub-hosted runner | arm64; generation not reported | `c70d2ed` | [Apple Silicon CI run 30540381466](https://github.com/ronnelb-dev/mac-smooth-scroll/actions/runs/30540381466): 81 tests, app/DMG build, preview validation | **Build verified** |
 | 2026-07-30 | macOS 26.5.1 (25F80) | M4 | `c70d2ed` | Local `swift test --arch arm64`, app/DMG build, nested signature validation, checksum, and mounted-DMG validation | **Build verified** |
@@ -67,8 +81,8 @@ for an M1, M2, M3, M4, or later hardware row.
 | --- | --- | --- | --- | --- |
 | Ventura 13 | Untested | Untested | Untested | **Untested** |
 | Sonoma 14 | Untested | Untested | Untested | **Untested** |
-| Sequoia 15 | Verified on hosted arm64 runner | Untested | Untested | **Build verified** |
-| Tahoe 26 | Verified locally on 26.5.1/M4 at `0c7aaac` | Untested | Untested | **Build verified** |
+| Sequoia 15 | Verified on hosted arm64 runner at `6391573` | Untested | Untested | **Build verified** |
+| Tahoe 26 | Verified locally on 26.5.1/M4 at `6391573` | Untested | Untested | **Build verified** |
 
 ## Apple Silicon matrix
 
@@ -77,7 +91,7 @@ for an M1, M2, M3, M4, or later hardware row.
 | M1 | Untested | Untested | None | **Untested** |
 | M2 | Untested | Untested | None | **Untested** |
 | M3 | Untested | Untested | None | **Untested** |
-| M4 | Verified on macOS 26.5.1 | Untested | 2026-08-11, `0c7aaac` | **Build verified** |
+| M4 | Verified on macOS 26.5.1 | Untested | 2026-08-12, `6391573` | **Build verified** |
 | M5 or later | Untested | Untested | None | **Untested** |
 
 ## Input-device matrix
@@ -116,9 +130,11 @@ those tests do not identify a real device or exercise its driver.
 
 ## Manual verification records
 
-No complete physical-device result has been submitted yet. Add one row per
-tested combination; do not replace an older row when the app commit, macOS,
-Mac generation, or mouse changes.
+No complete general-scrolling physical-device result has been submitted yet.
+The scoped Chrome Page zoom result above does not establish wheel feel, device
+classification, or native pass-through compatibility. Add one row per tested
+combination; do not replace an older row when the app commit, macOS, Mac
+generation, or mouse changes.
 
 | Date | App commit | macOS | Apple Silicon | Mouse/input | Wheel | Display | Utilities | Checklist scope | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
