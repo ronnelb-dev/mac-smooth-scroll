@@ -76,6 +76,7 @@ Use a long document or webpage with enough content to make changes obvious.
 
 | ID | Test | Expected result | Result |
 | --- | --- | --- | --- |
+| C0 | Start Mouse Calibration, use one available notched or free-spinning external wheel, and let it reach 24 samples. Repeat once with a trackpad or Magic Mouse. | The external wheel receives a plausible classification and an explicit, inert recommendation; settings change only after Apply. Native continuous input is identified as pass-through. Cancelling, dismissing, or resetting discards the session, and no calibration samples or device identifiers persist after relaunch. | |
 | C1 | Scroll with a discrete external wheel. | Movement is transformed into smooth pixel scrolling without duplicate input. | |
 | C2 | Scroll with a trackpad or Magic Mouse. | Native continuous scrolling passes through unchanged. | |
 | C3 | Compare **Feel**: Responsive, Balanced, and Glide. | Each preset changes responsiveness, acceleration, and direction-change behavior in the expected order. | |

@@ -236,6 +236,7 @@ final class ScrollSettings: ObservableObject {
 
     private let defaults: UserDefaults
     private let managesLaunchAtLogin: Bool
+    private var wheelCalibrationSession: WheelCalibrationSession?
     var onChange: ((SettingsChangeScope) -> Void)?
     var onOpenSettings: (() -> Void)?
     var onHideApp: (() -> Void)?
@@ -349,6 +350,7 @@ final class ScrollSettings: ObservableObject {
             defaults.set(selectedTab.rawValue, forKey: Key.selectedTab)
         }
     }
+    @Published private(set) var wheelCalibrationState = WheelCalibrationState.idle
 
     var engineMessage: String {
         engineStatus.message
@@ -559,6 +561,7 @@ final class ScrollSettings: ObservableObject {
     }
 
     func resetDefaults() {
+        cancelWheelCalibration()
         isEnabled = true
         smoothness = .high
         speed = .medium
@@ -585,6 +588,50 @@ final class ScrollSettings: ObservableObject {
         minimumStepEnabled = true
         minimumStepDistance = ScrollStep.defaultValue
         minimumStepMultiplier = .standard
+    }
+
+    func startWheelCalibration() {
+        wheelCalibrationSession = WheelCalibrationSession()
+        wheelCalibrationState = .collecting(sampleCount: 0)
+    }
+
+    func cancelWheelCalibration() {
+        wheelCalibrationSession = nil
+        wheelCalibrationState = .idle
+    }
+
+    func finishWheelCalibration() {
+        guard let session = wheelCalibrationSession else { return }
+        wheelCalibrationSession = nil
+        wheelCalibrationState = .result(session.finish())
+    }
+
+    func recordWheelCalibrationSample(_ sample: WheelCalibrationSample) {
+        guard var session = wheelCalibrationSession else { return }
+        if let result = session.record(sample) {
+            wheelCalibrationSession = nil
+            wheelCalibrationState = .result(result)
+        } else {
+            wheelCalibrationSession = session
+            wheelCalibrationState = .collecting(sampleCount: session.sampleCount)
+        }
+    }
+
+    func applyWheelCalibrationRecommendation() {
+        guard case let .result(result) = wheelCalibrationState,
+              let recommendation = result.recommendation
+        else {
+            return
+        }
+
+        minimumStepEnabled = recommendation.minimumStepEnabled
+        if let distance = recommendation.minimumStepDistance {
+            minimumStepDistance = distance
+        }
+        if let multiplier = recommendation.minimumStepMultiplier {
+            minimumStepMultiplier = multiplier
+        }
+        wheelCalibrationState = .idle
     }
 
     func addExcludedApplication(at url: URL) throws {

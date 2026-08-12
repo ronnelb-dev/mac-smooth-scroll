@@ -53,6 +53,7 @@ struct SettingsView: View {
             settingsPage {
                 scrollingSection
                 advancedScrollingSection
+                mouseCalibrationSection
                 nativeScrollingSection
             }
         case .modifierKeys:
@@ -578,6 +579,143 @@ struct SettingsView: View {
             }
         }
         .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private var mouseCalibrationSection: some View {
+        Section {
+            switch settings.wheelCalibrationState {
+            case .idle:
+                LabeledContent {
+                    Button("Start Calibration…") {
+                        settings.startWheelCalibration()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(settings.engineStatus != .active)
+                    .accessibilityHint(
+                        "Begins a temporary analysis of physical wheel characteristics"
+                    )
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("External mouse wheel")
+                        Text(
+                            settings.engineStatus == .active
+                                ? "Get a recommendation for Minimum wheel step."
+                                : "Turn on smooth scrolling and resolve System Health before calibrating."
+                        )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+            case let .collecting(sampleCount):
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Scroll with one external mouse")
+                            Text("Use several normal notches or one short free-spin movement.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Text("\(sampleCount) of \(WheelCalibrationAnalyzer.targetSampleCount)")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+
+                    ProgressView(
+                        value: Double(sampleCount),
+                        total: Double(WheelCalibrationAnalyzer.targetSampleCount)
+                    )
+                    .accessibilityLabel("Wheel calibration progress")
+                    .accessibilityValue(
+                        "\(sampleCount) of \(WheelCalibrationAnalyzer.targetSampleCount) events"
+                    )
+
+                    HStack {
+                        Button("Cancel") {
+                            settings.cancelWheelCalibration()
+                        }
+                        Button("Finish and Analyze") {
+                            settings.finishWheelCalibration()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(
+                            sampleCount < WheelCalibrationAnalyzer.minimumDiscreteSamples
+                        )
+                    }
+                }
+
+            case let .result(result):
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(
+                        result.kind.rawValue,
+                        systemImage: calibrationSymbol(for: result.kind)
+                    )
+                    .font(.headline)
+
+                    Text(result.detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if result.horizontalInputObserved {
+                        Label(
+                            "Horizontal wheel input was also observed.",
+                            systemImage: "arrow.left.and.right"
+                        )
+                        .font(.caption)
+                    }
+
+                    if let recommendation = result.recommendation {
+                        LabeledContent("Recommendation") {
+                            Text(recommendation.summary)
+                                .multilineTextAlignment(.trailing)
+                        }
+
+                        HStack {
+                            Button("Dismiss") {
+                                settings.cancelWheelCalibration()
+                            }
+                            Button("Test Again") {
+                                settings.startWheelCalibration()
+                            }
+                            Button("Apply Recommendation") {
+                                settings.applyWheelCalibrationRecommendation()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    } else {
+                        HStack {
+                            Button("Dismiss") {
+                                settings.cancelWheelCalibration()
+                            }
+                            Button("Try External Mouse Again") {
+                                settings.startWheelCalibration()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
+                }
+                .accessibilityElement(children: .contain)
+            }
+        } header: {
+            Text("Mouse Calibration")
+        } footer: {
+            Text("Calibration samples stay in memory only and are discarded when calibration ends. No raw wheel activity or device identifier is saved.")
+        }
+    }
+
+    private func calibrationSymbol(for kind: WheelCalibrationKind) -> String {
+        switch kind {
+        case .notched: "computermouse.fill"
+        case .highResolution: "speedometer"
+        case .mixed: "slider.horizontal.3"
+        case .nativeContinuous: "hand.draw.fill"
+        case .insufficient: "ellipsis.circle.fill"
+        }
     }
 
     private var modifierSection: some View {

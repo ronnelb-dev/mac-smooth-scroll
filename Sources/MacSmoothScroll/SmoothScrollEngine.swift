@@ -33,6 +33,7 @@ final class SmoothScrollEngine {
     private var recoveryScheduled = false
     private var automaticRecoveryPaused = false
     private let eventFilter = ScrollEventFilter()
+    private let calibrationCapturePolicy = WheelCalibrationCapturePolicy()
     private let bypassPolicy = ScrollBypassPolicy()
     private var gestureLifecycle = ScrollGestureLifecycle()
     private var magnificationLifecycle = MagnificationLifecycle()
@@ -164,6 +165,7 @@ final class SmoothScrollEngine {
         recoveryScheduled = false
         automaticRecoveryPaused = false
         recoveryPolicy.reset()
+        settings.cancelWheelCalibration()
         resetMotion()
         tearDownEventTap()
     }
@@ -216,9 +218,35 @@ final class SmoothScrollEngine {
             return Unmanaged.passUnretained(event)
         }
 
+        let sourceUserData = event.getIntegerValueField(.eventSourceUserData)
+        let isContinuous =
+            event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
+        if calibrationCapturePolicy.shouldCapture(
+            sourceUserData: sourceUserData
+        ) {
+            settings.recordWheelCalibrationSample(
+                WheelCalibrationSample(
+                    lineX: Double(
+                        event.getIntegerValueField(.scrollWheelEventDeltaAxis2)
+                    ),
+                    lineY: Double(
+                        event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
+                    ),
+                    pointX: Double(
+                        event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)
+                    ),
+                    pointY: Double(
+                        event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
+                    ),
+                    isContinuous: isContinuous,
+                    timestamp: ProcessInfo.processInfo.systemUptime
+                )
+            )
+        }
+
         let disposition = eventFilter.disposition(
-            sourceUserData: event.getIntegerValueField(.eventSourceUserData),
-            isContinuous: event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
+            sourceUserData: sourceUserData,
+            isContinuous: isContinuous
         )
         guard disposition == .transform else {
             return Unmanaged.passUnretained(event)
