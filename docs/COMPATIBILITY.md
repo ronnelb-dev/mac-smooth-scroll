@@ -26,6 +26,20 @@ Unit tests and successful packaging do not prove wheel feel, device
 classification, native pass-through, Accessibility behavior, or login-session
 behavior on a specific Mac.
 
+## Zoom compatibility
+
+Pinch-style zoom uses a native magnification event representation that is not
+part of the documented Core Graphics event-type surface. Mac Smooth Scroll
+isolates and capability-checks that representation before using it, and falls
+back to Page zoom if the event cannot be constructed. This reduces failure
+risk but does not establish compatibility with every macOS or receiving app.
+
+Page zoom resolves `+` and `-` against the active macOS keyboard layout and
+adds the matching Unicode character to its Command-key events. A U.S. ANSI
+shortcut is retained only as a fallback when a layout cannot resolve one of
+those characters. Physical verification is still required for each keyboard
+layout and application combination.
+
 ## Current automated evidence
 
 | Date | macOS | Apple Silicon | App commit | Evidence | Status |

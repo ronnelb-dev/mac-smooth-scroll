@@ -37,7 +37,14 @@ an overlapping Zoom assignment can still be activated.
 
 Pinch-style Zoom generates magnification begin/change/end events and adds an
 initial responsiveness adjustment for Chrome and related Chromium browsers.
-Page zoom sends Command-plus or Command-minus to the frontmost app, with no
-inertial tail and a maximum of ten steps per second. The receiving application
-must support the selected behavior. Bypass is evaluated on each physical wheel
-event.
+The app validates that native magnification events can be constructed before
+using this path; when they are unavailable, Pinch-style falls back to Page
+zoom instead of consuming the wheel input.
+
+Page zoom resolves the virtual keys and required Shift/Option flags that
+produce `+` and `-` in the active macOS keyboard layout. It also attaches the
+matching Unicode character to each synthetic event, then uses a U.S. ANSI
+fallback only when the current layout cannot resolve one of those characters.
+Commands have no inertial tail and are capped at ten steps per second. The
+receiving application must support the selected behavior. Bypass is evaluated
+on each physical wheel event.

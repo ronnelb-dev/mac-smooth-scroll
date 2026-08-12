@@ -60,7 +60,9 @@ Accessibility APIs.
 
 The app does not use Accessibility permission to read application content or
 record keyboard input. It checks only modifier flags attached to wheel events;
-it does not install a global keyboard hook.
+it does not install a global keyboard hook. Page zoom reads the active macOS
+keyboard-layout definition to locate the `+` and `-` shortcuts. It does not
+read, store, or transmit typed characters or keyboard activity.
 
 ## Other applications
 

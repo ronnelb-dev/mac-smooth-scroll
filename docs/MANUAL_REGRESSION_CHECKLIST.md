@@ -99,8 +99,8 @@ Use the assignments shown in **Modifier Keys** and consult
 | ID | Test | Expected result | Result |
 | --- | --- | --- | --- |
 | D1 | Hold **Horizontal scrolling** and move a vertical-dominant wheel. | Vertical input becomes horizontal scrolling. | |
-| D2 | Select **Pinch-style**, hold **Zoom**, and scroll over a normal Chrome page, Chrome PDF, and Safari page. Repeat with Trackpad-like gestures off. | Content zooms smoothly around the pointer; Chrome responds on the first movement; a complete magnification gesture ends after motion stops regardless of Trackpad-like gestures. | |
-| D3 | Select **Page zoom**, hold **Zoom**, and scroll in Chrome. Test individual notches and a free-spinning wheel when available. | Each accepted notch changes the frontmost tab by one Command-plus/minus level, repeats no faster than ten times per second, and produces no extra zoom after the wheel stops. | |
+| D2 | Select **Pinch-style**, hold **Zoom**, and scroll over a normal Chrome page, Chrome PDF, and Safari page. Repeat with Trackpad-like gestures off. | Content zooms smoothly around the pointer; Chrome responds on the first movement; a complete magnification gesture ends after motion stops regardless of Trackpad-like gestures. If native magnification is unavailable, input falls back to one Page zoom command rather than disappearing. | |
+| D3 | Select **Page zoom**, hold **Zoom**, and scroll in Chrome. Test individual notches and a free-spinning wheel when available, then repeat after switching to each installed non-U.S. keyboard layout. | Each accepted notch changes the frontmost tab by one Command-plus/minus level using the active layout, repeats no faster than ten times per second, and produces no extra zoom after the wheel stops. | |
 | D4 | Hold **Faster scrolling**. | Movement is temporarily faster. | |
 | D5 | Hold **Precision scrolling**. | Movement is temporarily smaller and more precise. | |
 | D6 | Assign the same key to Precision and Faster. | Precision wins. | |

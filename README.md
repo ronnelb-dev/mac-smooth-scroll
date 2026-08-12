@@ -181,8 +181,11 @@ reopened.
   **Pinch-style** Zoom for smooth, cursor-centered magnification in Chrome,
   Safari, and other compatible apps. Choose **Page zoom** for discrete
   Command-plus/minus zoom levels in the frontmost app; rapid input is capped
-  at ten steps per second. Bypass defaults to **None** and takes priority over
-  every other assignment while held. See
+  at ten steps per second. Page zoom resolves the plus and minus shortcuts for
+  the active macOS keyboard layout instead of assuming a U.S. layout. If the
+  native magnification event path is unavailable, Pinch-style safely falls
+  back to Page zoom. Bypass defaults to **None** and takes priority over every
+  other assignment while held. See
   [Modifier Key Behavior](docs/MODIFIER_BEHAVIOR.md) for the exact conflict and
   priority rules.
 
@@ -200,7 +203,8 @@ Trackpad and Magic Mouse events are passed through unchanged. The selected Zoom
 modifier is frozen for each wheel burst and only applies when no higher-priority
 transform action is active. Pinch-style Zoom produces a native magnification
 gesture; Page zoom sends the standard macOS zoom shortcuts and does not retain
-a smoothing tail.
+a smoothing tail. Keyboard-layout lookup and pinch capability checks occur
+locally and do not record typed keys.
 
 ## Menu-bar mode
 
