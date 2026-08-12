@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var showingResetConfirmation = false
     @State private var diagnosticsCopied = false
     @State private var applicationSelectionError: String?
+    @FocusState private var focusedTab: SettingsTab?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -57,6 +58,7 @@ struct SettingsView: View {
         case .modifierKeys:
             settingsPage {
                 modifierSection
+                modifierGuidanceSection
             }
         case .app:
             settingsPage {
@@ -103,7 +105,32 @@ struct SettingsView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .focused($focusedTab, equals: tab)
+                .keyboardShortcut(
+                    KeyEquivalent(tab.keyboardShortcutCharacter),
+                    modifiers: .command
+                )
+                .onMoveCommand { direction in
+                    let destination: SettingsTab?
+                    switch direction {
+                    case .left, .up:
+                        destination = tab.adjacent(.previous)
+                    case .right, .down:
+                        destination = tab.adjacent(.next)
+                    default:
+                        destination = nil
+                    }
+                    guard let destination else { return }
+                    settings.selectedTab = destination
+                    focusedTab = destination
+                }
+                .help(
+                    "\(tab.title) Settings (⌘\(String(tab.keyboardShortcutCharacter)))"
+                )
                 .accessibilityLabel(tab.title)
+                .accessibilityHint(
+                    "Open with \(tab.keyboardShortcutDescription). Use arrow keys to move between tabs."
+                )
                 .accessibilityAddTraits(
                     settings.selectedTab == tab ? .isSelected : []
                 )
@@ -606,6 +633,58 @@ struct SettingsView: View {
         }
     }
 
+    private var modifierGuidanceSection: some View {
+        let guidance = ModifierConflictAdvisor().guidance(
+            horizontal: settings.horizontalModifier,
+            zoom: settings.zoomModifier,
+            faster: settings.swiftModifier,
+            precision: settings.preciseModifier,
+            bypass: settings.bypassModifier
+        )
+
+        return Section {
+            if guidance.isEmpty {
+                Label("Every action has a distinct modifier.", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .accessibilityLabel(
+                        "Assignment guidance. Every action has a distinct modifier."
+                    )
+            } else {
+                ForEach(guidance) { item in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(
+                            systemName: item.tone == .compatible
+                                ? "checkmark.circle.fill"
+                                : "exclamationmark.triangle.fill"
+                        )
+                        .foregroundStyle(
+                            item.tone == .compatible ? Color.green : Color.orange
+                        )
+                        .accessibilityHidden(true)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title)
+                            Text(
+                                item.tone == .compatible
+                                    ? "Compatible combination"
+                                    : "Priority rule applies"
+                            )
+                            .font(.caption.weight(.medium))
+                            Text(item.outcome)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        } header: {
+            Text("Assignment Guidance")
+        } footer: {
+            Text("Shared modifiers are allowed. Guidance explains the result and never changes your assignments.")
+        }
+    }
+
     private var nativeScrollingSection: some View {
         Section {
             if settings.excludedApplications.isEmpty {
@@ -733,6 +812,11 @@ struct SettingsView: View {
             }
             .labelsHidden()
             .frame(width: 155)
+            .accessibilityLabel("\(title) modifier")
+            .accessibilityValue(selection.wrappedValue.title)
+            .accessibilityHint(
+                "Choose a modifier key. Shared assignments are explained in Assignment Guidance."
+            )
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)

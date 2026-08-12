@@ -33,6 +33,31 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         }
     }
 
+    var keyboardShortcutCharacter: Character {
+        switch self {
+        case .scrolling: "1"
+        case .modifierKeys: "2"
+        case .app: "3"
+        }
+    }
+
+    var keyboardShortcutDescription: String {
+        "Command-\(keyboardShortcutCharacter)"
+    }
+
+    func adjacent(_ direction: SettingsTabNavigationDirection) -> SettingsTab {
+        let tabs = Self.allCases
+        guard let index = tabs.firstIndex(of: self) else {
+            return Self.defaultTab
+        }
+        switch direction {
+        case .previous:
+            return tabs[(index - 1 + tabs.count) % tabs.count]
+        case .next:
+            return tabs[(index + 1) % tabs.count]
+        }
+    }
+
     static func resolve(_ rawValue: String?) -> SettingsTab {
         guard let rawValue else { return defaultTab }
         if rawValue == "advancedScrolling" {
@@ -43,4 +68,9 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         }
         return SettingsTab(rawValue: rawValue) ?? defaultTab
     }
+}
+
+enum SettingsTabNavigationDirection {
+    case previous
+    case next
 }

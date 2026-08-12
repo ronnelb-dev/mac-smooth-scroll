@@ -22,7 +22,20 @@ final class SettingsTabTests: XCTestCase {
         for tab in SettingsTab.allCases {
             XCTAssertFalse(tab.title.isEmpty)
             XCTAssertFalse(tab.symbolName.isEmpty)
+            XCTAssertFalse(tab.keyboardShortcutDescription.isEmpty)
         }
+        XCTAssertEqual(
+            SettingsTab.allCases.map(\.keyboardShortcutCharacter),
+            ["1", "2", "3"]
+        )
+    }
+
+    func testArrowNavigationWrapsAcrossTabs() {
+        XCTAssertEqual(SettingsTab.scrolling.adjacent(.previous), .app)
+        XCTAssertEqual(SettingsTab.scrolling.adjacent(.next), .modifierKeys)
+        XCTAssertEqual(SettingsTab.modifierKeys.adjacent(.previous), .scrolling)
+        XCTAssertEqual(SettingsTab.modifierKeys.adjacent(.next), .app)
+        XCTAssertEqual(SettingsTab.app.adjacent(.next), .scrolling)
     }
 
     func testTabResolutionDefaultsToScrolling() {
