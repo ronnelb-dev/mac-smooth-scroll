@@ -139,7 +139,8 @@ support remain application-specific.
 | F5 | Select **Open Settings…** from the menu-bar menu. | The Dock icon and existing Settings window return without duplication. | |
 | F6 | Select **Smooth Scrolling** in the menu. | The checkmark, header switch, engine status, and actual scrolling all reflect the new state. | |
 | F7 | Change **Feel** and **Speed** from their menu submenus. | Checkmarks and Settings controls update immediately. | |
-| F8 | Select **Quit Mac Smooth Scroll**. | The app, menu-bar item, event tap, and synthetic scrolling stop. | |
+| F8 | Select **Check for Updates…** from the App tab and menu-bar menu. | Each command opens the public GitHub Releases page in the default browser without downloading or installing anything. | |
+| F9 | Select **Quit Mac Smooth Scroll**. | The app, menu-bar item, event tap, and synthetic scrolling stop. | |
 
 ## G. Launch at Login
 

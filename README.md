@@ -236,7 +236,11 @@ status and provides:
 - Quick, checkmarked **Feel** and **Speed** submenus
 - A contextual recovery command when permission, Mac Mouse Fix, or the event
   tap blocks scrolling
-- **Open Settings…** and **Quit Mac Smooth Scroll**
+- **Open Settings…**, **Check for Updates…**, and **Quit Mac Smooth Scroll**
+
+**Check for Updates…** opens the public GitHub Releases page in the default
+browser. Preview builds remain a manual download and installation; the app does
+not fetch, download, or install updates in the background.
 
 The menu-bar icon and its VoiceOver label also reflect whether scrolling is
 active, intentionally off, or needs attention. Status is refreshed whenever
