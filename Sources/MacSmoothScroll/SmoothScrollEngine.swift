@@ -44,6 +44,9 @@ final class SmoothScrollEngine {
     private let zoomOutputCapabilityResolver = ZoomOutputCapabilityResolver()
     private let chromiumClassifier = ChromiumBundleClassifier()
     private var activeOutput: ScrollTransformOutput?
+    private var activeRuntimeConfiguration: ResolvedScrollRuntimeConfiguration?
+    private var activeFrontmostBundleIdentifier: String?
+    private var profileContextTracker = ApplicationProfileContextTracker()
     private var outputGate = ScrollOutputGate()
 
     init(settings: ScrollSettings) {
@@ -177,6 +180,9 @@ final class SmoothScrollEngine {
         motion.reset()
         inputTransformer.reset()
         pageZoomController.reset()
+        activeRuntimeConfiguration = nil
+        activeFrontmostBundleIdentifier = nil
+        profileContextTracker.reset()
         return finishActiveOutputIfNeeded()
     }
 
@@ -188,6 +194,9 @@ final class SmoothScrollEngine {
         gestureLifecycle.reset()
         magnificationLifecycle.reset()
         activeOutput = nil
+        activeRuntimeConfiguration = nil
+        activeFrontmostBundleIdentifier = nil
+        profileContextTracker.reset()
     }
 
     private func failOpen() {
@@ -257,11 +266,12 @@ final class SmoothScrollEngine {
             return Unmanaged.passUnretained(event)
         }
 
+        let frontmostBundleIdentifier =
+            NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         if bypassPolicy.shouldBypass(
             flags: event.flags,
             modifier: settings.bypassModifier,
-            frontmostBundleIdentifier:
-                NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
+            frontmostBundleIdentifier: frontmostBundleIdentifier,
             excludedBundleIdentifiers:
                 settings.excludedApplicationBundleIdentifiers
         ) {
@@ -271,7 +281,10 @@ final class SmoothScrollEngine {
             return Unmanaged.passUnretained(event)
         }
 
-        return ingest(event) ? nil : Unmanaged.passUnretained(event)
+        return ingest(
+            event,
+            frontmostBundleIdentifier: frontmostBundleIdentifier
+        ) ? nil : Unmanaged.passUnretained(event)
     }
 
     private func recoverEventTap(after reason: EventTapDisableReason) {
@@ -332,14 +345,32 @@ final class SmoothScrollEngine {
         }
     }
 
-    private func ingest(_ event: CGEvent) -> Bool {
+    private func ingest(
+        _ event: CGEvent,
+        frontmostBundleIdentifier: String?
+    ) -> Bool {
         let lineY = Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis1))
         let lineX = Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis2))
         let pointY = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1))
         let pointX = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2))
 
         let timestamp = ProcessInfo.processInfo.systemUptime
-        let requestedConfiguration = settings.scrollTransformConfiguration
+        let runtimeConfiguration = settings.runtimeConfiguration(
+            for: frontmostBundleIdentifier
+        )
+        if profileContextTracker.shouldReset(
+            for: runtimeConfiguration.profileBundleIdentifier
+        ) {
+            guard resetMotion() else {
+                failOpen()
+                return false
+            }
+            _ = profileContextTracker.shouldReset(
+                for: runtimeConfiguration.profileBundleIdentifier
+            )
+        }
+
+        let requestedConfiguration = runtimeConfiguration.transform
         let configuration = requestedConfiguration.replacingZoomBehavior(
             with: zoomOutputCapabilityResolver.effectiveBehavior(
                 requested: requestedConfiguration.zoomBehavior,
@@ -363,6 +394,8 @@ final class SmoothScrollEngine {
                 failOpen()
                 return false
             }
+            activeRuntimeConfiguration = runtimeConfiguration
+            activeFrontmostBundleIdentifier = frontmostBundleIdentifier
             prepareActiveOutput(result.output)
         }
 
@@ -389,17 +422,21 @@ final class SmoothScrollEngine {
         }
 
         if activeOutput == nil {
+            activeRuntimeConfiguration = runtimeConfiguration
+            activeFrontmostBundleIdentifier = frontmostBundleIdentifier
             prepareActiveOutput(result.output)
         }
         if motion.add(
             result.impulse,
-            feel: settings.feel,
+            feel: runtimeConfiguration.feel,
             maximumVelocityMultiplier: result.velocityLimitMultiplier
         ) {
             guard finishActiveOutputIfNeeded() else {
                 failOpen()
                 return false
             }
+            activeRuntimeConfiguration = runtimeConfiguration
+            activeFrontmostBundleIdentifier = frontmostBundleIdentifier
             prepareActiveOutput(result.output)
         }
         guard outputGate.record(displayLink.start()) else {
@@ -410,9 +447,10 @@ final class SmoothScrollEngine {
     }
 
     private func animateFrame(elapsedTime: TimeInterval) {
+        let runtimeConfiguration = activeRuntimeConfiguration
         let output = motion.step(
             elapsedTime: elapsedTime,
-            decay: settings.smoothness.decay
+            decay: (runtimeConfiguration?.smoothness ?? settings.smoothness).decay
         )
         if output.x != 0 || output.y != 0 {
             let emitted: Bool
@@ -454,7 +492,9 @@ final class SmoothScrollEngine {
             value: ScrollEventFilter.syntheticMarker
         )
         if let emission = gestureLifecycle.phaseForOutput(
-            trackpadSimulation: settings.trackpadSimulation
+            trackpadSimulation:
+                activeRuntimeConfiguration?.trackpadSimulation
+                ?? settings.trackpadSimulation
         ) {
             event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
             event.setIntegerValueField(
@@ -479,7 +519,7 @@ final class SmoothScrollEngine {
         case .pinchZoom:
             magnificationLifecycle.prepareForBurst(
                 isChromium: chromiumClassifier.matches(
-                    NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+                    activeFrontmostBundleIdentifier
                 )
             )
             activeOutput = output
@@ -490,7 +530,11 @@ final class SmoothScrollEngine {
 
     @discardableResult
     private func finishActiveOutputIfNeeded() -> Bool {
-        defer { activeOutput = nil }
+        defer {
+            activeOutput = nil
+            activeRuntimeConfiguration = nil
+            activeFrontmostBundleIdentifier = nil
+        }
         switch activeOutput {
         case .scroll:
             guard let emission = gestureLifecycle.finish() else { return true }

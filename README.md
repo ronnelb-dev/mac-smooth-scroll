@@ -201,9 +201,17 @@ reopened.
 
 ![Mac Smooth Scroll modifier keys](docs/modifier-keys.png)
 
+- Under **Application Profiles**, select **Add Profile…** to copy the current
+  scrolling controls for one application. Edit the profile to change Feel,
+  Speed, Smoothness, Minimum wheel step, direction, precision, acceleration,
+  long-distance boost, axis lock, or trackpad-like gestures without changing
+  the defaults used elsewhere. A profile can be disabled without losing its
+  values. Modifier assignments remain global.
 - Under **Native Scrolling**, add applications that should always receive
   unmodified wheel events. Exclusions are matched using the foreground
-  application’s bundle identifier and can be removed at any time.
+  application’s bundle identifier and can be removed at any time. If an
+  application has both a profile and an exclusion, Native Scrolling takes
+  priority and the wheel event passes through unchanged.
 - In **App**, manage background behavior and setup, then check **System
   Health** for Accessibility, scroll-engine, mouse-driver, and login-helper
   status. When attention is required, use the recovery button shown on the
@@ -313,7 +321,8 @@ See [Troubleshooting Mac Smooth Scroll](docs/TROUBLESHOOTING.md) for help with:
 - Apple Silicon and macOS 13 or later are required.
 - Public preview DMGs are ad-hoc signed and not notarized, so macOS may require
   **Open Anyway** before the app can launch.
-- Settings are global; per-app and per-mouse profiles are not implemented.
+- Per-mouse profiles are not implemented. Application profiles are selected
+  from the foreground app’s bundle identifier and do not identify the mouse.
 - Other mouse drivers can duplicate or distort wheel input. Mac Mouse Fix is
   detected and blocks the engine; LinearMouse and Mos produce advisory health
   guidance. Other utilities may still need to be identified manually.

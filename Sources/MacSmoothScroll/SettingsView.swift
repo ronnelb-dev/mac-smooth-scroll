@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var showingResetConfirmation = false
     @State private var diagnosticsCopied = false
     @State private var applicationSelectionError: String?
+    @State private var editingApplicationProfile: ApplicationScrollProfile?
     @FocusState private var focusedTab: SettingsTab?
 
     var body: some View {
@@ -21,13 +22,18 @@ struct SettingsView: View {
             FirstRunSetupView()
                 .environmentObject(settings)
         }
+        .sheet(item: $editingApplicationProfile) { profile in
+            ApplicationProfileEditorView(profile: profile) { updatedProfile in
+                settings.upsertApplicationProfile(updatedProfile)
+            }
+        }
         .alert("Reset scrolling settings?", isPresented: $showingResetConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Reset", role: .destructive) {
                 settings.resetDefaults()
             }
         } message: {
-            Text("Scrolling, advanced tuning, modifier keys, and application exclusions will return to their defaults.")
+            Text("Scrolling, advanced tuning, modifier keys, application profiles, and exclusions will return to their defaults.")
         }
         .alert(
             "Couldn’t Add Application",
@@ -54,6 +60,7 @@ struct SettingsView: View {
                 scrollingSection
                 advancedScrollingSection
                 mouseCalibrationSection
+                applicationProfilesSection
                 nativeScrollingSection
             }
         case .modifierKeys:
@@ -872,6 +879,101 @@ struct SettingsView: View {
         }
     }
 
+    private var applicationProfilesSection: some View {
+        Section {
+            if settings.applicationProfiles.isEmpty {
+                LabeledContent("Application profiles") {
+                    Text("None")
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                ForEach(settings.applicationProfiles) { profile in
+                    HStack(spacing: 12) {
+                        Toggle(
+                            "Enable profile for \(profile.name)",
+                            isOn: Binding(
+                                get: { profile.isEnabled },
+                                set: { enabled in
+                                    settings.setApplicationProfileEnabled(
+                                        enabled,
+                                        bundleIdentifier: profile.bundleIdentifier
+                                    )
+                                }
+                            )
+                        )
+                        .labelsHidden()
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(profile.name)
+                            Text(profile.bundleIdentifier)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if settings.excludedApplicationBundleIdentifiers.contains(
+                                profile.bundleIdentifier
+                            ) {
+                                Text("Native Scrolling takes priority")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(.orange)
+                            }
+                        }
+
+                        Spacer()
+
+                        Button("Edit…") {
+                            editingApplicationProfile = profile
+                        }
+                        .accessibilityLabel("Edit scrolling profile for \(profile.name)")
+
+                        Button {
+                            settings.removeApplicationProfile(
+                                bundleIdentifier: profile.bundleIdentifier
+                            )
+                        } label: {
+                            Image(systemName: "minus.circle")
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.red)
+                        .help("Remove \(profile.name) profile")
+                        .accessibilityLabel("Remove scrolling profile for \(profile.name)")
+                    }
+                }
+            }
+
+            Button {
+                chooseApplicationProfile()
+            } label: {
+                Label("Add Profile…", systemImage: "plus")
+            }
+            .accessibilityHint(
+                "Choose an application and customize its scrolling behavior"
+            )
+        } header: {
+            Text("Application Profiles")
+        } footer: {
+            Text("Profiles copy the current scrolling controls when created. Modifier keys remain global. Native Scrolling exclusions always take priority.")
+        }
+    }
+
+    private func chooseApplicationProfile() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose an Application"
+        panel.prompt = "Continue"
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.allowedContentTypes = [.application]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                editingApplicationProfile = try settings.applicationProfile(at: url)
+            } catch {
+                applicationSelectionError = error.localizedDescription
+            }
+        }
+    }
+
     private func chooseExcludedApplication() {
         let panel = NSOpenPanel()
         panel.title = "Choose an Application"
@@ -1146,6 +1248,158 @@ private enum HealthTone {
         case .neutral: .secondary
         case .warning: .orange
         case .error: .red
+        }
+    }
+}
+
+private struct ApplicationProfileEditorView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var profile: ApplicationScrollProfile
+    let onSave: (ApplicationScrollProfile) -> Void
+
+    init(
+        profile: ApplicationScrollProfile,
+        onSave: @escaping (ApplicationScrollProfile) -> Void
+    ) {
+        _profile = State(initialValue: profile)
+        self.onSave = onSave
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(profile.name)
+                        .font(.title2.weight(.semibold))
+                    Text(profile.bundleIdentifier)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(20)
+
+            Divider()
+
+            Form {
+                Section("Scrolling") {
+                    profilePicker(
+                        "Feel",
+                        selection: $profile.configuration.feel,
+                        values: ScrollFeel.allCases,
+                        title: { $0.rawValue }
+                    )
+                    profilePicker(
+                        "Speed",
+                        selection: $profile.configuration.speed,
+                        values: ScrollSpeed.allCases,
+                        title: { $0.rawValue }
+                    )
+                    Toggle("Reverse scrolling", isOn: $profile.configuration.reverseDirection)
+                }
+
+                Section("Advanced Scrolling") {
+                    profilePicker(
+                        "Smoothness",
+                        selection: $profile.configuration.smoothness,
+                        values: Smoothness.allCases,
+                        title: { $0.rawValue }
+                    )
+
+                    Toggle(
+                        "Minimum wheel step",
+                        isOn: $profile.configuration.minimumStepEnabled
+                    )
+                    HStack {
+                        Slider(
+                            value: $profile.configuration.minimumStepDistance,
+                            in: ScrollStep.range,
+                            step: ScrollStep.increment
+                        )
+                        TextField(
+                            "Step",
+                            value: $profile.configuration.minimumStepDistance,
+                            format: .number.precision(.fractionLength(2))
+                        )
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 65)
+                        Text("pt")
+                            .foregroundStyle(.secondary)
+                    }
+                    .disabled(!profile.configuration.minimumStepEnabled)
+
+                    profilePicker(
+                        "Step multiplier",
+                        selection: $profile.configuration.minimumStepMultiplier,
+                        values: MinimumStepMultiplier.allCases,
+                        title: { $0.title }
+                    )
+                    .disabled(!profile.configuration.minimumStepEnabled)
+
+                    Toggle(
+                        "Adaptive precision",
+                        isOn: $profile.configuration.adaptivePrecision
+                    )
+                    Toggle(
+                        "Scroll acceleration",
+                        isOn: $profile.configuration.accelerationEnabled
+                    )
+                    Toggle(
+                        "Long-distance boost",
+                        isOn: $profile.configuration.longDistanceBoostEnabled
+                    )
+                    Toggle(
+                        "Automatic axis lock",
+                        isOn: $profile.configuration.axisLockEnabled
+                    )
+                    Toggle(
+                        "Trackpad-like gestures",
+                        isOn: $profile.configuration.trackpadSimulation
+                    )
+                }
+            }
+            .formStyle(.grouped)
+
+            Divider()
+
+            HStack {
+                Toggle("Profile enabled", isOn: $profile.isEnabled)
+                Spacer()
+                Button("Cancel", role: .cancel) {
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+                Button("Save") {
+                    profile.configuration.minimumStepDistance = ScrollStep.sanitized(
+                        profile.configuration.minimumStepDistance
+                    )
+                    onSave(profile)
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(16)
+        }
+        .frame(width: 590, height: 570)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Scrolling profile for \(profile.name)")
+    }
+
+    private func profilePicker<Value: Hashable & Identifiable>(
+        _ label: String,
+        selection: Binding<Value>,
+        values: [Value],
+        title: @escaping (Value) -> String
+    ) -> some View {
+        LabeledContent(label) {
+            Picker(label, selection: selection) {
+                ForEach(values) { value in
+                    Text(title(value)).tag(value)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 220)
         }
     }
 }
