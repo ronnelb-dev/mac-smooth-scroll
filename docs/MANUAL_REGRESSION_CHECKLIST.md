@@ -118,15 +118,18 @@ Use the assignments shown in **Modifier Keys** and consult
 Record the app and version used for D2–D3 because magnification and shortcut
 support remain application-specific.
 
-## E. Native scrolling exclusions
+## E. Application profiles and native scrolling exclusions
 
 | ID | Test | Expected result | Result |
 | --- | --- | --- | --- |
-| E1 | Add an application using **Add Application…**, then reopen Settings. | The application remains listed by name and bundle identifier without storing its filesystem path. | |
-| E2 | Use a discrete external wheel while the excluded application is foreground. | The current smooth tail stops and physical wheel events pass through unchanged. | |
-| E3 | Use the wheel in an application that is not excluded. | Smooth scrolling continues normally. | |
-| E4 | Remove an excluded application. | It disappears from the list and smooth scrolling resumes there. | |
-| E5 | Cancel the application picker or select an invalid bundle. | No exclusion is added; invalid selections produce a clear error. | |
+| E1 | Add an application using **Add Profile…** and save customized Feel, Speed, and advanced settings. Reopen Settings. | The profile remains listed by name and bundle identifier, and every customized value is retained without storing the application path. | |
+| E2 | Scroll in the profiled application, then in an unprofiled application. | The profile applies only to the exact foreground bundle identifier; the unprofiled application uses the default scrolling controls. | |
+| E3 | Switch applications while a profiled smooth tail is active. | The old tail ends before the newly selected profile or defaults begin; motion from two profiles is never mixed. | |
+| E4 | Disable a profile, test its application, then enable it again. | Disabled uses defaults without erasing profile values; enabling restores its saved behavior. | |
+| E5 | Add the same application under **Native Scrolling**. | The profile displays a priority notice and physical wheel events pass through unchanged because the exclusion wins. | |
+| E6 | Remove the exclusion while leaving its profile enabled. | Application-specific smooth scrolling resumes immediately. | |
+| E7 | Add an application using **Add Application…**, then reopen Settings. | The exclusion remains listed by name and bundle identifier without storing its filesystem path. | |
+| E8 | Cancel either application picker or select an invalid bundle. | No item is added; invalid selections produce a clear error. | |
 
 ## F. Menu bar and background mode
 

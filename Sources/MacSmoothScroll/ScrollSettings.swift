@@ -5,7 +5,7 @@ import CoreGraphics
 import Foundation
 import ServiceManagement
 
-enum Smoothness: String, CaseIterable, Identifiable {
+enum Smoothness: String, CaseIterable, Codable, Identifiable {
     case low = "Low"
     case medium = "Medium"
     case high = "High"
@@ -21,7 +21,7 @@ enum Smoothness: String, CaseIterable, Identifiable {
     }
 }
 
-enum ScrollSpeed: String, CaseIterable, Identifiable {
+enum ScrollSpeed: String, CaseIterable, Codable, Identifiable {
     case slow = "Slow"
     case medium = "Medium"
     case fast = "Fast"
@@ -76,7 +76,7 @@ enum ScrollStep {
     }
 }
 
-enum MinimumStepMultiplier: String, CaseIterable, Identifiable {
+enum MinimumStepMultiplier: String, CaseIterable, Codable, Identifiable {
     case half = "half"
     case standard = "standard"
     case oneAndHalf = "oneAndHalf"
@@ -106,7 +106,7 @@ enum MinimumStepMultiplier: String, CaseIterable, Identifiable {
     }
 }
 
-enum ScrollFeel: String, CaseIterable, Identifiable {
+enum ScrollFeel: String, CaseIterable, Codable, Identifiable {
     case responsive = "Responsive"
     case balanced = "Balanced"
     case glide = "Glide"
@@ -227,6 +227,7 @@ final class ScrollSettings: ObservableObject {
         static let preciseModifier = "modifier.precise"
         static let bypassModifier = "modifier.bypass"
         static let excludedApplications = "scroll.excludedApplications"
+        static let applicationProfiles = "scroll.applicationProfiles"
         static let showInMenuBar = "app.showInMenuBar"
         static let launchAtLogin = "app.launchAtLogin"
         static let launchAtLoginRegisteredBuild = "app.launchAtLoginRegisteredBuild"
@@ -317,6 +318,12 @@ final class ScrollSettings: ObservableObject {
         didSet {
             let encoded = try? JSONEncoder().encode(excludedApplications)
             persist(Key.excludedApplications, encoded ?? Data())
+        }
+    }
+    @Published private(set) var applicationProfiles: [ApplicationScrollProfile] {
+        didSet {
+            let encoded = try? JSONEncoder().encode(applicationProfiles)
+            persist(Key.applicationProfiles, encoded ?? Data())
         }
     }
     @Published var showInMenuBar: Bool {
@@ -416,6 +423,16 @@ final class ScrollSettings: ObservableObject {
         excludedApplications =
             storedExcludedApplications
                 .flatMap { try? JSONDecoder().decode([ExcludedApplication].self, from: $0) }
+            ?? []
+        let storedApplicationProfiles = defaults.data(forKey: Key.applicationProfiles)
+        applicationProfiles =
+            storedApplicationProfiles
+                .flatMap {
+                    try? JSONDecoder().decode(
+                        [ApplicationScrollProfile].self,
+                        from: $0
+                    )
+                }
             ?? []
         showInMenuBar = defaults.object(forKey: Key.showInMenuBar) as? Bool ?? true
         launchAtLogin = defaults.object(forKey: Key.launchAtLogin) as? Bool ?? false
@@ -582,6 +599,7 @@ final class ScrollSettings: ObservableObject {
         preciseModifier = .option
         bypassModifier = .none
         excludedApplications = []
+        applicationProfiles = []
     }
 
     func resetMinimumStepDistance() {
@@ -659,6 +677,90 @@ final class ScrollSettings: ObservableObject {
 
     var excludedApplicationBundleIdentifiers: Set<String> {
         Set(excludedApplications.map(\.bundleIdentifier))
+    }
+
+    func applicationProfile(at url: URL) throws -> ApplicationScrollProfile {
+        let application = try ExcludedApplication.resolve(at: url)
+        if let existing = applicationProfiles.first(where: {
+            $0.bundleIdentifier == application.bundleIdentifier
+        }) {
+            return existing
+        }
+
+        let profile = ApplicationScrollProfile(
+            bundleIdentifier: application.bundleIdentifier,
+            name: application.name,
+            isEnabled: true,
+            configuration: applicationProfileConfiguration
+        )
+        return profile
+    }
+
+    func upsertApplicationProfile(_ profile: ApplicationScrollProfile) {
+        applicationProfiles.removeAll {
+            $0.bundleIdentifier == profile.bundleIdentifier
+        }
+        applicationProfiles.append(profile.sanitized)
+        applicationProfiles.sort {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    func setApplicationProfileEnabled(
+        _ enabled: Bool,
+        bundleIdentifier: String
+    ) {
+        guard let index = applicationProfiles.firstIndex(where: {
+            $0.bundleIdentifier == bundleIdentifier
+        }) else { return }
+        applicationProfiles[index].isEnabled = enabled
+    }
+
+    func removeApplicationProfile(bundleIdentifier: String) {
+        applicationProfiles.removeAll {
+            $0.bundleIdentifier == bundleIdentifier
+        }
+    }
+
+    func runtimeConfiguration(
+        for bundleIdentifier: String?
+    ) -> ResolvedScrollRuntimeConfiguration {
+        let profile = bundleIdentifier.flatMap { identifier in
+            applicationProfiles.first {
+                $0.isEnabled && $0.bundleIdentifier == identifier
+            }
+        }
+        let scrolling = profile?.configuration ?? applicationProfileConfiguration
+        return ResolvedScrollRuntimeConfiguration(
+            profileBundleIdentifier: profile?.bundleIdentifier,
+            transform: scrolling.transformConfiguration(
+                horizontalModifier: horizontalModifier,
+                zoomModifier: zoomModifier,
+                zoomBehavior: zoomBehavior,
+                swiftModifier: swiftModifier,
+                preciseModifier: preciseModifier
+            ),
+            smoothness: scrolling.smoothness,
+            feel: scrolling.feel,
+            trackpadSimulation: scrolling.trackpadSimulation
+        )
+    }
+
+    var applicationProfileConfiguration: ApplicationScrollConfiguration {
+        ApplicationScrollConfiguration(
+            smoothness: smoothness,
+            speed: speed,
+            minimumStepEnabled: minimumStepEnabled,
+            minimumStepDistance: minimumStepDistance,
+            minimumStepMultiplier: minimumStepMultiplier,
+            feel: feel,
+            trackpadSimulation: trackpadSimulation,
+            reverseDirection: reverseDirection,
+            adaptivePrecision: adaptivePrecision,
+            accelerationEnabled: accelerationEnabled,
+            longDistanceBoostEnabled: longDistanceBoostEnabled,
+            axisLockEnabled: axisLockEnabled
+        )
     }
 
     private func persist(

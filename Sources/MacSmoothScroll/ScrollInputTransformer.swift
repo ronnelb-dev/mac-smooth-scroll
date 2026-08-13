@@ -10,7 +10,7 @@ struct ScrollInputSample {
     let timestamp: TimeInterval
 }
 
-struct ScrollTransformConfiguration {
+struct ScrollTransformConfiguration: Equatable {
     let smoothness: Smoothness
     let speed: ScrollSpeed
     let minimumStepEnabled: Bool

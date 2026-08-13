@@ -9,6 +9,8 @@ event tap. It uses the wheel deltas and active modifier flags to calculate and
 post replacement pixel-scrolling events. When application exclusions are
 configured, it compares the foreground application's bundle identifier with
 the saved exclusion list to decide whether to pass the wheel event through.
+It uses the same bundle identifier comparison to select an explicitly saved
+application profile when one is enabled.
 
 This processing happens in memory. Mac Smooth Scroll does not save or transmit
 raw wheel events, keyboard input, browsing activity, application content, or
@@ -36,6 +38,8 @@ The following choices are stored locally with macOS `UserDefaults`:
 - Modifier assignments, Zoom behavior, and temporary smooth-scrolling bypass
 - Names and bundle identifiers of applications the user excludes from smooth
   scrolling
+- Names, bundle identifiers, enabled state, and copied scrolling choices for
+  application-specific profiles
 - Menu-bar visibility
 - Launch at Login preference and the last registered helper build
 - Whether the first-run setup assistant has been completed
@@ -53,9 +57,11 @@ at Login after an app update. It does not contain login history, account
 identifiers, or device identifiers. These preferences and metadata remain local
 and are not transmitted.
 
-Application exclusions store only the displayed application name and bundle
-identifier. Mac Smooth Scroll does not store application paths, usage history,
-window titles, or the applications where scrolling occurred.
+Application profiles and exclusions store only the displayed application name,
+bundle identifier, and explicitly configured scrolling choices. Profile
+selection compares the current foreground bundle identifier in memory. Mac
+Smooth Scroll does not store application paths, foreground-app history, usage
+history, window titles, or the applications where scrolling occurred.
 
 **Copy Diagnostics** includes the app bundle identifier and reports its
 location only as **Applications** or **Other location**. It does not copy the
