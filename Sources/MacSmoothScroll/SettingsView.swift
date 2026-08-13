@@ -925,6 +925,22 @@ struct SettingsView: View {
                 }
             }
 
+            LabeledContent {
+                Button {
+                    AppExternalLinks.openReleases()
+                } label: {
+                    Label("Check for Updates…", systemImage: "arrow.clockwise")
+                }
+                .accessibilityHint("Open Mac Smooth Scroll releases on GitHub")
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Updates")
+                    Text("Open GitHub Releases to review and download preview builds.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             HStack {
                 Button("Reset Scrolling Settings…") {
                     showingResetConfirmation = true

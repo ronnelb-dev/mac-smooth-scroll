@@ -87,5 +87,10 @@ or include detected utility names in Copy Diagnostics.
 The current source contains no networking, analytics, telemetry, advertising,
 account, cloud-sync, crash-upload, or automatic-update implementation.
 
+Selecting **Check for Updates…** asks macOS to open the project's public
+GitHub Releases page in the default browser. The app does not make the network
+request, receive release information, download a build, or install an update;
+the browser and GitHub apply their own privacy policies to that page.
+
 If a future version adds network functionality, this statement and the
 user-facing documentation should be updated before that version is released.

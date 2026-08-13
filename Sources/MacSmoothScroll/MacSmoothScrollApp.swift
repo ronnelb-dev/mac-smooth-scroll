@@ -271,6 +271,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         open.target = self
         menu.addItem(open)
 
+        let updates = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(checkForUpdates),
+            keyEquivalent: ""
+        )
+        updates.target = self
+        updates.image = symbolImage("arrow.clockwise")
+        menu.addItem(updates)
+
         menu.addItem(.separator())
 
         let quit = NSMenuItem(
@@ -400,6 +409,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     @objc private func openSettings() {
         showSettings()
+    }
+
+    @objc private func checkForUpdates() {
+        AppExternalLinks.openReleases()
     }
 
     @objc private func quitApp() {
