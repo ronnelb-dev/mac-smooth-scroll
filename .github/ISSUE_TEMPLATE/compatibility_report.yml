@@ -13,7 +13,7 @@ body:
     id: app
     attributes:
       label: App version, build, and commit
-      placeholder: "0.5.0 (9), abc1234"
+      placeholder: "0.6.0 (10), abc1234"
     validations:
       required: true
 
