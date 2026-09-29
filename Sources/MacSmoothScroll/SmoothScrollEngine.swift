@@ -48,11 +48,14 @@ final class SmoothScrollEngine {
     private var activeFrontmostBundleIdentifier: String?
     private var profileContextTracker = ApplicationProfileContextTracker()
     private var outputGate = ScrollOutputGate()
+    private var consumedNavigationButtons = MouseButtonConsumptionTracker()
+    private var capturedMouseButtons = MouseButtonConsumptionTracker()
 
     private var eventTapShouldRun: Bool {
         EventTapFeaturePolicy.shouldRun(
             smoothScrollingEnabled: settings.isEnabled,
-            backForwardButtonsEnabled: settings.backForwardButtonsEnabled
+            backForwardButtonsEnabled: settings.backForwardButtonsEnabled,
+            mouseButtonCaptureActive: settings.isMouseButtonCaptureActive
         )
     }
 
@@ -110,7 +113,8 @@ final class SmoothScrollEngine {
 
         let mask = CGEventMask(
             (1 << CGEventType.scrollWheel.rawValue) |
-            (1 << CGEventType.otherMouseDown.rawValue)
+            (1 << CGEventType.otherMouseDown.rawValue) |
+            (1 << CGEventType.otherMouseUp.rawValue)
         )
         let callback: CGEventTapCallBack = { _, type, event, userInfo in
             guard let userInfo else {
@@ -184,6 +188,8 @@ final class SmoothScrollEngine {
         automaticRecoveryPaused = false
         recoveryPolicy.reset()
         settings.cancelWheelCalibration()
+        consumedNavigationButtons.reset()
+        capturedMouseButtons.reset()
         resetMotion()
         tearDownEventTap()
     }
@@ -242,15 +248,43 @@ final class SmoothScrollEngine {
             return Unmanaged.passUnretained(event)
         }
 
+        if type == .otherMouseDown || type == .otherMouseUp {
+            let buttonNumber = event.getIntegerValueField(
+                .mouseEventButtonNumber
+            )
+            if capturedMouseButtons.consumeRelease(for: event) {
+                if capturedMouseButtons.isEmpty {
+                    // Avoid tearing down the event tap from inside its own
+                    // callback when capture was the only active feature.
+                    DispatchQueue.main.async { [weak self] in
+                        self?.settings.finishMouseButtonCaptureLifecycle()
+                    }
+                }
+                return nil
+            }
+            if type == .otherMouseDown,
+                settings.captureMouseButton(buttonNumber) {
+                capturedMouseButtons.record(buttonNumber)
+                return nil
+            }
+            if consumedNavigationButtons.consumeRelease(for: event) {
+                return nil
+            }
+        }
+
         if BackForwardButtonHandler.dispatch(
             event: event,
             isEnabled: settings.backForwardButtonsEnabled,
+            assignments: settings.mouseButtonAssignments,
             bundleIdentifier:
                 NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
             sender: { BackForwardButtonHandler.send($0) }
         ) {
             // Consume the physical auxiliary click and emit the standard
             // navigation shortcut so it works across more applications.
+            consumedNavigationButtons.record(
+                event.getIntegerValueField(.mouseEventButtonNumber)
+            )
             return nil
         }
 

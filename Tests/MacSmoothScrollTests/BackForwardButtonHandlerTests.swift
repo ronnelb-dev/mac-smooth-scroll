@@ -15,6 +15,124 @@ final class BackForwardButtonHandlerTests: XCTestCase {
         XCTAssertEqual(BackForwardButtonHandler.action(for: forward!), .forward)
     }
 
+    func testCustomAuxiliaryButtonsMapToNavigation() {
+        let assignments = MouseButtonAssignments(
+            backButtonNumber: 8,
+            forwardButtonNumber: 9
+        )!
+        let back = auxiliaryEvent(type: .otherMouseDown, buttonNumber: 8)
+        let forward = auxiliaryEvent(type: .otherMouseDown, buttonNumber: 9)
+        let oldDefault = auxiliaryEvent(type: .otherMouseDown, buttonNumber: 3)
+
+        XCTAssertEqual(
+            BackForwardButtonHandler.action(
+                for: back,
+                assignments: assignments
+            ),
+            .back
+        )
+        XCTAssertEqual(
+            BackForwardButtonHandler.action(
+                for: forward,
+                assignments: assignments
+            ),
+            .forward
+        )
+        XCTAssertNil(
+            BackForwardButtonHandler.action(
+                for: oldDefault,
+                assignments: assignments
+            )
+        )
+    }
+
+    func testAssignmentsValidateSupportedDistinctButtonNumbers() {
+        XCTAssertNil(
+            MouseButtonAssignments(backButtonNumber: 2, forwardButtonNumber: 4)
+        )
+        XCTAssertNil(
+            MouseButtonAssignments(backButtonNumber: 3, forwardButtonNumber: 32)
+        )
+        XCTAssertNil(
+            MouseButtonAssignments(backButtonNumber: 7, forwardButtonNumber: 7)
+        )
+        XCTAssertEqual(
+            MouseButtonAssignments.resolved(
+                backButtonNumber: 7,
+                forwardButtonNumber: 7
+            ),
+            .defaults
+        )
+    }
+
+    func testCaptureSessionCompletesAtomicallyAndRejectsDuplicates() {
+        var session = MouseButtonCaptureSession()
+        session.start()
+        XCTAssertEqual(session.state, .awaitingBack)
+        XCTAssertFalse(session.capture(buttonNumber: 2))
+        XCTAssertEqual(session.state, .awaitingBack)
+
+        XCTAssertTrue(session.capture(buttonNumber: 8))
+        XCTAssertEqual(
+            session.state,
+            .awaitingForward(backButtonNumber: 8, validationMessage: nil)
+        )
+        XCTAssertTrue(session.capture(buttonNumber: 8))
+        XCTAssertEqual(
+            session.state,
+            .awaitingForward(
+                backButtonNumber: 8,
+                validationMessage: "Choose a different button for Forward."
+            )
+        )
+        XCTAssertTrue(session.capture(buttonNumber: 9))
+        XCTAssertEqual(
+            session.state,
+            .completed(
+                MouseButtonAssignments(
+                    backButtonNumber: 8,
+                    forwardButtonNumber: 9
+                )!
+            )
+        )
+    }
+
+    func testCaptureCancellationDoesNotCompleteAssignments() {
+        var session = MouseButtonCaptureSession()
+        session.start()
+        XCTAssertTrue(session.capture(buttonNumber: 8))
+        session.cancel()
+        XCTAssertEqual(session.state, .cancelled)
+        XCTAssertFalse(session.capture(buttonNumber: 9))
+    }
+
+    func testConsumptionTrackerConsumesOnlyMatchingButtonUp() {
+        var tracker = MouseButtonConsumptionTracker()
+        tracker.record(8)
+
+        XCTAssertFalse(
+            tracker.consumeRelease(
+                for: auxiliaryEvent(type: .otherMouseDown, buttonNumber: 8)
+            )
+        )
+        XCTAssertFalse(
+            tracker.consumeRelease(
+                for: auxiliaryEvent(type: .otherMouseUp, buttonNumber: 9)
+            )
+        )
+        XCTAssertTrue(
+            tracker.consumeRelease(
+                for: auxiliaryEvent(type: .otherMouseUp, buttonNumber: 8)
+            )
+        )
+        XCTAssertTrue(tracker.isEmpty)
+        XCTAssertFalse(
+            tracker.consumeRelease(
+                for: auxiliaryEvent(type: .otherMouseUp, buttonNumber: 8)
+            )
+        )
+    }
+
     func testUnrelatedEventsAreIgnored() {
         let event = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown,
                             mouseCursorPosition: .zero, mouseButton: .left)
@@ -143,5 +261,25 @@ final class BackForwardButtonHandlerTests: XCTestCase {
             BackForwardButtonHandler.profile(for: "com.example.Unknown"),
             .standard
         )
+    }
+
+    private func auxiliaryEvent(
+        type: CGEventType,
+        buttonNumber: Int64
+    ) -> CGEvent {
+        let mouseType: CGEventType = type == .otherMouseUp
+            ? .otherMouseUp
+            : .otherMouseDown
+        let event = CGEvent(
+            mouseEventSource: nil,
+            mouseType: mouseType,
+            mouseCursorPosition: .zero,
+            mouseButton: .left
+        )!
+        event.setIntegerValueField(
+            .mouseEventButtonNumber,
+            value: buttonNumber
+        )
+        return event
     }
 }

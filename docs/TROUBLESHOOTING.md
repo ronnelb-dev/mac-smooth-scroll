@@ -120,14 +120,22 @@ events from a trackpad or Magic Mouse are passed through unchanged.
 
 - Enable **Back and Forward buttons** under **Modifier Keys → Mouse Buttons**.
 - Confirm Accessibility is ready under **App → System Health**.
+- Select **Configure Buttons…** and press the desired Back and Forward side
+  buttons. The current numeric assignments appear in Settings.
 - Quit Mac Mouse Fix or another utility that may already map the same side
   buttons.
 - Test with the application's default navigation shortcuts. Mac Smooth Scroll
   does not inspect custom editor keybindings.
 
-Buttons 3 and 4 continue working when Smooth Scrolling is off. Unsupported
-buttons and all button events received while the feature or event tap is
-unavailable pass through unchanged.
+The default assignments are Button 3 and Button 4, and configured buttons
+continue working when Smooth Scrolling is off. Unsupported buttons and all
+button events received while the feature or event tap is unavailable pass
+through unchanged.
+
+UGREEN mice should be switched to **Windows/PC mode** before configuration.
+Some UGREEN Mac modes emit keyboard-style commands rather than standard
+auxiliary mouse-button events. Mac Smooth Scroll intentionally does not monitor
+global keyboard input, so those commands cannot be learned safely.
 
 ## Collecting useful information for a bug report
 

@@ -206,9 +206,11 @@ enum SettingsChangeScope: Equatable {
 enum EventTapFeaturePolicy {
     static func shouldRun(
         smoothScrollingEnabled: Bool,
-        backForwardButtonsEnabled: Bool
+        backForwardButtonsEnabled: Bool,
+        mouseButtonCaptureActive: Bool = false
     ) -> Bool {
         smoothScrollingEnabled || backForwardButtonsEnabled
+            || mouseButtonCaptureActive
     }
 }
 
@@ -238,6 +240,8 @@ final class ScrollSettings: ObservableObject {
         static let excludedApplications = "scroll.excludedApplications"
         static let applicationProfiles = "scroll.applicationProfiles"
         static let backForwardButtonsEnabled = "mouse.backForwardButtonsEnabled"
+        static let backButtonNumber = "mouse.backButtonNumber"
+        static let forwardButtonNumber = "mouse.forwardButtonNumber"
         static let showInMenuBar = "app.showInMenuBar"
         static let launchAtLogin = "app.launchAtLogin"
         static let launchAtLoginRegisteredBuild = "app.launchAtLoginRegisteredBuild"
@@ -248,6 +252,7 @@ final class ScrollSettings: ObservableObject {
     private let defaults: UserDefaults
     private let managesLaunchAtLogin: Bool
     private var wheelCalibrationSession: WheelCalibrationSession?
+    private var mouseButtonCaptureSession = MouseButtonCaptureSession()
     var onChange: ((SettingsChangeScope) -> Void)?
     var onOpenSettings: (() -> Void)?
     var onHideApp: (() -> Void)?
@@ -345,6 +350,8 @@ final class ScrollSettings: ObservableObject {
             )
         }
     }
+    @Published private(set) var mouseButtonAssignments: MouseButtonAssignments
+    @Published private(set) var mouseButtonCaptureState: MouseButtonCaptureState = .idle
     @Published var showInMenuBar: Bool {
         didSet { persist(Key.showInMenuBar, showInMenuBar, scope: .menuBarVisibility) }
     }
@@ -456,6 +463,14 @@ final class ScrollSettings: ObservableObject {
         backForwardButtonsEnabled =
             defaults.object(forKey: Key.backForwardButtonsEnabled) as? Bool
             ?? true
+        let storedBackButton = (defaults.object(forKey: Key.backButtonNumber)
+            as? NSNumber)?.int64Value
+        let storedForwardButton = (defaults.object(forKey: Key.forwardButtonNumber)
+            as? NSNumber)?.int64Value
+        mouseButtonAssignments = MouseButtonAssignments.resolved(
+            backButtonNumber: storedBackButton,
+            forwardButtonNumber: storedForwardButton
+        )
         showInMenuBar = defaults.object(forKey: Key.showInMenuBar) as? Bool ?? true
         launchAtLogin = defaults.object(forKey: Key.launchAtLogin) as? Bool ?? false
         onboardingCompleted = defaults.bool(forKey: Key.onboardingCompleted)
@@ -623,6 +638,52 @@ final class ScrollSettings: ObservableObject {
         excludedApplications = []
         applicationProfiles = []
         backForwardButtonsEnabled = true
+        resetMouseButtonAssignments()
+    }
+
+    var isMouseButtonCaptureActive: Bool {
+        mouseButtonCaptureState.isCapturing
+    }
+
+    func startMouseButtonCapture() {
+        mouseButtonCaptureSession.start()
+        mouseButtonCaptureState = mouseButtonCaptureSession.state
+        onChange?(.engineLifecycle)
+    }
+
+    func cancelMouseButtonCapture() {
+        let wasCapturing = isMouseButtonCaptureActive
+        mouseButtonCaptureSession.cancel()
+        mouseButtonCaptureState = mouseButtonCaptureSession.state
+        if wasCapturing {
+            onChange?(.engineLifecycle)
+        }
+    }
+
+    @discardableResult
+    func captureMouseButton(_ buttonNumber: Int64) -> Bool {
+        guard mouseButtonCaptureSession.capture(buttonNumber: buttonNumber)
+        else { return false }
+        mouseButtonCaptureState = mouseButtonCaptureSession.state
+        if case let .completed(assignments) = mouseButtonCaptureState {
+            setMouseButtonAssignments(assignments)
+        }
+        return true
+    }
+
+    func finishMouseButtonCaptureLifecycle() {
+        guard !isMouseButtonCaptureActive else { return }
+        onChange?(.engineLifecycle)
+    }
+
+    func resetMouseButtonAssignments() {
+        setMouseButtonAssignments(.defaults)
+    }
+
+    private func setMouseButtonAssignments(_ assignments: MouseButtonAssignments) {
+        mouseButtonAssignments = assignments
+        defaults.set(assignments.backButtonNumber, forKey: Key.backButtonNumber)
+        defaults.set(assignments.forwardButtonNumber, forKey: Key.forwardButtonNumber)
     }
 
     func resetMinimumStepDistance() {

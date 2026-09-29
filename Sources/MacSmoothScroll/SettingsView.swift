@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var diagnosticsCopied = false
     @State private var applicationSelectionError: String?
     @State private var editingApplicationProfile: ApplicationScrollProfile?
+    @State private var showingMouseButtonConfiguration = false
     @FocusState private var focusedTab: SettingsTab?
 
     var body: some View {
@@ -26,6 +27,10 @@ struct SettingsView: View {
             ApplicationProfileEditorView(profile: profile) { updatedProfile in
                 settings.upsertApplicationProfile(updatedProfile)
             }
+        }
+        .sheet(isPresented: $showingMouseButtonConfiguration) {
+            MouseButtonConfigurationView()
+                .environmentObject(settings)
         }
         .alert("Reset scrolling settings?", isPresented: $showingResetConfirmation) {
             Button("Cancel", role: .cancel) {}
@@ -844,12 +849,33 @@ struct SettingsView: View {
                 }
             }
             .accessibilityHint(
-                "Maps auxiliary mouse button 3 to Back and button 4 to Forward"
+                "Uses the configured auxiliary buttons for Back and Forward"
             )
+
+            LabeledContent("Current assignments") {
+                Text(
+                    "Back: Button \(settings.mouseButtonAssignments.backButtonNumber)  •  Forward: Button \(settings.mouseButtonAssignments.forwardButtonNumber)"
+                )
+                .foregroundStyle(.secondary)
+                .accessibilityLabel(
+                    "Back, button \(settings.mouseButtonAssignments.backButtonNumber). Forward, button \(settings.mouseButtonAssignments.forwardButtonNumber)."
+                )
+            }
+
+            HStack {
+                Button("Configure Buttons…") {
+                    settings.startMouseButtonCapture()
+                    showingMouseButtonConfiguration = true
+                }
+                Button("Reset") {
+                    settings.resetMouseButtonAssignments()
+                }
+                .disabled(settings.mouseButtonAssignments == .defaults)
+            }
         } header: {
             Text("Mouse Buttons")
         } footer: {
-            Text("Uses standard navigation shortcuts for macOS apps, editor-specific shortcuts for supported code editors, and Previous or Next View in Adobe Acrobat.")
+            Text("Button learning requires standard auxiliary events. For UGREEN mice, use Windows or PC mode; Mac mode may emit keyboard shortcuts that cannot be identified safely.")
         }
     }
 
@@ -1243,6 +1269,10 @@ struct SettingsView: View {
             architecture: SystemDiagnostics.currentArchitecture,
             smoothScrollingEnabled: settings.isEnabled,
             backForwardButtonsEnabled: settings.backForwardButtonsEnabled,
+            backButtonNumber:
+                settings.mouseButtonAssignments.backButtonNumber,
+            forwardButtonNumber:
+                settings.mouseButtonAssignments.forwardButtonNumber,
             accessibility: health.accessibility,
             engine: health.engine,
             competingDriver: health.competingDriver,
@@ -1257,6 +1287,123 @@ struct SettingsView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             diagnosticsCopied = false
         }
+    }
+}
+
+private struct MouseButtonConfigurationView: View {
+    @EnvironmentObject private var settings: ScrollSettings
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 22) {
+            Image(systemName: "computermouse.fill")
+                .font(.system(size: 42))
+                .foregroundStyle(.blue)
+                .accessibilityHidden(true)
+
+            VStack(spacing: 6) {
+                Text(title)
+                    .font(.title2.weight(.semibold))
+                Text(instruction)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+
+            statusContent
+
+            Divider()
+
+            HStack {
+                Button("Cancel") {
+                    settings.cancelMouseButtonCapture()
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+                Spacer()
+                if case .completed = settings.mouseButtonCaptureState {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .keyboardShortcut(.defaultAction)
+                }
+            }
+        }
+        .padding(28)
+        .frame(width: 480)
+        .frame(minHeight: 330)
+        .interactiveDismissDisabled(settings.isMouseButtonCaptureActive)
+        .onDisappear {
+            if settings.isMouseButtonCaptureActive {
+                settings.cancelMouseButtonCapture()
+            }
+        }
+    }
+
+    private var title: String {
+        switch settings.mouseButtonCaptureState {
+        case .awaitingBack: "Press the Back button"
+        case .awaitingForward: "Press the Forward button"
+        case .completed: "Buttons configured"
+        case .idle, .cancelled: "Configure mouse buttons"
+        }
+    }
+
+    private var instruction: String {
+        switch settings.mouseButtonCaptureState {
+        case .awaitingBack:
+            "Press the mouse side button you want to use for Back."
+        case let .awaitingForward(backButtonNumber, _):
+            "Button \(backButtonNumber) is assigned to Back. Now press a different side button for Forward."
+        case let .completed(assignments):
+            "Back uses Button \(assignments.backButtonNumber), and Forward uses Button \(assignments.forwardButtonNumber)."
+        case .idle, .cancelled:
+            "Start again from Mouse Buttons settings."
+        }
+    }
+
+    @ViewBuilder
+    private var statusContent: some View {
+        switch settings.mouseButtonCaptureState {
+        case .awaitingBack:
+            captureIndicator(label: "Waiting for Back…", step: "Step 1 of 2")
+        case let .awaitingForward(_, validationMessage):
+            VStack(spacing: 12) {
+                captureIndicator(
+                    label: "Waiting for Forward…",
+                    step: "Step 2 of 2"
+                )
+                if let validationMessage {
+                    Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .accessibilityLabel("Error. \(validationMessage)")
+                }
+            }
+        case .completed:
+            Label("Assignments saved", systemImage: "checkmark.circle.fill")
+                .font(.headline)
+                .foregroundStyle(.green)
+        case .idle, .cancelled:
+            EmptyView()
+        }
+    }
+
+    private func captureIndicator(label: String, step: String) -> some View {
+        VStack(spacing: 8) {
+            ProgressView()
+                .controlSize(.small)
+            Text(label)
+                .font(.headline)
+            Text(step)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text("Only side buttons are accepted. Left, right, and middle clicks are ignored.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
