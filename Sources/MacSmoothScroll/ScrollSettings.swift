@@ -203,6 +203,15 @@ enum SettingsChangeScope: Equatable {
     }
 }
 
+enum EventTapFeaturePolicy {
+    static func shouldRun(
+        smoothScrollingEnabled: Bool,
+        backForwardButtonsEnabled: Bool
+    ) -> Bool {
+        smoothScrollingEnabled || backForwardButtonsEnabled
+    }
+}
+
 final class ScrollSettings: ObservableObject {
     static let launcherBundleIdentifier = "com.ronnel.mac-smooth-scroll.launcher"
 
@@ -228,6 +237,7 @@ final class ScrollSettings: ObservableObject {
         static let bypassModifier = "modifier.bypass"
         static let excludedApplications = "scroll.excludedApplications"
         static let applicationProfiles = "scroll.applicationProfiles"
+        static let backForwardButtonsEnabled = "mouse.backForwardButtonsEnabled"
         static let showInMenuBar = "app.showInMenuBar"
         static let launchAtLogin = "app.launchAtLogin"
         static let launchAtLoginRegisteredBuild = "app.launchAtLoginRegisteredBuild"
@@ -324,6 +334,15 @@ final class ScrollSettings: ObservableObject {
         didSet {
             let encoded = try? JSONEncoder().encode(applicationProfiles)
             persist(Key.applicationProfiles, encoded ?? Data())
+        }
+    }
+    @Published var backForwardButtonsEnabled: Bool {
+        didSet {
+            persist(
+                Key.backForwardButtonsEnabled,
+                backForwardButtonsEnabled,
+                scope: .engineLifecycle
+            )
         }
     }
     @Published var showInMenuBar: Bool {
@@ -434,6 +453,9 @@ final class ScrollSettings: ObservableObject {
                     )
                 }
             ?? []
+        backForwardButtonsEnabled =
+            defaults.object(forKey: Key.backForwardButtonsEnabled) as? Bool
+            ?? true
         showInMenuBar = defaults.object(forKey: Key.showInMenuBar) as? Bool ?? true
         launchAtLogin = defaults.object(forKey: Key.launchAtLogin) as? Bool ?? false
         onboardingCompleted = defaults.bool(forKey: Key.onboardingCompleted)
@@ -600,6 +622,7 @@ final class ScrollSettings: ObservableObject {
         bypassModifier = .none
         excludedApplications = []
         applicationProfiles = []
+        backForwardButtonsEnabled = true
     }
 
     func resetMinimumStepDistance() {

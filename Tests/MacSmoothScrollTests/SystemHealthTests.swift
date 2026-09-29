@@ -132,6 +132,7 @@ final class SystemHealthTests: XCTestCase {
             macOSVersion: "Version 15.5 (Build 24F74)",
             architecture: "arm64",
             smoothScrollingEnabled: true,
+            backForwardButtonsEnabled: true,
             accessibility: .ready,
             engine: .active,
             competingDriver: .clear,
@@ -150,6 +151,7 @@ final class SystemHealthTests: XCTestCase {
             macOS: Version 15.5 (Build 24F74)
             Architecture: arm64
             Smooth scrolling: On
+            Back and Forward buttons: On
             Accessibility: Ready
             Scroll engine: Active
             Mouse driver conflict: No conflict
@@ -195,6 +197,7 @@ final class SystemHealthTests: XCTestCase {
             macOSVersion: "Version 26.5.1",
             architecture: "arm64",
             smoothScrollingEnabled: true,
+            backForwardButtonsEnabled: true,
             accessibility: .permissionRequired,
             engine: .permissionBlocked,
             competingDriver: .clear,
@@ -219,6 +222,7 @@ final class SystemHealthTests: XCTestCase {
             macOSVersion: "Version 26.5.1",
             architecture: "arm64",
             smoothScrollingEnabled: true,
+            backForwardButtonsEnabled: true,
             accessibility: .ready,
             engine: .active,
             competingDriver: .advisory,

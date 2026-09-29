@@ -33,7 +33,7 @@ struct SettingsView: View {
                 settings.resetDefaults()
             }
         } message: {
-            Text("Scrolling, advanced tuning, modifier keys, application profiles, and exclusions will return to their defaults.")
+            Text("Scrolling, advanced tuning, modifier keys, mouse buttons, application profiles, and exclusions will return to their defaults.")
         }
         .alert(
             "Couldn’t Add Application",
@@ -66,6 +66,7 @@ struct SettingsView: View {
         case .modifierKeys:
             settingsPage {
                 modifierSection
+                mouseButtonsSection
                 modifierGuidanceSection
             }
         case .app:
@@ -830,6 +831,28 @@ struct SettingsView: View {
         }
     }
 
+    private var mouseButtonsSection: some View {
+        Section {
+            Toggle(isOn: $settings.backForwardButtonsEnabled) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Back and Forward buttons")
+                    Text(
+                        "Use mouse side buttons to navigate in the foreground application, even when smooth scrolling is off."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .accessibilityHint(
+                "Maps auxiliary mouse button 3 to Back and button 4 to Forward"
+            )
+        } header: {
+            Text("Mouse Buttons")
+        } footer: {
+            Text("Uses standard navigation shortcuts for macOS apps, editor-specific shortcuts for supported code editors, and Previous or Next View in Adobe Acrobat.")
+        }
+    }
+
     private var nativeScrollingSection: some View {
         Section {
             if settings.excludedApplications.isEmpty {
@@ -1219,6 +1242,7 @@ struct SettingsView: View {
             macOSVersion: ProcessInfo.processInfo.operatingSystemVersionString,
             architecture: SystemDiagnostics.currentArchitecture,
             smoothScrollingEnabled: settings.isEnabled,
+            backForwardButtonsEnabled: settings.backForwardButtonsEnabled,
             accessibility: health.accessibility,
             engine: health.engine,
             competingDriver: health.competingDriver,

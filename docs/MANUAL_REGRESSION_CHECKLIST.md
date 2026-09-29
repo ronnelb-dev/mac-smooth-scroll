@@ -131,6 +131,14 @@ support remain application-specific.
 | E7 | Add an application using **Add Application…**, then reopen Settings. | The exclusion remains listed by name and bundle identifier without storing its filesystem path. | |
 | E8 | Cancel either application picker or select an invalid bundle. | No item is added; invalid selections produce a clear error. | |
 
+## E9. Back and Forward mouse buttons
+
+| ID | Test | Expected result | Result |
+| --- | --- | --- | --- |
+| E9 | Enable **Back and Forward buttons**, then press mouse buttons 3 and 4 in Safari/Chrome, Preview, Notes, System Settings, App Store, Music, Adobe Acrobat, Zotero, VS Code, Cursor, VSCodium, Windsurf, and Zed. | Back and Forward navigate the current app. Code editors use Go Back/Go Forward rather than changing indentation; Acrobat changes document view history. | |
+| E10 | Turn Smooth Scrolling off while Back and Forward buttons remain enabled. | Wheel events remain native while buttons 3 and 4 continue navigating. | |
+| E11 | Turn Back and Forward buttons off, then press buttons 3, 4, and another auxiliary button. | Every physical button event passes through unchanged. | |
+
 ## F. Menu bar and background mode
 
 | ID | Test | Expected result | Result |

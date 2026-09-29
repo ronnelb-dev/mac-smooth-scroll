@@ -49,6 +49,17 @@ final class SmoothScrollEngine {
     private var profileContextTracker = ApplicationProfileContextTracker()
     private var outputGate = ScrollOutputGate()
 
+    private var eventTapShouldRun: Bool {
+        EventTapFeaturePolicy.shouldRun(
+            smoothScrollingEnabled: settings.isEnabled,
+            backForwardButtonsEnabled: settings.backForwardButtonsEnabled
+        )
+    }
+
+    private var runningEngineStatus: ScrollEngineStatus {
+        settings.isEnabled ? .active : .disabled
+    }
+
     init(settings: ScrollSettings) {
         self.settings = settings
     }
@@ -64,7 +75,7 @@ final class SmoothScrollEngine {
     }
 
     private func refresh(isAutomaticRecovery: Bool) {
-        guard settings.isEnabled else {
+        guard eventTapShouldRun else {
             stop()
             settings.engineStatus = .disabled
             return
@@ -90,14 +101,17 @@ final class SmoothScrollEngine {
         if let eventTap {
             if CGEvent.tapIsEnabled(tap: eventTap) {
                 outputGate.restore()
-                settings.engineStatus = .active
+                settings.engineStatus = runningEngineStatus
             } else {
                 scheduleEventTapRebuild()
             }
             return
         }
 
-        let mask = CGEventMask(1 << CGEventType.scrollWheel.rawValue)
+        let mask = CGEventMask(
+            (1 << CGEventType.scrollWheel.rawValue) |
+            (1 << CGEventType.otherMouseDown.rawValue)
+        )
         let callback: CGEventTapCallBack = { _, type, event, userInfo in
             guard let userInfo else {
                 return Unmanaged.passUnretained(event)
@@ -130,7 +144,7 @@ final class SmoothScrollEngine {
                 recoveryPolicy.reset()
             }
             outputGate.restore()
-            settings.engineStatus = .active
+            settings.engineStatus = runningEngineStatus
         } else {
             tearDownEventTap()
             handleStartFailure(isAutomaticRecovery: isAutomaticRecovery)
@@ -147,7 +161,7 @@ final class SmoothScrollEngine {
     }
 
     func auditHealth() {
-        guard settings.isEnabled,
+        guard eventTapShouldRun,
               settings.permissionGranted,
               !settings.competingDriverRunning,
               let eventTap
@@ -157,7 +171,7 @@ final class SmoothScrollEngine {
 
         if CGEvent.tapIsEnabled(tap: eventTap) {
             if settings.engineStatus == .recovering {
-                settings.engineStatus = .active
+                settings.engineStatus = runningEngineStatus
             }
         } else {
             recoverEventTap(after: .healthCheck)
@@ -224,7 +238,27 @@ final class SmoothScrollEngine {
             return Unmanaged.passUnretained(event)
         }
 
+        guard outputGate.isAvailable else {
+            return Unmanaged.passUnretained(event)
+        }
+
+        if BackForwardButtonHandler.dispatch(
+            event: event,
+            isEnabled: settings.backForwardButtonsEnabled,
+            bundleIdentifier:
+                NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
+            sender: { BackForwardButtonHandler.send($0) }
+        ) {
+            // Consume the physical auxiliary click and emit the standard
+            // navigation shortcut so it works across more applications.
+            return nil
+        }
+
         guard type == .scrollWheel else {
+            return Unmanaged.passUnretained(event)
+        }
+
+        guard settings.isEnabled else {
             return Unmanaged.passUnretained(event)
         }
 
@@ -289,7 +323,7 @@ final class SmoothScrollEngine {
 
     private func recoverEventTap(after reason: EventTapDisableReason) {
         guard !recoveryScheduled, !automaticRecoveryPaused else { return }
-        settings.engineStatus = .recovering
+        settings.engineStatus = settings.isEnabled ? .recovering : .disabled
         let action = recoveryPolicy.action(
             for: reason,
             at: ProcessInfo.processInfo.systemUptime
@@ -303,7 +337,7 @@ final class SmoothScrollEngine {
             }
             CGEvent.tapEnable(tap: eventTap, enable: true)
             if CGEvent.tapIsEnabled(tap: eventTap) {
-                settings.engineStatus = .active
+                settings.engineStatus = runningEngineStatus
             } else {
                 recoverEventTap(after: .healthCheck)
             }
@@ -325,7 +359,7 @@ final class SmoothScrollEngine {
 
     private func scheduleEventTapRebuild() {
         guard !recoveryScheduled else { return }
-        settings.engineStatus = .recovering
+        settings.engineStatus = settings.isEnabled ? .recovering : .disabled
         recoveryScheduled = true
         recoveryGeneration &+= 1
         let generation = recoveryGeneration

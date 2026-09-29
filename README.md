@@ -180,6 +180,16 @@ reopened.
   a wrong-direction nudge. Turn it off to preserve both axes unchanged.
 - Enable **Trackpad-like gestures** to add gesture phases used by natural
   scrolling and horizontal navigation.
+- Enable **Back and Forward buttons** under **Modifier Keys → Mouse Buttons**
+  to map side buttons 3 and 4 to navigation, even when Smooth Scrolling is
+  off. Mac Smooth Scroll
+  uses standard `⌘[`/`⌘]` shortcuts for Apple apps, Preview, Notes, System
+  Settings, App Store, Music, Zotero, and other Cocoa apps. VS Code, Cursor,
+  VSCodium, Windsurf, and Zed use their editor navigation shortcuts instead
+  of indentation commands; Adobe Acrobat uses Previous/Next View. The
+  physical button click is consumed only while the feature and event tap are
+  active, so it passes through unchanged when navigation is off or the engine
+  is unavailable.
 - Under **Mouse Calibration**, select **Start Calibration…**, then move one
   external mouse wheel normally until analysis finishes. The result identifies
   notched, high-resolution/free-spinning, mixed, or native continuous input and

@@ -42,6 +42,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(settings.preciseModifier, .option)
         XCTAssertEqual(settings.bypassModifier, .none)
         XCTAssertTrue(settings.excludedApplications.isEmpty)
+        XCTAssertTrue(settings.backForwardButtonsEnabled)
         XCTAssertTrue(settings.showInMenuBar)
         XCTAssertFalse(settings.launchAtLogin)
         XCTAssertEqual(settings.launchAtLoginHealthStatus, .disabled)
@@ -77,6 +78,7 @@ final class ScrollSettingsTests: XCTestCase {
                 name: "Remote Desktop"
             )
         )
+        settings.backForwardButtonsEnabled = false
         settings.showInMenuBar = false
         settings.launchAtLogin = true
         settings.selectedTab = .app
@@ -110,6 +112,7 @@ final class ScrollSettingsTests: XCTestCase {
                 )
             ]
         )
+        XCTAssertFalse(reloaded.backForwardButtonsEnabled)
         XCTAssertFalse(reloaded.showInMenuBar)
         XCTAssertTrue(reloaded.launchAtLogin)
         XCTAssertEqual(reloaded.selectedTab, .app)
@@ -142,6 +145,7 @@ final class ScrollSettingsTests: XCTestCase {
                 name: "Example Game"
             )
         )
+        settings.backForwardButtonsEnabled = false
         settings.showInMenuBar = false
         settings.launchAtLogin = true
 
@@ -167,6 +171,7 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(settings.preciseModifier, .option)
         XCTAssertEqual(settings.bypassModifier, .none)
         XCTAssertTrue(settings.excludedApplications.isEmpty)
+        XCTAssertTrue(settings.backForwardButtonsEnabled)
         XCTAssertFalse(settings.showInMenuBar)
         XCTAssertTrue(settings.launchAtLogin)
     }
@@ -183,6 +188,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.isEnabled = false
         settings.showInMenuBar = false
         settings.launchAtLogin = true
+        settings.backForwardButtonsEnabled = false
 
         XCTAssertEqual(
             scopes,
@@ -191,8 +197,36 @@ final class ScrollSettingsTests: XCTestCase {
                 .menuBarPresentation,
                 .engineLifecycle,
                 .menuBarVisibility,
-                .applicationPreference
+                .applicationPreference,
+                .engineLifecycle
             ]
+        )
+    }
+
+    func testEventTapRunsWhenEitherInputFeatureIsEnabled() {
+        XCTAssertFalse(
+            EventTapFeaturePolicy.shouldRun(
+                smoothScrollingEnabled: false,
+                backForwardButtonsEnabled: false
+            )
+        )
+        XCTAssertTrue(
+            EventTapFeaturePolicy.shouldRun(
+                smoothScrollingEnabled: true,
+                backForwardButtonsEnabled: false
+            )
+        )
+        XCTAssertTrue(
+            EventTapFeaturePolicy.shouldRun(
+                smoothScrollingEnabled: false,
+                backForwardButtonsEnabled: true
+            )
+        )
+        XCTAssertTrue(
+            EventTapFeaturePolicy.shouldRun(
+                smoothScrollingEnabled: true,
+                backForwardButtonsEnabled: true
+            )
         )
     }
 
