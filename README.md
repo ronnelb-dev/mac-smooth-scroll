@@ -180,6 +180,20 @@ reopened.
   a wrong-direction nudge. Turn it off to preserve both axes unchanged.
 - Enable **Trackpad-like gestures** to add gesture phases used by natural
   scrolling and horizontal navigation.
+- Enable **Back and Forward buttons** under **Modifier Keys → Mouse Buttons**
+  to map mouse side buttons to navigation, even when Smooth Scrolling is off.
+  Defaults are Button 3 for Back and Button 4 for Forward. Select
+  **Configure Buttons…** to press and learn different standard auxiliary
+  buttons, or **Reset** to restore the defaults. Mac Smooth Scroll
+  uses standard `⌘[`/`⌘]` shortcuts for Apple apps, Preview, Notes, System
+  Settings, App Store, Music, Zotero, and other Cocoa apps. VS Code, Cursor,
+  VSCodium, Windsurf, and Zed use their editor navigation shortcuts instead
+  of indentation commands; Adobe Acrobat uses Previous/Next View. The
+  physical button click is consumed only while the feature and event tap are
+  active, so it passes through unchanged when navigation is off or the engine
+  is unavailable. UGREEN mice must be in Windows/PC mode for button learning;
+  Mac mode may emit keyboard shortcuts that cannot be distinguished safely
+  from real keyboard input.
 - Under **Mouse Calibration**, select **Start Calibration…**, then move one
   external mouse wheel normally until analysis finishes. The result identifies
   notched, high-resolution/free-spinning, mixed, or native continuous input and
@@ -288,7 +302,7 @@ advisory only. See the complete [privacy statement](docs/PRIVACY.md).
 
 **Copy Diagnostics** copies app version, bundle identifier, whether the running
 copy is in Applications, macOS version, architecture, and the current System
-Health states. It does not include usernames, paths, mouse activity,
+Health states and the saved Back/Forward button numbers. It does not include usernames, paths, mouse activity,
 certificates, device identifiers, or wheel-event contents.
 
 ## Troubleshooting

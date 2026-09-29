@@ -107,6 +107,9 @@ struct SystemDiagnostics: Equatable {
     let macOSVersion: String
     let architecture: String
     let smoothScrollingEnabled: Bool
+    let backForwardButtonsEnabled: Bool
+    let backButtonNumber: Int64
+    let forwardButtonNumber: Int64
     let accessibility: AccessibilityHealthStatus
     let engine: ScrollEngineStatus
     let competingDriver: CompetingDriverHealthStatus
@@ -126,6 +129,9 @@ struct SystemDiagnostics: Equatable {
             "macOS: \(macOSVersion)",
             "Architecture: \(architecture)",
             "Smooth scrolling: \(onOff(smoothScrollingEnabled))",
+            "Back and Forward buttons: \(onOff(backForwardButtonsEnabled))",
+            "Back button assignment: Button \(backButtonNumber)",
+            "Forward button assignment: Button \(forwardButtonNumber)",
             "Accessibility: \(accessibility.rawValue)",
             "Scroll engine: \(engine.rawValue)",
             "Mouse driver conflict: \(competingDriver.rawValue)",

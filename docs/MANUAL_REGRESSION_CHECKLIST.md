@@ -131,6 +131,18 @@ support remain application-specific.
 | E7 | Add an application using **Add Application…**, then reopen Settings. | The exclusion remains listed by name and bundle identifier without storing its filesystem path. | |
 | E8 | Cancel either application picker or select an invalid bundle. | No item is added; invalid selections produce a clear error. | |
 
+## E9. Back and Forward mouse buttons
+
+| ID | Test | Expected result | Result |
+| --- | --- | --- | --- |
+| E9 | With a mouse in Windows/PC mode, select **Configure Buttons…**, assign two non-default side buttons, and finish the two-step flow. | Each valid press is consumed, duplicate assignments show an error, and both assignments are saved together only after two distinct buttons are selected. | |
+| E10 | Cancel configuration after assigning only Back, then reopen Settings. | The previous Back and Forward assignments remain unchanged. | |
+| E11 | Test the configured buttons in Safari/Chrome, Preview, Notes, System Settings, App Store, Music, Adobe Acrobat, Zotero, VS Code, Cursor, VSCodium, Windsurf, Zed, and an unknown app. | Back and Forward navigate the current app. Code editors use Go Back/Go Forward rather than changing indentation; Acrobat changes document view history. | |
+| E12 | Turn Smooth Scrolling off while Back and Forward buttons remain enabled. | Wheel events remain native while the configured buttons continue navigating. | |
+| E13 | Turn both Smooth Scrolling and Back/Forward off, then start button configuration. | The event tap remains available during learning and stops after the captured button-up when configuration finishes or is cancelled. | |
+| E14 | Turn Back and Forward buttons off, then press the configured and another auxiliary button. | Every physical button event passes through unchanged. | |
+| E15 | Select **Reset** after custom configuration. | Assignments return to Back Button 3 and Forward Button 4. | |
+
 ## F. Menu bar and background mode
 
 | ID | Test | Expected result | Result |

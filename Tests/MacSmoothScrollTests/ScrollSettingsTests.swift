@@ -42,6 +42,8 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(settings.preciseModifier, .option)
         XCTAssertEqual(settings.bypassModifier, .none)
         XCTAssertTrue(settings.excludedApplications.isEmpty)
+        XCTAssertTrue(settings.backForwardButtonsEnabled)
+        XCTAssertEqual(settings.mouseButtonAssignments, .defaults)
         XCTAssertTrue(settings.showInMenuBar)
         XCTAssertFalse(settings.launchAtLogin)
         XCTAssertEqual(settings.launchAtLoginHealthStatus, .disabled)
@@ -77,6 +79,8 @@ final class ScrollSettingsTests: XCTestCase {
                 name: "Remote Desktop"
             )
         )
+        settings.backForwardButtonsEnabled = false
+        configureButtons(settings, back: 8, forward: 9)
         settings.showInMenuBar = false
         settings.launchAtLogin = true
         settings.selectedTab = .app
@@ -110,6 +114,11 @@ final class ScrollSettingsTests: XCTestCase {
                 )
             ]
         )
+        XCTAssertFalse(reloaded.backForwardButtonsEnabled)
+        XCTAssertEqual(
+            reloaded.mouseButtonAssignments,
+            MouseButtonAssignments(backButtonNumber: 8, forwardButtonNumber: 9)
+        )
         XCTAssertFalse(reloaded.showInMenuBar)
         XCTAssertTrue(reloaded.launchAtLogin)
         XCTAssertEqual(reloaded.selectedTab, .app)
@@ -142,6 +151,8 @@ final class ScrollSettingsTests: XCTestCase {
                 name: "Example Game"
             )
         )
+        settings.backForwardButtonsEnabled = false
+        configureButtons(settings, back: 8, forward: 9)
         settings.showInMenuBar = false
         settings.launchAtLogin = true
 
@@ -167,6 +178,8 @@ final class ScrollSettingsTests: XCTestCase {
         XCTAssertEqual(settings.preciseModifier, .option)
         XCTAssertEqual(settings.bypassModifier, .none)
         XCTAssertTrue(settings.excludedApplications.isEmpty)
+        XCTAssertTrue(settings.backForwardButtonsEnabled)
+        XCTAssertEqual(settings.mouseButtonAssignments, .defaults)
         XCTAssertFalse(settings.showInMenuBar)
         XCTAssertTrue(settings.launchAtLogin)
     }
@@ -183,6 +196,7 @@ final class ScrollSettingsTests: XCTestCase {
         settings.isEnabled = false
         settings.showInMenuBar = false
         settings.launchAtLogin = true
+        settings.backForwardButtonsEnabled = false
 
         XCTAssertEqual(
             scopes,
@@ -191,8 +205,92 @@ final class ScrollSettingsTests: XCTestCase {
                 .menuBarPresentation,
                 .engineLifecycle,
                 .menuBarVisibility,
-                .applicationPreference
+                .applicationPreference,
+                .engineLifecycle
             ]
+        )
+    }
+
+    func testEventTapRunsWhenEitherInputFeatureIsEnabled() {
+        XCTAssertFalse(
+            EventTapFeaturePolicy.shouldRun(
+                smoothScrollingEnabled: false,
+                backForwardButtonsEnabled: false
+            )
+        )
+        XCTAssertTrue(
+            EventTapFeaturePolicy.shouldRun(
+                smoothScrollingEnabled: true,
+                backForwardButtonsEnabled: false
+            )
+        )
+        XCTAssertTrue(
+            EventTapFeaturePolicy.shouldRun(
+                smoothScrollingEnabled: false,
+                backForwardButtonsEnabled: true
+            )
+        )
+        XCTAssertTrue(
+            EventTapFeaturePolicy.shouldRun(
+                smoothScrollingEnabled: true,
+                backForwardButtonsEnabled: true
+            )
+        )
+        XCTAssertTrue(
+            EventTapFeaturePolicy.shouldRun(
+                smoothScrollingEnabled: false,
+                backForwardButtonsEnabled: false,
+                mouseButtonCaptureActive: true
+            )
+        )
+    }
+
+    func testInvalidOrDuplicatePersistedButtonsFallBackToDefaults() {
+        defaults.set(8, forKey: "mouse.backButtonNumber")
+        defaults.set(8, forKey: "mouse.forwardButtonNumber")
+        XCTAssertEqual(makeSettings().mouseButtonAssignments, .defaults)
+
+        defaults.set(2, forKey: "mouse.backButtonNumber")
+        defaults.set(40, forKey: "mouse.forwardButtonNumber")
+        XCTAssertEqual(makeSettings().mouseButtonAssignments, .defaults)
+    }
+
+    func testButtonCapturePersistsOnlyAfterBothButtonsAreValid() {
+        let settings = makeSettings()
+        var lifecycleRefreshes = 0
+        settings.onChange = { scope in
+            if scope == .engineLifecycle { lifecycleRefreshes += 1 }
+        }
+
+        settings.startMouseButtonCapture()
+        XCTAssertEqual(lifecycleRefreshes, 1)
+        XCTAssertTrue(settings.isMouseButtonCaptureActive)
+        XCTAssertTrue(settings.captureMouseButton(8))
+        XCTAssertEqual(settings.mouseButtonAssignments, .defaults)
+        XCTAssertEqual(makeSettings().mouseButtonAssignments, .defaults)
+
+        XCTAssertTrue(settings.captureMouseButton(9))
+        XCTAssertFalse(settings.isMouseButtonCaptureActive)
+        XCTAssertEqual(
+            settings.mouseButtonAssignments,
+            MouseButtonAssignments(backButtonNumber: 8, forwardButtonNumber: 9)
+        )
+        settings.finishMouseButtonCaptureLifecycle()
+        XCTAssertEqual(lifecycleRefreshes, 2)
+        XCTAssertEqual(makeSettings().mouseButtonAssignments, settings.mouseButtonAssignments)
+    }
+
+    func testCancellingButtonCaptureRetainsExistingAssignments() {
+        let settings = makeSettings()
+        configureButtons(settings, back: 8, forward: 9)
+        settings.startMouseButtonCapture()
+        XCTAssertTrue(settings.captureMouseButton(10))
+        settings.cancelMouseButtonCapture()
+
+        XCTAssertEqual(settings.mouseButtonCaptureState, .cancelled)
+        XCTAssertEqual(
+            settings.mouseButtonAssignments,
+            MouseButtonAssignments(backButtonNumber: 8, forwardButtonNumber: 9)
         )
     }
 
@@ -508,5 +606,16 @@ final class ScrollSettingsTests: XCTestCase {
             defaults: defaults,
             managesLaunchAtLogin: false
         )
+    }
+
+    private func configureButtons(
+        _ settings: ScrollSettings,
+        back: Int64,
+        forward: Int64
+    ) {
+        settings.startMouseButtonCapture()
+        XCTAssertTrue(settings.captureMouseButton(back))
+        XCTAssertTrue(settings.captureMouseButton(forward))
+        settings.finishMouseButtonCaptureLifecycle()
     }
 }

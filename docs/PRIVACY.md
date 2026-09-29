@@ -12,6 +12,12 @@ the saved exclusion list to decide whether to pass the wheel event through.
 It uses the same bundle identifier comparison to select an explicitly saved
 application profile when one is enabled.
 
+When Back and Forward buttons are enabled, the app reads the foreground
+application’s bundle identifier in memory to choose a compatible navigation
+shortcut. During the explicit two-step configuration flow, it reads only the
+numeric identifier attached to standard auxiliary mouse-button events. It does
+not retain foreground-application history or install a keyboard event tap.
+
 This processing happens in memory. Mac Smooth Scroll does not save or transmit
 raw wheel events, keyboard input, browsing activity, application content, or
 mouse usage history.
@@ -36,6 +42,8 @@ The following choices are stored locally with macOS `UserDefaults`:
   scroll acceleration, and long-distance boost
 - Whether automatic axis locking is enabled
 - Modifier assignments, Zoom behavior, and temporary smooth-scrolling bypass
+- Whether Back and Forward mouse buttons are enabled and their assigned
+  auxiliary button numbers
 - Names and bundle identifiers of applications the user excludes from smooth
   scrolling
 - Names, bundle identifiers, enabled state, and copied scrolling choices for
@@ -64,18 +72,21 @@ Smooth Scroll does not store application paths, foreground-app history, usage
 history, window titles, or the applications where scrolling occurred.
 
 **Copy Diagnostics** includes the app bundle identifier and reports its
-location only as **Applications** or **Other location**. It does not copy the
-filesystem path.
+location only as **Applications** or **Other location**, plus the configured
+Back and Forward button numbers. It does not copy the filesystem path.
 
 ## Permissions
 
 Accessibility permission allows the app to intercept and replace mouse-wheel
-events. Mac Smooth Scroll checks this permission with the public macOS
+events and, when enabled, translate auxiliary mouse buttons into navigation
+shortcuts. Mac Smooth Scroll checks this permission with the public macOS
 Accessibility APIs.
 
 The app does not use Accessibility permission to read application content or
-record keyboard input. It checks only modifier flags attached to wheel events;
-it does not install a global keyboard hook. Page zoom reads the active macOS
+record keyboard input. It checks only modifier flags attached to wheel events
+and button numbers attached to auxiliary mouse events; it does not install a
+global keyboard hook. Back and Forward posts only the documented navigation
+shortcut selected for the foreground app. Page zoom reads the active macOS
 keyboard-layout definition to locate the `+` and `-` shortcuts. It does not
 read, store, or transmit typed characters or keyboard activity.
 

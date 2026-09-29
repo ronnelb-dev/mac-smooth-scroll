@@ -132,6 +132,9 @@ final class SystemHealthTests: XCTestCase {
             macOSVersion: "Version 15.5 (Build 24F74)",
             architecture: "arm64",
             smoothScrollingEnabled: true,
+            backForwardButtonsEnabled: true,
+            backButtonNumber: 3,
+            forwardButtonNumber: 4,
             accessibility: .ready,
             engine: .active,
             competingDriver: .clear,
@@ -150,6 +153,9 @@ final class SystemHealthTests: XCTestCase {
             macOS: Version 15.5 (Build 24F74)
             Architecture: arm64
             Smooth scrolling: On
+            Back and Forward buttons: On
+            Back button assignment: Button 3
+            Forward button assignment: Button 4
             Accessibility: Ready
             Scroll engine: Active
             Mouse driver conflict: No conflict
@@ -161,6 +167,12 @@ final class SystemHealthTests: XCTestCase {
         XCTAssertFalse(diagnostics.report.contains("/Users/"))
         XCTAssertFalse(diagnostics.report.localizedCaseInsensitiveContains("certificate"))
         XCTAssertFalse(diagnostics.report.localizedCaseInsensitiveContains("mouse activity"))
+        XCTAssertTrue(
+            diagnostics.report.contains("Back button assignment: Button 3")
+        )
+        XCTAssertTrue(
+            diagnostics.report.contains("Forward button assignment: Button 4")
+        )
     }
 
     func testRecoveryMethodsUseInjectedRuntimeCallbacks() {
@@ -195,6 +207,9 @@ final class SystemHealthTests: XCTestCase {
             macOSVersion: "Version 26.5.1",
             architecture: "arm64",
             smoothScrollingEnabled: true,
+            backForwardButtonsEnabled: true,
+            backButtonNumber: 3,
+            forwardButtonNumber: 4,
             accessibility: .permissionRequired,
             engine: .permissionBlocked,
             competingDriver: .clear,
@@ -219,6 +234,9 @@ final class SystemHealthTests: XCTestCase {
             macOSVersion: "Version 26.5.1",
             architecture: "arm64",
             smoothScrollingEnabled: true,
+            backForwardButtonsEnabled: true,
+            backButtonNumber: 8,
+            forwardButtonNumber: 9,
             accessibility: .ready,
             engine: .active,
             competingDriver: .advisory,
